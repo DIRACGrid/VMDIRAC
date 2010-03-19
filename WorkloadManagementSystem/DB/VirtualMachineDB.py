@@ -24,9 +24,6 @@
 
   Instance UniqueID: depends on Flavor, for KVM it could be the MAC, for Amazon the returned InstanceID(i-5dec3236)
 
-
-
-
 """
 
 __RCSID__ = "$Id$"
@@ -89,7 +86,7 @@ class VirtualMachineDB( DB ):
                                  'Indexes': { 'VMInstanceID': [ 'VMInstanceID' ] },
                                }
 
-  def __init__( self, maxQueueSize=10 ):
+  def __init__( self, maxQueueSize = 10 ):
     DB.__init__( self, 'VirtualMachineDB', 'WorkloadManagement/VirtualMachineDB', maxQueueSize )
     if not self._MySQL__initialized:
       raise Exception( 'Can not connect to VirtualMachineDB, exiting...' )
@@ -388,7 +385,7 @@ class VirtualMachineDB( DB ):
       return DIRAC.S_OK( id )
     return DIRAC.S_ERROR( 'Failed to insert new Image' )
 
-  def __addInstanceHistory( self, instanceID, status, load=0.0 ):
+  def __addInstanceHistory( self, instanceID, status, load = 0.0 ):
     """
     Insert a History Record
     """

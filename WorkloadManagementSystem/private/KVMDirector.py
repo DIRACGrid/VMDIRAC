@@ -5,14 +5,14 @@
 ########################################################################
 __RCSID__ = "$Id: KVMDirector.py 16 2010-03-15 11:39:29Z ricardo.graciani@gmail.com $"
 
-from DIRAC.WorkloadManagementSystem.private.VMDirector import VMDirector
+from BelleDIRAC.WorkloadManagementSystem.private.VMDirector import VMDirector
 
 class KVMDirector( VMDirector ):
   def __init__( self, submitPool ):
     self.Flavor = 'KVM'
     VMDirector.__init__( self, submitPool )
 
-  def configure(self, csSection, submitPool ):
+  def configure( self, csSection, submitPool ):
     """
      Here goes common configuration for Amazon Director
     """

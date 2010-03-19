@@ -1,10 +1,10 @@
 ########################################################################
-# $HeadURL: https://dirac-grid.googlecode.com/svn/BelleDIRAC/trunk/BelleDIRAC/WorkloadManagementSystem/Agent/VirtualMachineAgent.py $
-# File :   VirtualMachineAgent.py
+# $HeadURL$
+# File :   VirtualMachineScheduler.py
 # Author : Ricardo Graciani
 ########################################################################
 
-"""  The Virtual Machine Agent controls the submission of VM via the
+"""  The Virtual Machine Scheduler controls the submission of VM via the
      appropriated Directors. These are Backend-specific VMDirector derived classes.
      This is a simple wrapper that performs the instantiation and monitoring
      of the VMDirector instances and add workload to them via ThreadPool
@@ -75,7 +75,7 @@
 
 
 """
-__RCSID__ = "$Id: VirtualMachineAgent.py 16 2010-03-15 11:39:29Z ricardo.graciani@gmail.com $"
+__RCSID__ = "$Id$"
 
 from DIRAC.Core.Base.AgentModule import AgentModule
 
@@ -94,9 +94,9 @@ import DIRAC
 
 random.seed()
 
-class VirtualMachineAgent(AgentModule):
+class VirtualMachineScheduler( AgentModule ):
 
-  def initialize(self):
+  def initialize( self ):
     """ Standard constructor
     """
     import threading
@@ -124,7 +124,7 @@ class VirtualMachineAgent(AgentModule):
 
     return DIRAC.S_OK()
 
-  def execute(self):
+  def execute( self ):
     """Main Agent code:
       1.- Query TaskQueueDB for existing TQs
       2.- Count Pending Jobs
@@ -133,102 +133,73 @@ class VirtualMachineAgent(AgentModule):
 
     self.__checkSubmitPools()
 
+    imagesToSubmit = {}
+
     for directorName, directorDict in self.directors.items():
+      print directorDict['director'].images
+      self.log.verbose( 'Checking Director:', directorName )
       for imageName in directorDict['director'].images:
-        imageRequirementsDict = directorDict['director'].imagesRequirementsDict[imageName]
+        imageDict = directorDict['director'].images[imageName]
+        instances = 0
+        result = virtualMachineDB.getInstancesByStatus( 'Running' )
+        if result['OK'] and imageName in result['Value']:
+          instances += len( result['Value'][imageName] )
+        result = virtualMachineDB.getInstancesByStatus( 'Submitted' )
+        if result['OK'] and imageName in result['Value']:
+          instances += len( result['Value'][imageName] )
+        self.log.verbose( 'Checking Image %s:' % imageName, instances )
+        maxInstances = imageDict['MaxInstances']
+        if instances >= maxInstances:
+          self.log.info( '%s >= %s Running instances of %s, skipping' % ( instances, maxInstances, imageName ) )
+          continue
+
+        imageRequirementsDict = imageDict['RequirementsDict']
         result = taskQueueDB.getMatchingTaskQueues( imageRequirementsDict )
         if not result['OK']:
           self.log.error( 'Could not retrieve TaskQueues from TaskQueueDB', result['Message'] )
           return result
         taskQueueDict = result['Value']
         print taskQueueDict
+        jobs = 0
+        priority = 0
+        cpu = 0
+        for tq in taskQueueDict:
+          jobs += taskQueueDict[tq]['Jobs']
+          priority += taskQueueDict[tq]['Priority']
+          cpu += taskQueueDict[tq]['Jobs'] * taskQueueDict[tq]['CPUTime']
 
+        if instances and ( cpu / instances ) < imageDict['CPUPerInstance']:
+          self.log.info( 'Waiting CPU per Running instance %s < %s, skipping' % ( cpu / instances, imageDict['CPUPerInstance'] ) )
+          continue
 
-    return DIRAC.S_OK()
+        if directorName not in imagesToSubmit:
+          imagesToSubmit[directorName] = {}
+        if imageName not in imagesToSubmit[directorName]:
+          imagesToSubmit[directorName][imageName] = {}
+        imagesToSubmit[directorName][imageName] = { 'Jobs': jobs,
+                                                    'TQPriority': priority,
+                                                    'CPUTime': cpu,
+                                                    'VMPriority': imageDict['Priority'] }
 
-
-    self.directorDict = getResourceDict()
-
-    result = taskQueueDB.getMatchingTaskQueues( self.directorDict )
-    if not result['OK']:
-      self.log.error( 'Could not retrieve TaskQueues from TaskQueueDB', result['Message'] )
-      return result
-    taskQueueDict = result['Value']
-
-    self.log.info( 'Found %s TaskQueues' % len(taskQueueDict) )
-
-    if not taskQueueDict:
-      self.log.info( 'No TaskQueue to Process' )
-      return DIRAC.S_OK()
-
-    prioritySum = 0
-    waitingJobs = 0
-    for taskQueueID in taskQueueDict:
-      taskQueueDict[taskQueueID]['TaskQueueID'] = taskQueueID
-      prioritySum += taskQueueDict[taskQueueID]['Priority']
-      waitingJobs += taskQueueDict[taskQueueID]['Jobs']
-
-    self.log.info( 'Sum of Priorities %s' % prioritySum )
-
-    if waitingJobs == 0:
-      self.log.info( 'No waiting Jobs' )
-      return DIRAC.S_OK('No waiting Jobs')
-    if prioritySum <= 0:
-      return DIRAC.S_ERROR('Wrong TaskQueue Priorities')
-
-    self.pilotsPerPriority  = self.am_getOption('pilotsPerIteration') / prioritySum
-    self.pilotsPerJob       = self.am_getOption('pilotsPerIteration') / waitingJobs
-
-    self.callBackLock.acquire()
-    self.submittedPilots = 0
-    self.callBackLock.release()
-    self.toSubmitPilots = 0
-    waitingStatusList = ['Submitted','Ready','Scheduled','Waiting']
-    timeLimitToConsider = DIRAC.Time.toString( DIRAC.Time.dateTime() - DIRAC.Time.hour * self.am_getOption( "maxPilotWaitingHours") )
-
-    for taskQueueID in taskQueueDict:
-      self.log.verbose( 'Processing TaskQueue', taskQueueID )
-
-      result = pilotAgentsDB.countPilots( {'TaskQueueID': taskQueueID, 'Status': waitingStatusList}, None, timeLimitToConsider )
-      if not result['OK']:
-        self.log.error('Fail to get Number of Waiting pilots',result['Message'])
-        waitingPilots = 0
-      else:
-        waitingPilots = result['Value']
-        self.log.verbose( 'Waiting Pilots for TaskQueue %s:' % taskQueueID, waitingPilots )
-
-      result = self.submitPilotsForTaskQueue( taskQueueDict[taskQueueID], waitingPilots )
-
-      if result['OK']:
-        self.toSubmitPilots += result['Value']
-
-    self.log.info( 'Number of pilots to be Submitted %s' % self.toSubmitPilots )
-
-    # Now wait until all Jobs in the Default ThreadPool are proccessed
-    if 'Default' in self.pools:
-      # only for those in "Default' thread Pool
-      # for pool in self.pools:
-      self.pools['Default'].processAllResults()
-
-    self.log.info( 'Number of pilots Submitted %s' % self.submittedPilots )
+    print imagesToSubmit
 
     return DIRAC.S_OK()
 
-  def submitPilotsForTaskQueue(self, taskQueueDict, waitingPilots ):
+  def submitPilotsForTaskQueue( self, taskQueueDict, waitingPilots ):
 
     from numpy.random import poisson
     from DIRAC.WorkloadManagementSystem.DB.TaskQueueDB         import maxCPUSegments
 
     taskQueueID = taskQueueDict['TaskQueueID']
     maxCPU = maxCPUSegments[-1]
-    extraPilotFraction = self.am_getOption('extraPilotFraction')
-    extraPilots = self.am_getOption('extraPilots')
+    extraPilotFraction = self.am_getOption( 'extraPilotFraction' )
+    extraPilots = self.am_getOption( 'extraPilots' )
 
     taskQueuePriority = taskQueueDict['Priority']
     self.log.verbose( 'Priority for TaskQueue %s:' % taskQueueID, taskQueuePriority )
-    taskQueueCPU      = max( taskQueueDict['CPUTime'], self.am_getOption('lowestCPUBoost') )
+    taskQueueCPU = max( taskQueueDict['CPUTime'], self.am_getOption( 'lowestCPUBoost' ) )
     self.log.verbose( 'CPUTime  for TaskQueue %s:' % taskQueueID, taskQueueCPU )
-    taskQueueJobs     = taskQueueDict['Jobs']
+    taskQueueJobs = taskQueueDict['Jobs']
     self.log.verbose( 'Jobs in TaskQueue %s:' % taskQueueID, taskQueueJobs )
 
     # Determine number of pilots to submit, boosting TaskQueues with low CPU requirements
@@ -238,13 +209,13 @@ class VirtualMachineAgent(AgentModule):
     # and the number of already submitted pilots for that TaskQueue
     pilotsToSubmit = min( pilotsToSubmit, int( ( 1 + extraPilotFraction ) * taskQueueJobs ) + extraPilots - waitingPilots )
 
-    if pilotsToSubmit <= 0: 
+    if pilotsToSubmit <= 0:
       return DIRAC.S_OK( 0 )
-    self.log.verbose( 'Submitting %s pilots for TaskQueue %s' % ( pilotsToSubmit,  taskQueueID ) )
+    self.log.verbose( 'Submitting %s pilots for TaskQueue %s' % ( pilotsToSubmit, taskQueueID ) )
 
     return self.__submitPilots( taskQueueDict, pilotsToSubmit )
 
-  def __submitPilots(self, taskQueueDict, pilotsToSubmit ):
+  def __submitPilots( self, taskQueueDict, pilotsToSubmit ):
     """
       Try to insert the submission in the corresponding Thread Pool, disable the Thread Pool
       until next itration once it becomes full
@@ -253,11 +224,11 @@ class VirtualMachineAgent(AgentModule):
     if 'SubmitPools' in taskQueueDict:
       submitPools = taskQueueDict[ 'SubmitPools' ]
     else:
-      submitPools = self.am_getOption('DefaultSubmitPools')
+      submitPools = self.am_getOption( 'DefaultSubmitPools' )
     submitPools = DIRAC.List.randomize( submitPools )
 
     for submitPool in submitPools:
-      self.log.verbose( 'Trying SubmitPool:',submitPool )
+      self.log.verbose( 'Trying SubmitPool:', submitPool )
 
       if not submitPool in self.directors or not self.directors[submitPool]['isEnabled']:
         self.log.verbose( 'Not Enabled' )
@@ -266,7 +237,7 @@ class VirtualMachineAgent(AgentModule):
       pool = self.pools[self.directors[submitPool]['pool']]
       director = self.directors[submitPool]['director']
       ret = pool.generateJobAndQueueIt( director.submitPilots,
-                                        args=(taskQueueDict, pilotsToSubmit, self.workDir ),
+                                        args=( taskQueueDict, pilotsToSubmit, self.workDir ),
                                         oCallback=self.callBack,
                                         oExceptionCallback=director.exceptionCallBack,
                                         blocking=False )
@@ -274,12 +245,12 @@ class VirtualMachineAgent(AgentModule):
         # Disable submission until next iteration
         self.directors[submitPool]['isEnabled'] = False
       else:
-        time.sleep( self.am_getOption('ThreadStartDelay') )
+        time.sleep( self.am_getOption( 'ThreadStartDelay' ) )
         break
 
     return DIRAC.S_OK( pilotsToSubmit )
 
-  def __checkSubmitPools(self):
+  def __checkSubmitPools( self ):
     # this method is called at initialization and at the beginning of each execution cycle
     # in this way running parameters can be dynamically changed via the remote
     # configuration.
@@ -293,15 +264,15 @@ class VirtualMachineAgent(AgentModule):
       # check if the Director is initialized, then reconfigure
       if submitPool not in self.directors:
         # instantiate a new Director
-        self.__createDirector(submitPool)
+        self.__createDirector( submitPool )
 
-      self.__configureDirector(submitPool)
+      self.__configureDirector( submitPool )
 
       # Now enable the director for this iteration, if some RB/WMS/CE is defined
       if submitPool in self.directors:
-        if 'resourceBrokers' in dir(self.directors[submitPool]['director']) and self.directors[submitPool]['director'].resourceBrokers:
+        if 'resourceBrokers' in dir( self.directors[submitPool]['director'] ) and self.directors[submitPool]['director'].resourceBrokers:
           self.directors[submitPool]['isEnabled'] = True
-        if 'computingElements' in dir(self.directors[submitPool]['director']) and self.directors[submitPool]['director'].computingElements:
+        if 'computingElements' in dir( self.directors[submitPool]['director'] ) and self.directors[submitPool]['director'].computingElements:
           self.directors[submitPool]['isEnabled'] = True
 
     # Now remove directors that are not Enable (they have been used but are no
@@ -319,11 +290,11 @@ class VirtualMachineAgent(AgentModule):
     # Finally delete ThreadPools that are no longer in use
     for pool in self.pools:
       if pool != 'Default' and not pool in pools:
-        pool = self.pools.pop(pool)
+        pool = self.pools.pop( pool )
         # del self.pools[pool]
         del pool
 
-  def __createDirector(self,submitPool):
+  def __createDirector( self, submitPool ):
     """
      Instantiate a new VMDirector for the given SubmitPool
     """
@@ -345,13 +316,13 @@ class VirtualMachineAgent(AgentModule):
       director = AmazonDirector( submitPool )
     else:
       return
-    
+
     self.log.info( 'Director Object instantiated:', directorName )
 
     # 2. check the requested ThreadPool (if not defined use the default one)
     directorPool = self.am_getOption( submitPool + '/Pool', 'Default' )
     if not directorPool in self.pools:
-      self.log.info( 'Adding Thread Pool:', directorPool)
+      self.log.info( 'Adding Thread Pool:', directorPool )
       poolName = self.__addPool( directorPool )
       if not poolName:
         self.log.error( 'Can not create Thread Pool:', directorPool )
@@ -367,7 +338,7 @@ class VirtualMachineAgent(AgentModule):
 
     return
 
-  def __configureDirector( self, submitPool = None ):
+  def __configureDirector( self, submitPool=None ):
     print "__configureDirector", submitPool
     # Update Configuration from CS
     # if submitPool == None then,
@@ -375,23 +346,23 @@ class VirtualMachineAgent(AgentModule):
     # else
     #    Update Configuration for the VMDirector of that SubmitPool
     if submitPool == None:
-      self.workDir     = self.am_getOption( 'WorkDirectory' )
+      self.workDir = self.am_getOption( 'WorkDirectory' )
       # By default disable all directors
       for director in self.directors:
         self.directors[director]['isEnabled'] = False
 
     else:
       if submitPool not in self.directors:
-        DIRAC.abort(-1, "Submit Pool not available", submitPool)
+        DIRAC.abort( -1, "Submit Pool not available", submitPool )
       director = self.directors[submitPool]['director']
 
       # Pass reference to our CS section so that defaults can be taken from there
-      director.configure( self.am_getModuleParam('section'), submitPool )
+      director.configure( self.am_getModuleParam( 'section' ), submitPool )
 
       # Enable director for pilot submission
       self.directors[submitPool]['isEnabled'] = True
 
-  def __addPool(self, poolName):
+  def __addPool( self, poolName ):
     # create a new thread Pool, by default it has 2 executing threads and 40 requests
     # in the Queue
 
@@ -399,16 +370,16 @@ class VirtualMachineAgent(AgentModule):
       return None
     if poolName in self.pools:
       return None
-    pool = ThreadPool( self.am_getOption('minThreadsInPool'),
-                       self.am_getOption('maxThreadsInPool'),
-                       self.am_getOption('totalThreadsInPool') )
+    pool = ThreadPool( self.am_getOption( 'minThreadsInPool' ),
+                       self.am_getOption( 'maxThreadsInPool' ),
+                       self.am_getOption( 'totalThreadsInPool' ) )
     # Daemonize except "Default" pool
     if poolName != 'Default':
       pool.daemonize()
     self.pools[poolName] = pool
     return poolName
 
-  def callBack(self, threadedJob, submitResult):
+  def callBack( self, threadedJob, submitResult ):
     if not submitResult['OK']:
       self.log.error( 'submitPilot Failed: ', submitResult['Message'] )
       if 'Value' in submitResult:

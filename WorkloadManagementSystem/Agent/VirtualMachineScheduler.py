@@ -135,6 +135,8 @@ class VirtualMachineScheduler( AgentModule ):
 
     imagesToSubmit = {}
 
+    print self.directors.items()
+
     for directorName, directorDict in self.directors.items():
       print directorDict['director'].images
       self.log.verbose( 'Checking Director:', directorName )
@@ -181,7 +183,22 @@ class VirtualMachineScheduler( AgentModule ):
                                                     'CPUTime': cpu,
                                                     'VMPriority': imageDict['Priority'] }
 
-    print imagesToSubmit
+    for directorName, imageDict in imagesToSubmit.items():
+      for imageName, jobsDict in imageDict.items():
+        if self.directors[directorName]['isEnabled']:
+          self.log.info( 'Requesting submission of "%s" to "%s"' % ( imageName, directorName ) )
+
+          director = self.directors[directorName]['director']
+          pool = self.pools[self.directors[directorName]['pool']]
+
+          ret = pool.generateJobAndQueueIt( director.submitInstance,
+                                            args=( jobsDict, self.workDir ),
+                                            oCallback=self.callBack,
+                                            oExceptionCallback=director.exceptionCallBack,
+                                            blocking=False )
+
+          print ret
+
 
     return DIRAC.S_OK()
 
@@ -218,7 +235,7 @@ class VirtualMachineScheduler( AgentModule ):
   def __submitPilots( self, taskQueueDict, pilotsToSubmit ):
     """
       Try to insert the submission in the corresponding Thread Pool, disable the Thread Pool
-      until next itration once it becomes full
+      until next iteration once it becomes full
     """
     # Check if an specific MiddleWare is required
     if 'SubmitPools' in taskQueueDict:

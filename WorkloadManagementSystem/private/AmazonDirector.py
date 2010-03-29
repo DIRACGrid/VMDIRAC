@@ -11,18 +11,23 @@ class AmazonDirector( VMDirector ):
   def __init__( self, submitPool ):
     self.Flavor = 'Amazon'
     VMDirector.__init__( self, submitPool )
-  
-  def configure(self, csSection, submitPool ):
+
+  def configure( self, csSection, submitPool ):
     """
      Here goes common configuration for Amazon Director
     """
 
     VMDirector.configure( self, csSection, submitPool )
     self.reloadConfiguration( csSection, submitPool )
-    
-    print
-    print self.imagesRequirementsDict
-    print
+
+    self.log.info( '===============================================' )
+    self.log.info( 'Configuration:' )
+    self.log.info( '' )
+    self.log.info( 'Images:' )
+    if self.images:
+      self.log.info( ', '.join( self.images ) )
+    else:
+      self.log.info( ' None' )
 
   def configureFromSection( self, mySection ):
     """

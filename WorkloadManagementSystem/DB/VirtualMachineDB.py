@@ -590,7 +590,7 @@ def getImageDict( imageName ):
   """
   Return from CS a Dictionary with Image definition
   """
-  imagesCSPath = '/DIRAC/VirtualMachines'
+  imagesCSPath = '/Resources/VirtualMachines'
   definedImages = DIRAC.gConfig.getSections( imagesCSPath )
   if not definedImages['OK']:
     return definedImages

@@ -89,6 +89,7 @@ class VirtualMachineDB( DB ):
                                  'Indexes': { 'VMInstanceID': [ 'VMInstanceID' ] },
                                }
 
+
   def __init__( self, maxQueueSize=10 ):
     DB.__init__( self, 'VirtualMachineDB', 'WorkloadManagement/VirtualMachineDB', maxQueueSize )
     if not self._MySQL__initialized:

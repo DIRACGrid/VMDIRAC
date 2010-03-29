@@ -17,8 +17,6 @@ class VMDirector:
     else:
       self.log = DIRAC.gLogger.getSubLogger( '%sPilotDirector/%s' % ( self.Flavor, submitPool ) )
 
-    self.imagesCSPath = '/DIRAC/VirtualMachines'
-
     self.errorMailAddress = DIRAC.errorMail
     self.alarmMailAddress = DIRAC.alarmMail
     self.mailFromAddress = FROM_MAIL
@@ -68,6 +66,7 @@ class VMDirector:
     requestedImages = DIRAC.gConfig.getValue( mySection + '/Images', self.images.keys() )
 
     for imageName in requestedImages:
+      self.log.verbose( 'Trying to configure Image:', imageName )
       if imageName in self.images:
         continue
       imageDict = getImageDict( imageName )
@@ -75,13 +74,20 @@ class VMDirector:
         return imageDict
       if self.Flavor <> imageDict['Flavor']:
         continue
-      imageCSPath = '%s/%s' % ( self.imagesCSPath, imageName )
+      for option in ['MaxInstances', 'CPUPerInstance', 'Priority']:
+        if option not in imageDict.keys():
+          self.log.error( 'Missing option in "%s" image definition:' % imageName, option )
+          continue
       self.images[imageName] = {}
       self.images[imageName]['RequirementsDict'] = imageDict['Requirements']
-      self.images[imageName]['MaxInstances'] = DIRAC.gConfig.getValue( '%s/MaxInstances' % imageCSPath, 0 )
-      self.images[imageName]['CPUPerInstance'] = DIRAC.gConfig.getValue( '%s/CPUPerInstance' % imageCSPath, 86400 )
-      self.images[imageName]['Priority'] = DIRAC.gConfig.getValue( '%s/Priority' % imageCSPath, 1. )
+      self.images[imageName]['MaxInstances'] = int( imageDict['MaxInstances'] )
+      self.images[imageName]['CPUPerInstance'] = int( imageDict['CPUPerInstance'] )
+      self.images[imageName]['Priority'] = int( imageDict['Priority'] )
 
-      print DIRAC.DEncode.encode( imageDict['Requirements'] )
+  def submitInstance( self, jobDict, workDir ):
+    print 'jobDict', jobDict
+    print 'workDir', workDir
+    pass
 
-
+  def exceptionCallBack( self, threadedJob, exceptionInfo ):
+    self.log.exception( 'Error in VM Instance Submission' )

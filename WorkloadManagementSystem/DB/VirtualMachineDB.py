@@ -487,7 +487,7 @@ class VirtualMachineDB( DB ):
       if not ret['OK']:
         return ret
       if not ret['Value']:
-        return DIRAC.S_ERROR( 'Image "%s" in DB but it does not match', imageName )
+        return DIRAC.S_ERROR( 'Image "%s" in DB but it does not match' % imageName )
       else:
         return DIRAC.S_OK( imageID )
 

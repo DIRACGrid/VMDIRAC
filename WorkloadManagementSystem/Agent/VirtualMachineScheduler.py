@@ -135,10 +135,7 @@ class VirtualMachineScheduler( AgentModule ):
 
     imagesToSubmit = {}
 
-    print self.directors.items()
-
     for directorName, directorDict in self.directors.items():
-      print directorDict['director'].images
       self.log.verbose( 'Checking Director:', directorName )
       for imageName in directorDict['director'].images:
         imageDict = directorDict['director'].images[imageName]
@@ -161,7 +158,6 @@ class VirtualMachineScheduler( AgentModule ):
           self.log.error( 'Could not retrieve TaskQueues from TaskQueueDB', result['Message'] )
           return result
         taskQueueDict = result['Value']
-        print taskQueueDict
         jobs = 0
         priority = 0
         cpu = 0
@@ -186,19 +182,27 @@ class VirtualMachineScheduler( AgentModule ):
     for directorName, imageDict in imagesToSubmit.items():
       for imageName, jobsDict in imageDict.items():
         if self.directors[directorName]['isEnabled']:
-          self.log.info( 'Requesting submission of "%s" to "%s"' % ( imageName, directorName ) )
+          self.log.info( 'Requesting submission of %s to %s' % ( imageName, directorName ) )
 
           director = self.directors[directorName]['director']
           pool = self.pools[self.directors[directorName]['pool']]
 
           ret = pool.generateJobAndQueueIt( director.submitInstance,
-                                            args=( jobsDict, self.workDir ),
+                                            args=( imageName, self.workDir ),
                                             oCallback=self.callBack,
                                             oExceptionCallback=director.exceptionCallBack,
                                             blocking=False )
 
-          print ret
+          if not ret['OK']:
+            # Disable submission until next iteration
+            self.directors[directorName]['isEnabled'] = False
+          else:
+            time.sleep( self.am_getOption( 'ThreadStartDelay' ) )
 
+    if 'Default' in self.pools:
+      # only for those in "Default' thread Pool
+      # for pool in self.pools:
+      self.pools['Default'].processAllResults()
 
     return DIRAC.S_OK()
 
@@ -356,7 +360,6 @@ class VirtualMachineScheduler( AgentModule ):
     return
 
   def __configureDirector( self, submitPool=None ):
-    print "__configureDirector", submitPool
     # Update Configuration from CS
     # if submitPool == None then,
     #     disable all Directors
@@ -398,16 +401,13 @@ class VirtualMachineScheduler( AgentModule ):
 
   def callBack( self, threadedJob, submitResult ):
     if not submitResult['OK']:
-      self.log.error( 'submitPilot Failed: ', submitResult['Message'] )
+      self.log.error( 'submitInstance Failed: ', submitResult['Message'] )
       if 'Value' in submitResult:
-        submittedPilots = submitResult['Value']
         self.callBackLock.acquire()
-        self.submittedPilots += submittedPilots
         self.callBackLock.release()
     else:
-      submittedPilots = submitResult['Value']
+      self.log.info( 'New Instance Submitted' )
       self.callBackLock.acquire()
-      self.submittedPilots += submittedPilots
       self.callBackLock.release()
 
 

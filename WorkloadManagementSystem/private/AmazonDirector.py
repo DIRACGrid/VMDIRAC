@@ -5,6 +5,7 @@
 ########################################################################
 __RCSID__ = "$Id: AmazonDirector.py 16 2010-03-15 11:39:29Z ricardo.graciani@gmail.com $"
 
+from DIRAC import S_OK, S_ERROR
 from BelleDIRAC.WorkloadManagementSystem.private.VMDirector import VMDirector
 
 class AmazonDirector( VMDirector ):
@@ -34,3 +35,9 @@ class AmazonDirector( VMDirector ):
       reload from CS
     """
     VMDirector.configureFromSection( self, mySection )
+
+  def _submitInstance( self, imageName, workDir ):
+    """
+      Real backend method to submit a new Instance of a given Image
+    """
+    return S_OK()

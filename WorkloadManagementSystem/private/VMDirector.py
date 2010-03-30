@@ -8,6 +8,7 @@ __RCSID__ = "$Id: VMDirector.py 16 2010-03-15 11:39:29Z ricardo.graciani@gmail.c
 import DIRAC
 FROM_MAIL = "dirac.project@gmail.com"
 
+from BelleDIRAC.WorkloadManagementSystem.Client.ServerUtils import virtualMachineDB
 
 class VMDirector:
   def __init__( self, submitPool ):
@@ -84,10 +85,23 @@ class VMDirector:
       self.images[imageName]['CPUPerInstance'] = int( imageDict['CPUPerInstance'] )
       self.images[imageName]['Priority'] = int( imageDict['Priority'] )
 
-  def submitInstance( self, jobDict, workDir ):
-    print 'jobDict', jobDict
-    print 'workDir', workDir
-    pass
+  def submitInstance( self, imageName, workDir ):
+    """
+    """
+    self.log.info( 'Submitting', imageName )
+    if imageName not in self.images:
+      return DIRAC.S_ERROR( 'Unknown Image: %s' % imageName )
+    retDict = virtualMachineDB.insertInstance( imageName, imageName )
+    if not retDict['OK']:
+      return retDict
+    instanceID = retDict['Value']
+    retDict = self._submitInstance( imageName, workDir )
+    if not retDict['OK']:
+      return retDict
+    retDict = virtualMachineDB.declareInstanceSubmitted( instanceID )
+    if not retDict['OK']:
+      return retDict
+    return DIRAC.S_OK( imageName )
 
   def exceptionCallBack( self, threadedJob, exceptionInfo ):
-    self.log.exception( 'Error in VM Instance Submission' )
+    self.log.exception( 'Error in VM Instance Submission:', lExcInfo=exceptionInfo )

@@ -64,8 +64,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
       setattr( self, varName, value )
     #Variables coming from the flavor
     flavorPath = "/Resources/VirtualMachines/Flavors/%s" % self.vmFlavor
-    for csOption, csDefault, varName in ( ( "Type", "", "vmType" ),
-                                          ( "HaltPeriod", 3600, "haltPeriod" ),
+    for csOption, csDefault, varName in ( ( "HaltPeriod", 3600, "haltPeriod" ),
                                           ( "HaltBeforeMargin", 300, "haltBeforeMargin" ),
                                           ( "HeartBeatPeriod", 900, "heartBeatPeriod" ),
                                         ):
@@ -80,16 +79,11 @@ class VirtualMachineMonitorAgent( AgentModule ):
     self.haltPeriod = max( self.haltPeriod, int( self.am_getPollingTime() ) + 5 )
     self.heartBeatPeriod = max( self.heartBeatPeriod, int( self.am_getPollingTime() ) + 5 )
 
-    self.haltBeforeMargin = 1800
-    self.vmLoadAvgTimespan = 2
-
-
     gLogger.info( "** VM Info **" )
     gLogger.info( "Name               : %s" % self.vmName )
     gLogger.info( "Flavor             : %s" % self.vmFlavor )
     gLogger.info( "Min Working Load   : %d" % self.vmMinWorkingLoad )
     gLogger.info( "Load Avg Timespan  : %d" % self.vmLoadAvgTimespan )
-    gLogger.info( "Type               : %s" % self.vmType )
     gLogger.info( "Halt Period        : %d" % self.haltPeriod )
     gLogger.info( "Halt Before Margin : %d" % self.haltBeforeMargin )
     gLogger.info( "HeartBeat Period   : %d" % self.heartBeatPeriod )
@@ -104,13 +98,13 @@ class VirtualMachineMonitorAgent( AgentModule ):
     result = self.__getCSConfig()
     if not result[ 'OK' ]:
       return result
-    type = self.vmType.lower()
-    if type == 'generic':
+    flavor = self.vmFlavor.lower()
+    if flavor == 'generic':
       result = self.getGenericVMId()
-    elif type == 'amazon':
-      resuld = self.getAmazonVMId()
+    elif flavor == 'amazon':
+      result = self.getAmazonVMId()
     else:
-      return S_ERROR( "Unknown VM Type (%s)" % self.vmType )
+      return S_ERROR( "Unknown VM Flavor (%s)" % self.vmFlavor )
     if not result[ 'OK' ]:
       return S_ERROR( "Could not generate VM id: %s" % result[ 'Message' ] )
     self.vmId = result[ 'Value' ]

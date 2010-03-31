@@ -27,6 +27,7 @@ id1 = DIRAC.Time.toString()
 print "declareInstanceRunning  ", db.declareInstanceRunning( 'Image3', id1, 'IP', 'ip' )
 id2 = DIRAC.Time.toString()
 print "declareInstanceRunning  ", db.declareInstanceRunning( 'Image2', id2, 'IP', 'ip' )
+print "declareInstanceRunning  ", db.instanceIDHeartBeat( id2, 1.0 )
 
 for status in validStates:
   print "get%10sInstances  " % status, db.getInstancesByStatus( status )

@@ -90,7 +90,7 @@ class VirtualMachineDB( DB ):
                                }
 
 
-  def __init__( self, maxQueueSize=10 ):
+  def __init__( self, maxQueueSize = 10 ):
     DB.__init__( self, 'VirtualMachineDB', 'WorkloadManagement/VirtualMachineDB', maxQueueSize )
     if not self._MySQL__initialized:
       raise Exception( 'Can not connect to VirtualMachineDB, exiting...' )
@@ -346,7 +346,7 @@ class VirtualMachineDB( DB ):
       S_OK( imageID )
       S_ERROR( Reason ) 
     """
-    info = self.__getInfo( 'Instance', id )
+    info = self.__getInfo( 'Instance', instanceID )
     if not info['OK']:
       return info
     ( tableName, validStates, idName ) = self.__getTypeTuple( 'Image' )
@@ -510,7 +510,7 @@ class VirtualMachineDB( DB ):
       return DIRAC.S_OK( id )
     return DIRAC.S_ERROR( 'Failed to insert new Image' )
 
-  def __addInstanceHistory( self, instanceID, status, load=0.0 ):
+  def __addInstanceHistory( self, instanceID, status, load = 0.0 ):
     """
     Insert a History Record
     """
@@ -525,7 +525,7 @@ class VirtualMachineDB( DB ):
     ( tableName, validStates, idName ) = self.__getTypeTuple( object )
     if not tableName:
       return DIRAC.S_ERROR( 'Unknown DB object: %s' % object )
-    fields = self.__tablesDesc[ tableName ]['Fields']
+    fields = self.tablesDesc[ tableName ]['Fields']
     ret = self._getFields( tableName , fields, [idName], [id] )
     if not ret['OK']:
       return ret
@@ -590,7 +590,7 @@ def getImageDict( imageName ):
   """
   Return from CS a Dictionary with Image definition
   """
-  imagesCSPath = '/Resources/VirtualMachines'
+  imagesCSPath = '/Resources/VirtualMachines/Images'
   definedImages = DIRAC.gConfig.getSections( imagesCSPath )
   if not definedImages['OK']:
     return definedImages

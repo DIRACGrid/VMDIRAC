@@ -42,7 +42,7 @@ class VirtualMachineDB( DB ):
 
   # When attempting a transition it will be checked if the current state is allowed 
   allowedTransitions = { 'Image' : {
-                                       'Running' : [ 'New', 'Validated' ],
+                                       'Validated' : [ 'New', 'Validated' ],
                                    },
                         'Instance' : {
                                        'Submitted' : [ 'New' ],
@@ -90,7 +90,7 @@ class VirtualMachineDB( DB ):
                                }
 
 
-  def __init__( self, maxQueueSize = 10 ):
+  def __init__( self, maxQueueSize=10 ):
     DB.__init__( self, 'VirtualMachineDB', 'WorkloadManagement/VirtualMachineDB', maxQueueSize )
     if not self._MySQL__initialized:
       raise Exception( 'Can not connect to VirtualMachineDB, exiting...' )
@@ -259,7 +259,7 @@ class VirtualMachineDB( DB ):
     if not status['OK']:
       return status
 
-    return
+    return DIRAC.S_OK()
 
   def getInstancesByStatus( self, status ):
     """
@@ -510,7 +510,7 @@ class VirtualMachineDB( DB ):
       return DIRAC.S_OK( id )
     return DIRAC.S_ERROR( 'Failed to insert new Image' )
 
-  def __addInstanceHistory( self, instanceID, status, load = 0.0 ):
+  def __addInstanceHistory( self, instanceID, status, load=0.0 ):
     """
     Insert a History Record
     """

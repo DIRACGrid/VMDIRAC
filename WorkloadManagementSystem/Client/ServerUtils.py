@@ -12,7 +12,7 @@ __RCSID__ = "$Id: ServerUtils.py 16 2010-03-15 11:39:29Z ricardo.graciani@gmail.
 from DIRAC.WorkloadManagementSystem.Client.ServerUtils import getDBOrClient
 
 def getVirtualMachineDB():
-  serverName = 'WorkloadManagement/VirtualMachineMonitor'
+  serverName = 'WorkloadManagement/VirtualMachineManager'
   VirtualMachineDB = None
   try:
     from BelleDIRAC.WorkloadManagementSystem.DB.VirtualMachineDB               import VirtualMachineDB
@@ -20,4 +20,4 @@ def getVirtualMachineDB():
     pass
   return getDBOrClient( VirtualMachineDB, serverName )
 
-virtualMachineDB  = getVirtualMachineDB()
+virtualMachineDB = getVirtualMachineDB()

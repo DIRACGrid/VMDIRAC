@@ -27,7 +27,7 @@ from types import *
 # This is a global instance of the VirtualMachineDB class
 gVirtualMachineDB = False
 
-def initializeVirtualMachineHandler( serviceInfo ):
+def initializeVirtualMachineManagerHandler( serviceInfo ):
 
   global gVirtualMachineDB
   gVirtualMachineDB = VirtualMachineDB()
@@ -36,7 +36,7 @@ def initializeVirtualMachineHandler( serviceInfo ):
     return S_OK()
   return S_ERROR()
 
-class VirtualMachineHandler( RequestHandler ):
+class VirtualMachineManagerHandler( RequestHandler ):
 
   def initialize( self ):
     credDict = self.getRemoteCredentials()

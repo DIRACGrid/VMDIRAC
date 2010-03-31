@@ -21,15 +21,6 @@ class AmazonDirector( VMDirector ):
     VMDirector.configure( self, csSection, submitPool )
     self.reloadConfiguration( csSection, submitPool )
 
-    self.log.info( '===============================================' )
-    self.log.info( 'Configuration:' )
-    self.log.info( '' )
-    self.log.info( 'Images:' )
-    if self.images:
-      self.log.info( ', '.join( self.images ) )
-    else:
-      self.log.info( ' None' )
-
   def configureFromSection( self, mySection ):
     """
       reload from CS

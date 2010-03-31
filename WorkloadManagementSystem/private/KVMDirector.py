@@ -15,7 +15,7 @@ class KVMDirector( VMDirector ):
 
   def configure( self, csSection, submitPool ):
     """
-     Here goes common configuration for Amazon Director
+     Here goes common configuration for KVM Director
     """
 
     VMDirector.configure( self, csSection, submitPool )

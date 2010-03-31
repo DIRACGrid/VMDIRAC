@@ -43,9 +43,9 @@ class VMDirector:
 
   def reloadConfiguration( self, csSection, submitPool ):
     """
-     Common Configuration can be overwriten for each GridMiddleware
+     Common Configuration can be overwriten for each Flavor
     """
-    mySection = csSection + '/' + self.Flavor
+    mySection = '/Resources/VirtualMachines/Flavors/' + self.Flavor
     self.configureFromSection( mySection )
     """
      And Again for each SubmitPool

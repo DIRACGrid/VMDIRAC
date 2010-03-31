@@ -1,6 +1,8 @@
 __RCSID__ = "$Id$"
 
 import time
+import urllib2
+import os
 from DIRAC.Core.Base.AgentModule import AgentModule
 
 from DIRAC import gLogger, S_OK, S_ERROR, gConfig
@@ -15,7 +17,13 @@ except:
 class VirtualMachineMonitorAgent( AgentModule ):
 
   def getAmazonVMId( self ):
-    return S_ERROR( "Not yet ready" )
+    try:
+      fd = urllib2.urlopen( "http://instance-data.ec2.internal/latest/meta-data/instance-id" )
+      id = fd.read().strip()
+      fd.close()
+      return S_OK( id )
+    except Exception, e:
+      return S_ERROR( "Could not retrieve amazon instance id: %s" % str( e ) )
 
   def getGenericVMId( self ):
     fd = open( "/proc/stat" )
@@ -46,6 +54,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
     imgPath = "/Resources/VirtualMachines/Images/%s" % self.vmName
     for csOption, csDefault, varName in ( ( "Flavor", "", "vmFlavor" ),
                                           ( "MinWorkingLoad", 1, "vmMinWorkingLoad" ),
+                                          ( "LoadAverageTimespan", 900, "vmLoadAvgTimespan" )
                                         ):
 
       path = "%s/%s" % ( imgPath, csOption )
@@ -69,12 +78,17 @@ class VirtualMachineMonitorAgent( AgentModule ):
 
     self.haltBeforeMargin = max( self.haltBeforeMargin, int( self.am_getPollingTime() ) + 5 )
     self.haltPeriod = max( self.haltPeriod, int( self.am_getPollingTime() ) + 5 )
-    #self.heartBeatPeriod = max( self.heartBeatPeriod, int( self.am_getPollingTime() ) + 5 )
+    self.heartBeatPeriod = max( self.heartBeatPeriod, int( self.am_getPollingTime() ) + 5 )
+
+    self.haltBeforeMargin = 1800
+    self.vmLoadAvgTimespan = 2
+
 
     gLogger.info( "** VM Info **" )
     gLogger.info( "Name               : %s" % self.vmName )
     gLogger.info( "Flavor             : %s" % self.vmFlavor )
     gLogger.info( "Min Working Load   : %d" % self.vmMinWorkingLoad )
+    gLogger.info( "Load Avg Timespan  : %d" % self.vmLoadAvgTimespan )
     gLogger.info( "Type               : %s" % self.vmType )
     gLogger.info( "Halt Period        : %d" % self.haltPeriod )
     gLogger.info( "Halt Before Margin : %d" % self.haltBeforeMargin )
@@ -94,8 +108,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
     if type == 'generic':
       result = self.getGenericVMId()
     elif type == 'amazon':
-      result = self.getGenericVMId()
-      #resuld = self.getAmazonVMId()
+      resuld = self.getAmazonVMId()
     else:
       return S_ERROR( "Unknown VM Type (%s)" % self.vmType )
     if not result[ 'OK' ]:
@@ -122,13 +135,12 @@ class VirtualMachineMonitorAgent( AgentModule ):
     data = [ float( v ) for v in List.fromChar( fd.read(), " " )[:3] ]
     fd.close()
     self.__loadHistory.append( data )
-    loadAvgTimespan = self.am_getOption( "LoadAvgTimespan", 900 )
-    numRequiredSamples = loadAvgTimespan / self.am_getPollingTime()
-    gLogger.info( "Load averaged through %d seconds" % loadAvgTimespan )
-    gLogger.info( " %d/%s required samples to average load" % ( len( self.__loadHistory ),
-                                                                numRequiredSamples ) )
+    numRequiredSamples = max( self.vmLoadAvgTimespan / self.am_getPollingTime(), 1 )
     while len( self.__loadHistory ) > numRequiredSamples:
       self.__loadHistory.pop( 0 )
+    gLogger.info( "Load averaged through %d seconds" % self.vmLoadAvgTimespan )
+    gLogger.info( " %d/%s required samples to average load" % ( len( self.__loadHistory ),
+                                                                numRequiredSamples ) )
     avgLoad = 0
     for f in self.__loadHistory:
       avgLoad += f[0]
@@ -152,10 +164,17 @@ class VirtualMachineMonitorAgent( AgentModule ):
         gLogger.error( "Could not send heartbeat", result[ 'Message' ] )
     #Do we need to check if halt?
     if avgRequiredSamples and now % self.haltPeriod + self.haltBeforeMargin > self.haltPeriod:
+      gLogger.info( "Load average is %s (minimum for working instance is %s)" % ( avgLoad,
+                                                                                  self.vmMinWorkingLoad ) )
       #If load less than X, then halt!
       if avgLoad < self.vmMinWorkingLoad:
-        virtualMachineDB.declareInstanceHalting( self.vmId, avgLoad )
-        #TODO: HALT
+        gLogger.info( "Halting instance..." )
+        result = virtualMachineDB.declareInstanceHalting( self.vmId, avgLoad )
+        if not result[ 'OK' ]:
+          gLogger.error( "Could not send halting state", result[ 'Message' ] )
+
+        #HALT
+        os.system( "halt" )
     return S_OK()
 
 

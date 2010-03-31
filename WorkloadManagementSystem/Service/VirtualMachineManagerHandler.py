@@ -67,14 +67,15 @@ class VirtualMachineManagerHandler( RequestHandler ):
     return gVirtualMachineDB.declareInstanceSubmitted( instanceID )
 
   ###########################################################################
-  types_declareInstanceRunning = [ StringType, StringType, StringType, StringType ]
-  def export_declareInstanceRunning( self, imageName, uniqueID, publicIP, privateIP ):
+  types_declareInstanceRunning = [ StringType, StringType, StringType ]
+  def export_declareInstanceRunning( self, imageName, uniqueID, privateIP ):
     """
     Declares an instance Running and sets its associated info (uniqueID, publicIP, privateIP)
     Returns S_ERROR if:
       - instanceName does not have a "Submitted" entry 
       - uniqueID is not unique
     """
+    publicIP = self.getRemoteAddress()
     return gVirtualMachineDB.declareInstanceRunning( imageName, uniqueID, publicIP, privateIP )
 
   ###########################################################################

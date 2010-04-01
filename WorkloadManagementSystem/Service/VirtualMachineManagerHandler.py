@@ -75,7 +75,7 @@ class VirtualMachineManagerHandler( RequestHandler ):
       - instanceName does not have a "Submitted" entry 
       - uniqueID is not unique
     """
-    publicIP = self.getRemoteAddress()
+    publicIP = self.getRemoteAddress()[0]
     return gVirtualMachineDB.declareInstanceRunning( imageName, uniqueID, publicIP, privateIP )
 
   ###########################################################################

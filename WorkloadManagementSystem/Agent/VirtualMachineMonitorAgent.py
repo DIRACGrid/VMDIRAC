@@ -119,7 +119,20 @@ class VirtualMachineMonitorAgent( AgentModule ):
         break
     gLogger.info( "IP Address is %s" % self.ipAddress )
     #Connect to VM monitor and register as running
-    return virtualMachineDB.declareInstanceRunning( self.vmName, self.vmId, self.ipAddress )
+    retries = 3
+    sleepTime = 60
+    for i in range( retries ):
+      result = virtualMachineDB.declareInstanceRunning( self.vmName, self.vmId, self.ipAddress )
+      if result[ 'OK' ]:
+        gLogger.info( "Declared instance running" )
+        return S_OK()
+      gLogger.error( "Could not declare instance running", result[ 'Message' ] )
+      if i < retries - 1 :
+        gLogger.info( "Sleeping for %d seconds and retrying" % sleepTime )
+        time.sleep( 60 )
+
+    return S_ERROR( "Could not declare instance running after %d retries" % retries )
+
 
   def __getLoadAvg( self ):
     result = self.__getCSConfig()
@@ -163,9 +176,17 @@ class VirtualMachineMonitorAgent( AgentModule ):
       #If load less than X, then halt!
       if avgLoad < self.vmMinWorkingLoad:
         gLogger.info( "Halting instance..." )
-        result = virtualMachineDB.declareInstanceHalting( self.vmId, avgLoad )
-        if not result[ 'OK' ]:
+        retries = 3
+        sleepTime = 60
+        for i in range( retries ):
+          result = virtualMachineDB.declareInstanceHalting( self.vmId, avgLoad )
+          if result[ 'OK' ]:
+            gLogger.info( "Declared instance halting" )
+            break
           gLogger.error( "Could not send halting state", result[ 'Message' ] )
+          if i < retries - 1 :
+            gLogger.info( "Sleeping for %d seconds and retrying" % sleepTime )
+            time.sleep( 60 )
 
         #HALT
         gLogger.info( "Executing system halt..." )

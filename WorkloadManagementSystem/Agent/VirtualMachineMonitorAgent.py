@@ -168,6 +168,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
           gLogger.error( "Could not send halting state", result[ 'Message' ] )
 
         #HALT
+        gLogger.info( "Executing system halt..." )
         os.system( "halt" )
     return S_OK()
 

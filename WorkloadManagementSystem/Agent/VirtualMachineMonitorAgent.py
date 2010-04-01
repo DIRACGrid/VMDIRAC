@@ -119,7 +119,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
         break
     gLogger.info( "IP Address is %s" % self.ipAddress )
     #Connect to VM monitor and register as running
-    return virtualMachineDB.declareInstanceRunning( self.vmName, self.vmId, self.ipAddress, self.ipAddress )
+    return virtualMachineDB.declareInstanceRunning( self.vmName, self.vmId, self.ipAddress )
 
   def __getLoadAvg( self ):
     result = self.__getCSConfig()

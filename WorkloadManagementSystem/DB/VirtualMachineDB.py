@@ -90,7 +90,7 @@ class VirtualMachineDB( DB ):
                                }
 
 
-  def __init__( self, maxQueueSize=10 ):
+  def __init__( self, maxQueueSize = 10 ):
     DB.__init__( self, 'VirtualMachineDB', 'WorkloadManagement/VirtualMachineDB', maxQueueSize )
     if not self._MySQL__initialized:
       raise Exception( 'Can not connect to VirtualMachineDB, exiting...' )
@@ -170,7 +170,7 @@ class VirtualMachineDB( DB ):
 
     return status
 
-  def declareInstanceRunning( self, imageName, uniqueID, publicIP, privateIP ):
+  def declareInstanceRunning( self, imageName, uniqueID, publicIP, privateIP = "" ):
     """
     Declares an instance Running and sets its associated info (uniqueID, publicIP, privateIP)
     Returns S_ERROR if:
@@ -510,7 +510,7 @@ class VirtualMachineDB( DB ):
       return DIRAC.S_OK( id )
     return DIRAC.S_ERROR( 'Failed to insert new Image' )
 
-  def __addInstanceHistory( self, instanceID, status, load=0.0 ):
+  def __addInstanceHistory( self, instanceID, status, load = 0.0 ):
     """
     Insert a History Record
     """

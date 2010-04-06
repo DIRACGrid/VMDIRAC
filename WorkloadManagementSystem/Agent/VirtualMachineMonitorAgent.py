@@ -25,6 +25,12 @@ class VirtualMachineMonitorAgent( AgentModule ):
     except Exception, e:
       return S_ERROR( "Could not retrieve amazon instance id: %s" % str( e ) )
 
+  def getUptime( self ):
+    fd = open( "/proc/uptime" )
+    uptime = float( List.fromChar( fd.read().strip(), " " )[0] )
+    fd.close()
+    return uptime
+
   def getGenericVMId( self ):
     fd = open( "/proc/stat" )
     lines = fd.readlines()
@@ -120,7 +126,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
     gLogger.info( "IP Address is %s" % self.ipAddress )
     #Connect to VM monitor and register as running
     retries = 3
-    sleepTime = 60
+    sleepTime = 30
     for i in range( retries ):
       result = virtualMachineDB.declareInstanceRunning( self.vmName, self.vmId, self.ipAddress )
       if result[ 'OK' ]:
@@ -160,8 +166,12 @@ class VirtualMachineMonitorAgent( AgentModule ):
     if not avgRequiredSamples:
       gLogger.info( " Not all required samples yet there" )
     #Do we need to send heartbeat?
-    now = time.time()
-    if now % self.heartBeatPeriod <= self.am_getPollingTime():
+    uptime = self.getUptime()
+    hours = int( uptime / 3600 )
+    minutes = int( uptime - hours * 3600 ) / 60
+    seconds = uptime - hours * 3600 - minutes * 60
+    gLogger.info( "Uptime is %.2f (%d:%02d:%02d)" % ( uptime, hours, minutes, seconds ) )
+    if uptime % self.heartBeatPeriod <= self.am_getPollingTime():
       #Heartbeat time!
       gLogger.info( "Sending hearbeat..." )
       result = virtualMachineDB.instanceIDHeartBeat( self.vmId, avgLoad )
@@ -170,14 +180,14 @@ class VirtualMachineMonitorAgent( AgentModule ):
       else:
         gLogger.error( "Could not send heartbeat", result[ 'Message' ] )
     #Do we need to check if halt?
-    if avgRequiredSamples and now % self.haltPeriod + self.haltBeforeMargin > self.haltPeriod:
+    if avgRequiredSamples and uptime % self.haltPeriod + self.haltBeforeMargin > self.haltPeriod:
       gLogger.info( "Load average is %s (minimum for working instance is %s)" % ( avgLoad,
                                                                                   self.vmMinWorkingLoad ) )
       #If load less than X, then halt!
       if avgLoad < self.vmMinWorkingLoad:
         gLogger.info( "Halting instance..." )
         retries = 3
-        sleepTime = 60
+        sleepTime = 10
         for i in range( retries ):
           result = virtualMachineDB.declareInstanceHalting( self.vmId, avgLoad )
           if result[ 'OK' ]:

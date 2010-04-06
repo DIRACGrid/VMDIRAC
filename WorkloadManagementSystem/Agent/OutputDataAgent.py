@@ -29,7 +29,7 @@ from DIRAC.Core.Utilities.Shifter                               import setupShif
 
 from DIRAC import S_OK, S_ERROR, gConfig
 
-import os, threading
+import os, threading, shutil
 
 class OutputDataAgent( AgentModule ):
 
@@ -118,6 +118,16 @@ class OutputDataAgent( AgentModule ):
     inputFCName = outputDict['InputFC']
     inputPath = outputDict['InputPath']
 
+    if inputFCName == 'LocalDisk':
+      files = []
+      try:
+        for file in os.listdir( inputPath ):
+          if os.path.isfile( os.path.join( inputPath, file ) ):
+            files.append( file )
+      except:
+        pass
+      return files
+
     inputFC = FileCatalog( [inputFCName] )
     result = inputFC.listDirectory( inputPath, True )
 
@@ -132,8 +142,9 @@ class OutputDataAgent( AgentModule ):
     files = result['Value']['Successful'][inputPath]['Files']
     for dir in subDirs:
       self.log.info( 'Ignoring subdirectory:', dir )
-
     return files.keys()
+
+
 
   def __retrieveAndUploadFile( self, file, outputDict ):
     """
@@ -141,42 +152,49 @@ class OutputDataAgent( AgentModule ):
     """
     inputPath = outputDict['InputPath']
     inputFCName = outputDict['InputFC']
-    inputFC = FileCatalog( [inputFCName] )
+    if inputFCName == 'LocalDisk':
+      inFile = file
+      file = os.path.join( inputPath, file )
+    else:
+      inputFC = FileCatalog( [inputFCName] )
 
-    inFile = os.path.join( inputPath, file )
-    replicaDict = inputFC.getReplicas( inFile )
-    if not replicaDict['OK']:
-      self.log.error( replicaDict['Message'] )
-      return S_ERROR( inFile )
-    if not inFile in replicaDict['Value']['Successful']:
-      self.log.error( replicaDict['Value']['Failed'][inFile] )
-      return S_ERROR( inFile )
-    seList = replicaDict['Value']['Successful'][inFile].keys()
+      inFile = os.path.join( inputPath, file )
+      replicaDict = inputFC.getReplicas( inFile )
+      if not replicaDict['OK']:
+        self.log.error( replicaDict['Message'] )
+        return S_ERROR( inFile )
+      if not inFile in replicaDict['Value']['Successful']:
+        self.log.error( replicaDict['Value']['Failed'][inFile] )
+        return S_ERROR( inFile )
+      seList = replicaDict['Value']['Successful'][inFile].keys()
 
-    inputSE = StorageElement( seList[0] )
-    self.log.info( 'Retrieving from %s:' % inputSE.name, inFile )
-    ret = inputSE.getFile( inFile )
-    if not ret['OK']:
-      self.log.error( ret['Message'] )
-      return S_ERROR( inFile )
-    if not inFile in ret['Value']['Successful']:
-      self.log.error( ret['Value']['Failed'][inFile] )
-      return S_ERROR( inFile )
+      inputSE = StorageElement( seList[0] )
+      self.log.info( 'Retrieving from %s:' % inputSE.name, inFile )
+      ret = inputSE.getFile( inFile )
+      if not ret['OK']:
+        self.log.error( ret['Message'] )
+        return S_ERROR( inFile )
+      if not inFile in ret['Value']['Successful']:
+        self.log.error( ret['Value']['Failed'][inFile] )
+        return S_ERROR( inFile )
 
     outputPath = outputDict['OutputPath']
     outputSE = StorageElement( outputDict['OutputSE'] )
     outputFCName = outputDict['OutputFC']
     replicaManager = ReplicaManager()
 
-    print file
-    outFile = os.path.join( outputPath, file )
+    outFile = os.path.join( outputPath, os.path.basename( file ) )
     self.log.info( 'Uploading to %s:' % outputSE.name, outFile )
     ret = replicaManager.putAndRegister( outFile, os.path.realpath( file ), outputSE.name, catalog=outputFCName )
-    os.unlink( file )
+    if ret['OK'] or not inputFCName == 'LocalDisk':
+      os.unlink( file )
 
     if not ret['OK']:
       self.log.error( ret['Message'] )
       return S_ERROR( inFile )
+
+    if inputFCName == 'LocalDisk':
+      return S_OK( inFile )
 
     # Now the file is on final SE/FC, remove from input SE/FC
     self.log.info( 'Removing from %s:' % inputSE.name, inFile )

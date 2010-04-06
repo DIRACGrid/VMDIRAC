@@ -24,6 +24,8 @@ from DIRAC.Core.Utilities.ThreadPool                            import ThreadPoo
 from DIRAC.DataManagementSystem.Client.ReplicaManager           import ReplicaManager
 from DIRAC.Resources.Catalog.FileCatalog                        import FileCatalog
 from DIRAC.Resources.Storage.StorageElement                     import StorageElement
+from DIRAC.Core.Utilities.Shifter                               import setupShifterProxyInEnv
+
 
 from DIRAC import S_OK, S_ERROR, gConfig
 
@@ -40,6 +42,9 @@ class OutputDataAgent( AgentModule ):
     self.am_setOption( "MinThreadsInPool", 1 )
     self.am_setOption( "MaxThreadsInPool", 20 )
     self.am_setOption( "TotalThreadsInPool", 100 )
+
+    #Define the shifter proxy needed
+    self.am_setModuleParam( "shifterProxy", "DataManager" )
 
     self.pool = ThreadPool( self.am_getOption( 'MinThreadsInPool' ),
                             self.am_getOption( 'MaxThreadsInPool' ),
@@ -71,6 +76,7 @@ class OutputDataAgent( AgentModule ):
       return S_OK()
 
     pathList = result['Value']
+
     for path in pathList:
       csPath = self.csPath + '/%s' % path
       result = gConfig.getOptionsDict( csPath )

@@ -104,16 +104,21 @@ class OutputDataAgent( AgentModule ):
         self.processingFiles[file] = 1
         self.callBackLock.release()
         ret = self.pool.generateJobAndQueueIt( self.__retrieveAndUploadFile,
-                                              args=( file, outputDict ),
-                                              oCallback=self.callBack,
-                                              oExceptionCallback=self.exceptionCallBack,
-                                              blocking=False )
+                                              args = ( file, outputDict ),
+                                              oCallback = self.callBack,
+                                              oExceptionCallback = self.exceptionCallBack,
+                                              blocking = False )
         if not ret['OK']:
           # The thread pool got full 
           break
       if not ret['OK']:
         # The thread pool got full 
         break
+
+    maxCycles = self.am_getMaxCycles()
+    if maxCycles > 0 and self.am_getCyclesDone() == maxCyles - 1:
+      #We are in the last cycle. Need to purge the thread pool
+      self.pool.processAllResults()
 
     return S_OK()
 
@@ -191,7 +196,7 @@ class OutputDataAgent( AgentModule ):
 
     outFile = os.path.join( outputPath, os.path.basename( file ) )
     self.log.info( 'Uploading to %s:' % outputSE.name, outFile )
-    ret = replicaManager.putAndRegister( outFile, os.path.realpath( file ), outputSE.name, catalog=outputFCName )
+    ret = replicaManager.putAndRegister( outFile, os.path.realpath( file ), outputSE.name, catalog = outputFCName )
     if ret['OK'] or not inputFCName == 'LocalDisk':
       os.unlink( file )
 
@@ -238,5 +243,5 @@ class OutputDataAgent( AgentModule ):
       self.callBackLock.release()
 
   def exceptionCallBack( self, threadedJob, exceptionInfo ):
-    self.log.exception( 'Error in file processing:', lExcInfo=exceptionInfo )
+    self.log.exception( 'Error in file processing:', lExcInfo = exceptionInfo )
 

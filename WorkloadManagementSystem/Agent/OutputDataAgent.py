@@ -63,6 +63,7 @@ class OutputDataAgent( AgentModule ):
     self.callBackLock = threading.Lock()
 
     self.failedFiles = {}
+    self.processingFiles = {}
 
     return S_OK()
 
@@ -97,6 +98,11 @@ class OutputDataAgent( AgentModule ):
       ret = S_OK()
       for file in files:
         file = os.path.basename( file )
+        self.callBackLock.acquire()
+        if file in self.processingFiles:
+          continue
+        self.processingFiles[file] = 1
+        self.callBackLock.release()
         ret = self.pool.generateJobAndQueueIt( self.__retrieveAndUploadFile,
                                               args=( file, outputDict ),
                                               oCallback=self.callBack,
@@ -215,12 +221,20 @@ class OutputDataAgent( AgentModule ):
       if file not in self.failedFiles:
         self.failedFiles[file] = 0
       self.failedFiles[file] += 1
+      try:
+        del self.processingFiles[file]
+      except:
+        pass
       self.callBackLock.release()
     else:
       self.callBackLock.acquire()
       file = submitResult['Value']
       if file in self.failedFiles:
         del self.failedFiles[file]
+      try:
+        del self.processingFiles[file]
+      except:
+        pass
       self.callBackLock.release()
 
   def exceptionCallBack( self, threadedJob, exceptionInfo ):

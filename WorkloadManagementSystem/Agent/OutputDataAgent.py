@@ -106,7 +106,6 @@ class OutputDataAgent( AgentModule ):
         ret = self.pool.generateJobAndQueueIt( self.__retrieveAndUploadFile,
                                               args = ( file, outputDict ),
                                               oCallback = self.callBack,
-                                              oExceptionCallback = self.exceptionCallBack,
                                               blocking = False )
         if not ret['OK']:
           # The thread pool got full 
@@ -241,7 +240,4 @@ class OutputDataAgent( AgentModule ):
       except:
         pass
       self.callBackLock.release()
-
-  def exceptionCallBack( self, threadedJob, exceptionInfo ):
-    self.log.exception( 'Error in file processing:', lExcInfo = exceptionInfo )
 

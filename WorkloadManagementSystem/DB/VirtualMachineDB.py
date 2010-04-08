@@ -586,6 +586,71 @@ class VirtualMachineDB( DB ):
 
     return DIRAC.S_ERROR( reason )
 
+
+  def getInstancesContent( self, selDict, sortList, start = 0, limit = 0 ):
+    """
+    Function to get the contents of the db
+      parameters are a filter to the db
+    """
+    tables = ( "`vm_Images` AS img", "`vm_Instances` AS inst" )
+    imageFields = ( 'VMImageID', 'Name', 'Flavor' )
+    instanceFields = ( 'VMInstanceID', 'Name', 'UniqueID', 'VMImageID',
+                       'Status', 'PublicIP', 'Status', 'ErrorMessage', 'LastUpdate' )
+
+    fields = [ 'img.%s' % f for f in imageFields ] + [ 'inst.%s' % f for f in instanceFields ]
+    sqlQuery = "SELECT %s FROM %s" % ( ", ".join( fields ), ", ".join( tables ) )
+    sqlCond = [ 'img.VMImageID = inst.VMImageID' ]
+    for field in selDict:
+      if field in instanceFields:
+        sqlField = "inst.%s" % field
+      elif field in imageFields:
+        sqlField = "img.%s" % field
+      elif field in fields:
+        sqlField = field
+      else:
+        continue
+      sqlCond.append( " OR ".join( [ "%s=%s" % ( sqlField, self._escapeString( str( value ) )[ 'Value' ] ) for value in selDict[field] ] ) )
+    sqlQuery += " WHERE %s" % " AND ".join( sqlCond )
+    if sortList:
+      sqlSortList = []
+      for sorting in sortList:
+        if sorting[0] in instanceFields:
+          sqlField = "inst.%s" % sorting[0]
+        elif sorting[0] in imageFields:
+          sqlField = "img.%s" % sorting[0]
+        elif sorting[0] in fields:
+          sqlField = sorting[0]
+        else:
+          continue
+        direction = sorting[1].upper()
+        if direction not in ( "ASC", "DESC" ):
+          continue
+        sqlSortList.append( "%s %s" % ( sqlField, direction ) )
+      if sqlSortList:
+        sqlQuery += " ORDER BY %s" % ", ".join( sqlSortList )
+    if limit:
+      sqlQuery += " LIMIT %d,%d" % ( start, limit )
+    retVal = self._query( sqlQuery )
+    if not retVal[ 'OK' ]:
+      return retVal
+    data = []
+    for record in retVal[ 'Value' ]:
+      record = list( record )
+      if record[3] == 'True':
+        record[3] = True
+      else:
+        record[3] = False
+      data.append( record )
+    totalRecords = len( data )
+    sqlQuery = "SELECT COUNT( VMInstanceID ) FROM %s WHERE %s" % ( ", ".join( tables ),
+                                                                   " AND ".join( sqlCond ) )
+    retVal = self._query( sqlQuery )
+    if retVal[ 'OK' ]:
+      totalRecords = retVal[ 'Value' ][0][0]
+    return DIRAC.S_OK( { 'ParameterNames' : fields,
+                         'Records' : data,
+                         'TotalRecords' : totalRecords } )
+
 def getImageDict( imageName ):
   """
   Return from CS a Dictionary with Image definition

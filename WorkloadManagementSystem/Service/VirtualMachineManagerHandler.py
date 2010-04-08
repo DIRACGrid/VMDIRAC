@@ -107,3 +107,12 @@ class VirtualMachineManagerHandler( RequestHandler ):
     """
     return gVirtualMachineDB.getInstancesByStatus( status )
 
+  ###########################################################################
+  types_getInstancesContent = [ DictType, ( ListType, TupleType ),
+                                ( IntType, LongType ), ( IntType, LongType ) ]
+  def export_getInstancesContent( self, selDict, sortDict, start, limit ):
+    """
+    Retrieve the contents of the DB
+    """
+    return gVirtualMachineDB.getInstancesContent( selDict, sortDict, start, limit )
+

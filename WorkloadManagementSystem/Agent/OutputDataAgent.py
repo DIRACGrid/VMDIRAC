@@ -219,6 +219,8 @@ class OutputDataAgent( AgentModule ):
 
     inputFC.removeFile( inFile )
 
+    self.log.info( "Finished transferring %s" % inFile )
+
     return S_OK( inFile )
 
   @filesSync

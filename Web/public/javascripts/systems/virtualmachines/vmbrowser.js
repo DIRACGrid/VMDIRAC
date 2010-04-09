@@ -42,7 +42,7 @@ function renderPage()
             { header: "Error", width: 350, sortable: true, dataIndex: 'inst_ErrorMessage'},
             { header: "IP", width: 100, sortable: true, dataIndex: 'inst_PublicIP'},
             { header: "Flavor", width: 100, sortable: true, dataIndex: 'img_Flavor'},
-            { header: "Last Update (UTC)", width: 150, sortable: true, dataIndex: 'img_LastUpdate' },
+            { header: "Last Update (UTC)", width: 150, sortable: true, dataIndex: 'inst_LastUpdate' },
         ],
         region : 'center',
         tbar : [

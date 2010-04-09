@@ -8,6 +8,7 @@ from DIRAC.Core.Base.AgentModule import AgentModule
 from DIRAC import gLogger, S_OK, S_ERROR, gConfig
 from DIRAC.Core.Utilities import List, Network
 from BelleDIRAC.WorkloadManagementSystem.Client.ServerUtils import virtualMachineDB
+from BelleDIRAC.WorkloadManagementSystem.private.OutputDataHelper import OutputDataHelper
 
 try:
   from hashlib import md5
@@ -100,6 +101,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
 
   def initialize( self ):
     self.__loadHistory = []
+    self.__outDataHelper = OutputDataHelper()
     self.vmId = ""
     result = self.__getCSConfig()
     if not result[ 'OK' ]:
@@ -179,6 +181,13 @@ class VirtualMachineMonitorAgent( AgentModule ):
         gLogger.info( " heartbeat sent!" )
       else:
         gLogger.error( "Could not send heartbeat", result[ 'Message' ] )
+    #Check if there are local outgoing files
+    localOutgoing = self.__outDataHelper.getNumLocalOutgoingFiles()
+    if localOutgoing:
+      gLogger.info( "There are %s local outgoing files to be transferred. Not halting" % localOutgoing )
+      return S_OK()
+    else:
+      gLogger.info( "No local outgoing files to be transferred" )
     #Do we need to check if halt?
     if avgRequiredSamples and uptime % self.haltPeriod + self.haltBeforeMargin > self.haltPeriod:
       gLogger.info( "Load average is %s (minimum for working instance is %s)" % ( avgLoad,

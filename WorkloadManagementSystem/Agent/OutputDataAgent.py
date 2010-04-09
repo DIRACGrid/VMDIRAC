@@ -115,7 +115,7 @@ class OutputDataAgent( AgentModule ):
         break
 
     maxCycles = self.am_getMaxCycles()
-    if maxCycles > 0 and self.am_getCyclesDone() == maxCyles - 1:
+    if maxCycles > 0 and self.am_getCyclesDone() == maxCycles - 1:
       #We are in the last cycle. Need to purge the thread pool
       self.pool.processAllResults()
 

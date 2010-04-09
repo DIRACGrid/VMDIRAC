@@ -13,7 +13,7 @@ function renderPage()
 		totalProperty : 'numRecords',
 		id : 'inst_VMInstanceID',
 		fields : [ "inst_Name", "inst_VMInstanceID", "inst_ErrorMessage", "inst_Status", "inst_UniqueID", 
-		           "img_VMImageID", "img_Name", "inst_VMImageID", "inst_PublicIP", "img_Flavor", 'img_LastUpdate' ]
+		           "img_VMImageID", "img_Name", "inst_VMImageID", "inst_PublicIP", "img_Flavor", 'inst_LastUpdate' ]
     });
 
 	var store = new Ext.data.Store({

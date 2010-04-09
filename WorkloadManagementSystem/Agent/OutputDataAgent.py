@@ -25,11 +25,13 @@ from DIRAC.DataManagementSystem.Client.ReplicaManager           import ReplicaMa
 from DIRAC.Resources.Catalog.FileCatalog                        import FileCatalog
 from DIRAC.Resources.Storage.StorageElement                     import StorageElement
 from DIRAC.Core.Utilities.Shifter                               import setupShifterProxyInEnv
-
+from DIRAC.Core.Utilities.ThreadSafe import Synchronizer
 
 from DIRAC import S_OK, S_ERROR, gConfig
 
 import os, threading, shutil
+
+filesSync = Synchronizer()
 
 class OutputDataAgent( AgentModule ):
 
@@ -94,31 +96,32 @@ class OutputDataAgent( AgentModule ):
         continue
 
       files = self.__getFiles( outputDict )
-
-      ret = S_OK()
-      for file in files:
-        file = os.path.basename( file )
-        self.callBackLock.acquire()
-        if file in self.processingFiles:
-          continue
-        self.processingFiles[file] = 1
-        self.callBackLock.release()
-        ret = self.pool.generateJobAndQueueIt( self.__retrieveAndUploadFile,
-                                              args = ( file, outputDict ),
-                                              oCallback = self.callBack,
-                                              blocking = False )
-        if not ret['OK']:
-          # The thread pool got full 
-          break
+      ret = self.__addFilesToThreadPool( files, outputDict )
       if not ret['OK']:
         # The thread pool got full 
         break
 
     maxCycles = self.am_getMaxCycles()
-    if maxCycles > 0 and self.am_getCyclesDone() == maxCycles - 1:
+    if maxCycles > 0 and maxCycles - self.am_getCyclesDone() == 1:
       #We are in the last cycle. Need to purge the thread pool
       self.pool.processAllResults()
 
+    return S_OK()
+
+  @filesSync
+  def __addFilesToThreadPool( self, files, outputDict ):
+    for file in files:
+      file = os.path.basename( file )
+      if file in self.processingFiles:
+        continue
+      self.processingFiles[file] = 1
+      ret = self.pool.generateJobAndQueueIt( self.__retrieveAndUploadFile,
+                                            args = ( file, outputDict ),
+                                            oCallback = self.callBack,
+                                            blocking = False )
+      if not ret['OK']:
+        # The thread pool got full 
+        return ret
     return S_OK()
 
   def __getFiles( self, outputDict ):
@@ -218,9 +221,9 @@ class OutputDataAgent( AgentModule ):
 
     return S_OK( inFile )
 
+  @filesSync
   def callBack( self, threadedJob, submitResult ):
     if not submitResult['OK']:
-      self.callBackLock.acquire()
       file = submitResult['Message']
       if file not in self.failedFiles:
         self.failedFiles[file] = 0
@@ -229,9 +232,7 @@ class OutputDataAgent( AgentModule ):
         del self.processingFiles[file]
       except:
         pass
-      self.callBackLock.release()
     else:
-      self.callBackLock.acquire()
       file = submitResult['Value']
       if file in self.failedFiles:
         del self.failedFiles[file]
@@ -239,5 +240,4 @@ class OutputDataAgent( AgentModule ):
         del self.processingFiles[file]
       except:
         pass
-      self.callBackLock.release()
 

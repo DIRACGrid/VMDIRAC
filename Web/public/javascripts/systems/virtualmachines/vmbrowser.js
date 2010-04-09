@@ -39,10 +39,10 @@ function renderPage()
             { header: "Instance", width: 100, sortable: true, dataIndex: 'inst_Name'},
             { header: "Status", width: 100, sortable: true, dataIndex: 'inst_Status'},
             { header: "ID", width: 100, sortable: true, dataIndex: 'inst_UniqueID'},
-            { header: "Error", width: 350, sortable: true, dataIndex: 'inst_ErrorMessage'},
             { header: "IP", width: 100, sortable: true, dataIndex: 'inst_PublicIP'},
             { header: "Flavor", width: 100, sortable: true, dataIndex: 'img_Flavor'},
             { header: "Last Update (UTC)", width: 150, sortable: true, dataIndex: 'inst_LastUpdate' },
+            { header: "Error", width: 350, sortable: true, dataIndex: 'inst_ErrorMessage'},
         ],
         region : 'center',
         tbar : [
@@ -57,7 +57,10 @@ function renderPage()
 					displayInfo: true,
 					displayMsg: 'Displaying entries {0} - {1} of {2}',
 					emptyMsg: "No entries to display",
-					items:['-','Items displaying per page: ', createNumItemsSelector() ],
+					items:[ '-',
+					        'Items displaying per page: ', createNumItemsSelector(),
+					        '-',
+					        'Show VMs in status: ', createStatusSelector() ],
       	}),
       	listeners : { sortchange : cbMainGridSortChange },
 	} );
@@ -103,6 +106,8 @@ function cbStoreBeforeLoad( store, params )
 					     'sortDirection' : sortState.direction,
 						 'limit' : bb.pageSize,
 					   };
+	if( bb.statusSelector && bb.statusSelector != "All" )
+		store.baseParams.statusSelector = bb.statusSelector;
 }
 
 function cbMainGridSortChange( mainGrid, params )
@@ -148,6 +153,38 @@ function createNumItemsSelector(){
 	return combo;
 }
 
+function createStatusSelector(){
+	var store = new Ext.data.SimpleStore({
+		fields:['status'],
+		data:[['All'],['New'],['Submitted'],['Running'],['Halted'],['Stalled'],['Error']]
+	});
+	var combo = new Ext.form.ComboBox({
+		allowBlank:false,
+		displayField:'status',
+		editable:false,
+		mode:'local',
+		name:'statusSelector',
+		selectOnFocus:true,
+		store:store,
+		triggerAction:'all',
+		typeAhead:true,
+		value:'All',
+		width:100
+	});
+	combo.on({
+		'collapse':function() {
+			var bb = gMainGrid.getBottomToolbar();
+			if( bb.statusSelector != combo.value )
+			{
+				bb.statusSelector = combo.value;
+				var store = gMainGrid.getStore()
+				store.load();
+			}
+		}
+ 	});
+	return combo;
+}
+
 
 function cbDeleteSelected()
 {
@@ -176,35 +213,4 @@ function ajaxCBServerDeleteSelected( ajaxResponse, reqArguments )
 function ajaxFailure( ajaxResponse, reqArguments )
 {
 	alert( "Error in AJAX request : " + ajaxResponse.responseText );
-}
-
-function renderExpirationDate( value, metadata, record, rowIndex, colIndex, store )
-{
-	var expStr = record.data.ExpirationTime.trim();
-	var dayTime = expStr.split( " " );
-	var dayList = dayTime[0].split( "-" ); //YYYY-MM-DD
-	var timeList = dayTime[1].split( ":" ); //HH:MM:SS
-	var expEpoch = new Date( dayList[0], parseInt( dayList[1] ) - 1, dayList[2], timeList[0], timeList[1], timeList[2] ).getTime()/1000;
-	var nowDate = new Date();
-	var offsetStr = nowDate.getGMTOffset();
-	var secOff = parseInt( offsetStr.substr( 1, 2 ) ) * 3600 + parseInt( offsetStr.substr( 3, 2 ) ) * 60;
-	if( offsetStr.charAt(0) == "+" )
-		var nowEpoch = nowDate.getTime()/1000 + secOff;
-	else
-		var nowEpoch = nowDate.getTime()/1000 - secOff;
-	var secsLeft = expEpoch - nowEpoch;
-
-	var timeLimit = 86400 * 30;
-	if( secsLeft < 0 )
-		secsLeft = 0;
-	else if( secsLeft > timeLimit )
-		secsLeft = timeLimit;
-
-        if( secsLeft < 3600 )
-		var green = 0;
-	else
-		var green = 200;
-	var red = parseInt( 255 * ( timeLimit - secsLeft ) / timeLimit );
-//	var red = parseInt( 200 * ( secsLeft ) / timeLimit );
-	return '<span style="color: rgb('+red+','+green+',0);">' + expStr + '</span>';
 }

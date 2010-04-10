@@ -166,6 +166,10 @@ class VirtualMachineScheduler( AgentModule ):
           priority += taskQueueDict[tq]['Priority']
           cpu += taskQueueDict[tq]['Jobs'] * taskQueueDict[tq]['CPUTime']
 
+        if not jobs:
+          self.log.info( 'No matching jobs for %s found, skipping' % imageName )
+          continue
+
         if instances and ( cpu / instances ) < imageDict['CPUPerInstance']:
           self.log.info( 'Waiting CPU per Running instance %s < %s, skipping' % ( cpu / instances, imageDict['CPUPerInstance'] ) )
           continue

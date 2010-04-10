@@ -116,9 +116,9 @@ class OutputDataAgent( AgentModule ):
         continue
       self.processingFiles[file] = 1
       ret = self.pool.generateJobAndQueueIt( self.__retrieveAndUploadFile,
-                                            args = ( file, outputDict ),
-                                            oCallback = self.callBack,
-                                            blocking = False )
+                                            args=( file, outputDict ),
+                                            oCallback=self.callBack,
+                                            blocking=False )
       if not ret['OK']:
         # The thread pool got full 
         return ret
@@ -163,6 +163,7 @@ class OutputDataAgent( AgentModule ):
     """
     Retrieve, Upload, and remove
     """
+    fileName = file
     inputPath = outputDict['InputPath']
     inputFCName = outputDict['InputFC']
     if inputFCName == 'LocalDisk':
@@ -175,10 +176,10 @@ class OutputDataAgent( AgentModule ):
       replicaDict = inputFC.getReplicas( inFile )
       if not replicaDict['OK']:
         self.log.error( replicaDict['Message'] )
-        return S_ERROR( inFile )
+        return S_ERROR( fileName )
       if not inFile in replicaDict['Value']['Successful']:
         self.log.error( replicaDict['Value']['Failed'][inFile] )
-        return S_ERROR( inFile )
+        return S_ERROR( fileName )
       seList = replicaDict['Value']['Successful'][inFile].keys()
 
       inputSE = StorageElement( seList[0] )
@@ -186,10 +187,10 @@ class OutputDataAgent( AgentModule ):
       ret = inputSE.getFile( inFile )
       if not ret['OK']:
         self.log.error( ret['Message'] )
-        return S_ERROR( inFile )
+        return S_ERROR( fileName )
       if not inFile in ret['Value']['Successful']:
         self.log.error( ret['Value']['Failed'][inFile] )
-        return S_ERROR( inFile )
+        return S_ERROR( fileName )
 
     outputPath = outputDict['OutputPath']
     outputSE = StorageElement( outputDict['OutputSE'] )
@@ -198,16 +199,16 @@ class OutputDataAgent( AgentModule ):
 
     outFile = os.path.join( outputPath, os.path.basename( file ) )
     self.log.info( 'Uploading to %s:' % outputSE.name, outFile )
-    ret = replicaManager.putAndRegister( outFile, os.path.realpath( file ), outputSE.name, catalog = outputFCName )
+    ret = replicaManager.putAndRegister( outFile, os.path.realpath( file ), outputSE.name, catalog=outputFCName )
     if ret['OK'] or not inputFCName == 'LocalDisk':
       os.unlink( file )
 
     if not ret['OK']:
       self.log.error( ret['Message'] )
-      return S_ERROR( inFile )
+      return S_ERROR( fileName )
 
     if inputFCName == 'LocalDisk':
-      return S_OK( inFile )
+      return S_OK( fileName )
 
     # Now the file is on final SE/FC, remove from input SE/FC
     self.log.info( 'Removing from %s:' % inputSE.name, inFile )
@@ -221,7 +222,7 @@ class OutputDataAgent( AgentModule ):
 
     self.log.info( "Finished transferring %s" % inFile )
 
-    return S_OK( inFile )
+    return S_OK( fileName )
 
   @filesSync
   def callBack( self, threadedJob, submitResult ):

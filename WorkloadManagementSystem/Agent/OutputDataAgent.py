@@ -26,6 +26,7 @@ from DIRAC.Resources.Catalog.FileCatalog                        import FileCatal
 from DIRAC.Resources.Storage.StorageElement                     import StorageElement
 from DIRAC.Core.Utilities.Shifter                               import setupShifterProxyInEnv
 from DIRAC.Core.Utilities.ThreadSafe import Synchronizer
+from DIRAC.Core.Utilities.Subprocess import pythonCall
 
 from DIRAC import S_OK, S_ERROR, gConfig
 
@@ -184,7 +185,13 @@ class OutputDataAgent( AgentModule ):
 
       inputSE = StorageElement( seList[0] )
       self.log.info( 'Retrieving from %s:' % inputSE.name, inFile )
-      ret = inputSE.getFile( inFile )
+      # ret = inputSE.getFile( inFile )
+      # lcg_util binding prevent multithreading, use subprocess instead
+      res = pythonCall( 0, inputSE.getFile, inFile )
+      if not res['OK']:
+        self.log.error( res['Message'] )
+        return S_ERROR( fileName )
+      ret = res['Value']
       if not ret['OK']:
         self.log.error( ret['Message'] )
         return S_ERROR( fileName )
@@ -199,7 +206,13 @@ class OutputDataAgent( AgentModule ):
 
     outFile = os.path.join( outputPath, os.path.basename( file ) )
     self.log.info( 'Uploading to %s:' % outputSE.name, outFile )
-    ret = replicaManager.putAndRegister( outFile, os.path.realpath( file ), outputSE.name, catalog=outputFCName )
+    # ret = replicaManager.putAndRegister( outFile, os.path.realpath( file ), outputSE.name, catalog=outputFCName )
+    # lcg_util binding prevent multithreading, use subprocess instead
+    res = pythonCall( 0, replicaManager.putAndRegister, outFile, os.path.realpath( file ), outputSE.name, catalog=outputFCName )
+    if not res['OK']:
+      self.log.error( res['Message'] )
+      return S_ERROR( fileName )
+    ret = res['Value']
     if ret['OK'] or not inputFCName == 'LocalDisk':
       os.unlink( file )
 
@@ -243,4 +256,3 @@ class OutputDataAgent( AgentModule ):
         del self.processingFiles[file]
       except:
         pass
-

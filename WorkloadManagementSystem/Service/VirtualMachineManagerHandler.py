@@ -79,15 +79,16 @@ class VirtualMachineManagerHandler( RequestHandler ):
     return gVirtualMachineDB.declareInstanceRunning( imageName, uniqueID, publicIP, privateIP )
 
   ###########################################################################
-  types_instanceIDHeartBeat = [ StringType, FloatType ]
-  def export_instanceIDHeartBeat( self, uniqueID, load ):
+  types_instanceIDHeartBeat = [ StringType, FloatType, ( IntType, LongType ),
+                               ( IntType, LongType ), ( IntType, LongType ) ]
+  def export_instanceIDHeartBeat( self, uniqueID, load, jobs, transferredFiles, transferredBytes ):
     """
     Insert the heart beat info from a running instance
     It checks the status of the instance and the corresponding image
     Declares "Running" the instance and the image 
     It returns S_ERROR if the status is not OK
     """
-    return gVirtualMachineDB.instanceIDHeartBeat( uniqueID, load )
+    return gVirtualMachineDB.instanceIDHeartBeat( uniqueID, load, jobs, transferredFiles, transferredBytes )
 
   ###########################################################################
   types_declareInstanceHalting = [ StringType, FloatType ]
@@ -116,3 +117,10 @@ class VirtualMachineManagerHandler( RequestHandler ):
     """
     return gVirtualMachineDB.getInstancesContent( selDict, sortDict, start, limit )
 
+  ###########################################################################
+  types_getHistoryForInstance = [ ( IntType, LongType ) ]
+  def export_getHistoryForInstance( self, instanceId ):
+    """
+    Retrieve the contents of the DB
+    """
+    return gVirtualMachineDB.getHistoryForInstance( instanceId )

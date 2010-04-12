@@ -84,6 +84,9 @@ class VirtualMachineDB( DB ):
   tablesDesc[ 'vm_History' ] = { 'Fields' : { 'VMInstanceID' : 'INTEGER UNSIGNED NOT NULL',
                                               'Status' : 'VARCHAR(32) NOT NULL',
                                               'Load' : 'FLOAT NOT NULL',
+                                              'Jobs' : 'INTEGER UNSIGNED NOT NULL DEFAULT 0',
+                                              'TransferredFiles' : 'INTEGER UNSIGNED NOT NULL DEFAULT 0',
+                                              'TransferredBytes' : 'INTEGER UNSIGNED NOT NULL DEFAULT 0',
                                               'Update' : 'DATETIME'
                                             },
                                  'Indexes': { 'VMInstanceID': [ 'VMInstanceID' ] },
@@ -243,7 +246,7 @@ class VirtualMachineDB( DB ):
     return DIRAC.S_OK( stallingInstances )
 
 
-  def instanceIDHeartBeat( self, uniqueID, load ):
+  def instanceIDHeartBeat( self, uniqueID, load, jobs, transferredFiles, transferredBytes ):
     """
     Insert the heart beat info from a running instance
     It checks the status of the instance and the corresponding image
@@ -255,7 +258,7 @@ class VirtualMachineDB( DB ):
       return instanceID
     instanceID = instanceID['Value']
 
-    status = self.__runningInstance( instanceID, load )
+    status = self.__runningInstance( instanceID, load, jobs, transferredFiles, transferredBytes )
     if not status['OK']:
       return status
 
@@ -312,7 +315,7 @@ class VirtualMachineDB( DB ):
 
     return DIRAC.S_ERROR( 'Failed to insert new Instance' )
 
-  def __runningInstance( self, instanceID, load ):
+  def __runningInstance( self, instanceID, load, jobs, transferredFiles, transferredBytes ):
     """
     Checks image status, set it to running and set instance status to running
     """
@@ -335,7 +338,7 @@ class VirtualMachineDB( DB ):
       return stateImage
 
     # Add History record
-    self.__addInstanceHistory( instanceID, 'Running', load )
+    self.__addInstanceHistory( instanceID, 'Running', load, jobs, transferredFiles, transferredBytes )
     return DIRAC.S_OK()
 
   def __getImageForRunningInstance( self, instanceID ):
@@ -510,12 +513,30 @@ class VirtualMachineDB( DB ):
       return DIRAC.S_OK( id )
     return DIRAC.S_ERROR( 'Failed to insert new Image' )
 
-  def __addInstanceHistory( self, instanceID, status, load = 0.0 ):
+  def __addInstanceHistory( self, instanceID, status, load = 0.0, jobs = 0,
+                            transferredFiles = 0, transferredBytes = 0 ):
     """
     Insert a History Record
     """
-    self._insert( 'vm_History' , [ 'VMInstanceID', 'Status', 'Load', 'Update' ],
-                                 [ instanceID, status, load, DIRAC.Time.toString() ] )
+    try:
+      load = float( load )
+    except:
+      return DIRAC.S_ERROR( "Load has to be a float value" )
+    try:
+      jobs = int( jobs )
+    except:
+      return DIRAC.S_ERROR( "Jobs has to be an integer value" )
+    try:
+      transferredFiles = int( transferredFiles )
+    except:
+      return DIRAC.S_ERROR( "Transferred files has to be an integer value" )
+
+    self._insert( 'vm_History' , [ 'VMInstanceID', 'Status', 'Load',
+                                   'Update', 'Jobs', 'TransferredFiles',
+                                   'TransferredBytes' ],
+                                 [ instanceID, status, load,
+                                   DIRAC.Time.toString(), jobs,
+                                   transferredFiles, transferredBytes ] )
     return
 
   def __getInfo( self, object, id ):
@@ -586,6 +607,7 @@ class VirtualMachineDB( DB ):
 
     return DIRAC.S_ERROR( reason )
 
+  #Monitoring functions
 
   def getInstancesContent( self, selDict, sortList, start = 0, limit = 0 ):
     """
@@ -650,6 +672,19 @@ class VirtualMachineDB( DB ):
     return DIRAC.S_OK( { 'ParameterNames' : fields,
                          'Records' : data,
                          'TotalRecords' : totalRecords } )
+
+  def getHistoryForInstance( self, instanceId ):
+    try:
+      instanceId = int( instanceId )
+    except:
+      return S_ERROR( "Instance Id has to be a number!" )
+    fields = ( 'Status', 'Load', 'Update' )
+    sqlQuery = "SELECT %s FROM `vm_History` WHERE VMInstanceId=%d" % ( ", ".join( fields ), instanceId )
+    retVal = self._query( sqlQuery )
+    if not retVal[ 'OK' ]:
+      return retVal
+    return DIRAC.S_OK( { 'ParameterNames' : fields,
+                         'Records' : retVal[ 'Value' ] } )
 
 def getImageDict( imageName ):
   """

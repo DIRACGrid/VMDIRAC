@@ -196,10 +196,15 @@ class VirtualMachineMonitorAgent( AgentModule ):
     minutes = int( uptime - hours * 3600 ) / 60
     seconds = uptime - hours * 3600 - minutes * 60
     gLogger.info( "Uptime is %.2f (%d:%02d:%02d)" % ( uptime, hours, minutes, seconds ) )
+    #Num jobs 
+    numJobs = self.__getNumJobWrappers()
+    gLogger.info( "There are %d job wrappers" % numJobs )
+    gLogger.info( "Transferred %d files" % self.__outDataExecutor.getNumOKTransferredFiles() )
+    gLogger.info( "Transferred %d bytes" % self.__outDataExecutor.getNumOKTransferredBytes() )
     if uptime % self.heartBeatPeriod <= self.am_getPollingTime():
       #Heartbeat time!
       gLogger.info( "Sending hearbeat..." )
-      result = virtualMachineDB.instanceIDHeartBeat( self.vmId, avgLoad, self.__getNumJobWrappers(),
+      result = virtualMachineDB.instanceIDHeartBeat( self.vmId, avgLoad, numJobs,
                                                      self.__outDataExecutor.getNumOKTransferredFiles(),
                                                      self.__outDataExecutor.getNumOKTransferredBytes() )
       if result[ 'OK' ]:

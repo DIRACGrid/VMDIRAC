@@ -46,7 +46,12 @@ class OutputDataAgent( AgentModule ):
 
     maxCycles = self.am_getMaxCycles()
     if maxCycles > 0 and maxCycles - self.am_getCyclesDone() == 1:
+      self.log( "Waiting to all transfers to finish before ending the last cycle" )
       #We are in the last cycle. Need to purge the thread pool
       self.__outDataExecutor.processAllPendingTransfers()
+
+    self.log.info( "Transferred %d files" % self.__outDataExecutor.getNumOKTransferredFiles() )
+    self.log.info( "Transferred %d bytes" % self.__outDataExecutor.getNumOKTransferredBytes() )
+
 
     return S_OK()

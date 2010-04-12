@@ -199,7 +199,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
     if uptime % self.heartBeatPeriod <= self.am_getPollingTime():
       #Heartbeat time!
       gLogger.info( "Sending hearbeat..." )
-      result = virtualMachineDB.instanceIDHeartBeat( self.vmId, avgLoad, self.__getNumJobWrappers,
+      result = virtualMachineDB.instanceIDHeartBeat( self.vmId, avgLoad, self.__getNumJobWrappers(),
                                                      self.__outDataExecutor.getNumOKTransferredFiles(),
                                                      self.__outDataExecutor.getNumOKTransferredBytes() )
       if result[ 'OK' ]:

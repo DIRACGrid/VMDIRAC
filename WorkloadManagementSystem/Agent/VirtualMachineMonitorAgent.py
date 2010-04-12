@@ -60,7 +60,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
     #Variables coming from the vm 
     imgPath = "/Resources/VirtualMachines/Images/%s" % self.vmName
     for csOption, csDefault, varName in ( ( "Flavor", "", "vmFlavor" ),
-                                          ( "MinWorkingLoad", 1, "vmMinWorkingLoad" ),
+                                          ( "MinWorkingLoad", 0.01, "vmMinWorkingLoad" ),
                                           ( "LoadAverageTimespan", 900, "vmLoadAvgTimespan" ),
                                           ( "JobWrappersLocation", "/opt/dirac/pro/job/Wrapper/", "vmJobWrappersLocation" )
                                         ):
@@ -97,7 +97,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
     gLogger.info( "Halt Before Margin    : %d" % self.haltBeforeMargin )
     gLogger.info( "HeartBeat Period      : %d" % self.heartBeatPeriod )
     if self.vmId:
-      gLogger.info( "ID                 : %s" % self.vmId )
+      gLogger.info( "ID                    : %s" % self.vmId )
     gLogger.info( "*************" )
     return S_OK()
 

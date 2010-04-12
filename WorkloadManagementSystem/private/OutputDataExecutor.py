@@ -211,6 +211,10 @@ class OutputDataExecutor:
       self.log.error( ret['Message'] )
       return S_ERROR( fileName )
 
+    self.log.info( "Finished transferring %s [%s bytes]" % ( inFile, inBytes ) )
+    self.__okTransferredFiles += 1
+    self.__okTransferredBytes += inBytes
+
     if inputFCName == 'LocalDisk':
       return S_OK( fileName )
 
@@ -223,10 +227,6 @@ class OutputDataExecutor:
       se.removeFile( inFile )
 
     inputFC.removeFile( inFile )
-
-    self.log.info( "Finished transferring %s [%s bytes]" % ( inFile, inBytes ) )
-    self.__okTransferredFiles += 1
-    self.__okTransferredBytes += inBytes
 
     return S_OK( fileName )
 

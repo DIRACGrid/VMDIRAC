@@ -4,6 +4,9 @@ from DIRAC import gConfig, S_OK, S_ERROR, gLogger
 from DIRAC.Core.Utilities.ThreadPool import ThreadPool
 from DIRAC.Core.Utilities.ThreadSafe import Synchronizer
 from DIRAC.Core.Utilities.Subprocess import pythonCall
+from DIRAC.DataManagementSystem.Client.ReplicaManager               import ReplicaManager
+from DIRAC.Resources.Catalog.FileCatalog                            import FileCatalog
+from DIRAC.Resources.Storage.StorageElement                         import StorageElement
 
 transferSync = Synchronizer()
 
@@ -119,7 +122,7 @@ class OutputDataExecutor:
     tPaths = result[ 'Value' ]
     for name in tPaths:
       transferPath = tPaths[ name ]
-      filesToTransfer = self.getOutgoingFiles( tPaths[ path ] )
+      filesToTransfer = self.getOutgoingFiles( tPaths[ name ] )
       ret = self.__addFilesToThreadPool( files, outputDict )
       if not ret['OK']:
         # The thread pool got full 

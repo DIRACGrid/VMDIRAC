@@ -21,9 +21,6 @@ __RCSID__ = "$Id$"
 
 from DIRAC.Core.Base.AgentModule                                    import AgentModule
 from DIRAC.Core.Utilities.ThreadPool                                import ThreadPool
-from DIRAC.DataManagementSystem.Client.ReplicaManager               import ReplicaManager
-from DIRAC.Resources.Catalog.FileCatalog                            import FileCatalog
-from DIRAC.Resources.Storage.StorageElement                         import StorageElement
 from DIRAC.Core.Utilities.Shifter                                   import setupShifterProxyInEnv
 from BelleDIRAC.WorkloadManagementSystem.private.OutputDataExecutor import OutputDataExecutor
 from DIRAC import S_OK, S_ERROR, gConfig

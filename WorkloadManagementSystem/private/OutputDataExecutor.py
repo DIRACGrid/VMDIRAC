@@ -123,7 +123,7 @@ class OutputDataExecutor:
     for name in tPaths:
       transferPath = tPaths[ name ]
       filesToTransfer = self.getOutgoingFiles( tPaths[ name ] )
-      ret = self.__addFilesToThreadPool( filesToTransfer, outputDict )
+      ret = self.__addFilesToThreadPool( filesToTransfer, transferPath )
       if not ret['OK']:
         # The thread pool got full 
         break

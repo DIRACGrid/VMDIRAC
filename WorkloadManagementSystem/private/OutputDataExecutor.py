@@ -129,7 +129,7 @@ class OutputDataExecutor:
         break
 
   def processAllPendingTransfers( self ):
-    self.pool.processAllResults()
+    self.__threadPool.processAllResults()
 
   @transferSync
   def __addFilesToThreadPool( self, files, outputDict ):
@@ -138,7 +138,7 @@ class OutputDataExecutor:
       if file in self.__processingFiles:
         continue
       self.__processingFiles.add( file )
-      ret = self.pool.generateJobAndQueueIt( self.__retrieveAndUploadFile,
+      ret = self.__threadPool.generateJobAndQueueIt( self.__retrieveAndUploadFile,
                                             args = ( file, outputDict ),
                                             oCallback = self.transferCallback,
                                             blocking = False )
@@ -187,7 +187,8 @@ class OutputDataExecutor:
         self.log.error( ret['Value']['Failed'][inFile] )
         return S_ERROR( fileName )
 
-    inBytes = os.stat( inFile )[6]
+    if os.path.isfile( file ):
+      inBytes = os.stat( file )[6]
 
     outputPath = outputDict['OutputPath']
     outputSE = StorageElement( outputDict['OutputSE'] )
@@ -231,8 +232,6 @@ class OutputDataExecutor:
 
   @transferSync
   def transferCallback( self, threadedJob, submitResult ):
-    if file in self.__processingFiles:
-      self.__processingFiles.discard( file )
     if not submitResult['OK']:
       file = submitResult['Message']
       if file not in self.__failedFiles:
@@ -242,3 +241,6 @@ class OutputDataExecutor:
       file = submitResult['Value']
       if file in self.__failedFiles:
         del self.__failedFiles[file]
+    #Take out from processing files
+    if file in self.__processingFiles:
+      self.__processingFiles.discard( file )

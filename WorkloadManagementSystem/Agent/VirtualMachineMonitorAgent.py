@@ -147,6 +147,8 @@ class VirtualMachineMonitorAgent( AgentModule ):
     result = self.__declareInstanceRunning()
     if not result[ 'OK' ]:
       return result
+    #Define the shifter proxy needed
+    self.am_setModuleParam( "shifterProxy", "DataManager" )
     #Start output data executor
     odeCSPAth = "/Resources/VirtualMachines/Images/%s/OutputData" % self.vmName
     self.__outDataExecutor = OutputDataExecutor( odeCSPAth )

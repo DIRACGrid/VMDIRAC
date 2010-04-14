@@ -243,6 +243,8 @@ function showInstanceHistoryWindow( uniqueID, instanceID )
 		title : 'History Log'
 	});
 	items.push( historyLogPanel );
+	var plotsPanel = generatePlotsPanel( historyLogPanel.getStore() );
+	items.push( plotsPanel );
 	var tabPanel = new Ext.TabPanel({
 		activeTab:0,			
 		enableTabScroll:true,
@@ -267,6 +269,132 @@ function showInstanceHistoryWindow( uniqueID, instanceID )
 	    items : [ tabPanel ]
 	  })
 	extendedInfoWindow.show();
+}
+
+function generatePlotsPanel( store )
+{
+	var plotValues = [ [ 'Load|Jobs' ], [ 'Load|TransferredFiles' ], [ 'Load|TransferredBytes'], [ 'Jobs|TransferredFiles' ] ];
+	
+	var plotSpace = new Ext.Panel( { 
+			region : 'center',
+			acPlot : plotValues[0][0],
+		});
+	
+	var plotCombo = new Ext.form.ComboBox({
+		store : new Ext.data.SimpleStore({
+		    	fields : [ 'plotName' ],
+		    	data : plotValues
+			}),
+		allowBlank:false,
+		editable:false,
+		mode : 'local',
+		displayField : 'plotName',
+		typeAhead:true,
+		selectOnFocus : true,
+		triggerAction : 'all',
+		typeAhead : true,
+		value : plotValues[0][0],
+	});
+	
+	var plotButton = new Ext.Toolbar.Button( { text : "Generate plot" } );
+	
+	var statusToolbar = new Ext.Toolbar({ 
+			region : 'north', 
+			items : [ 'Plot', plotCombo, "->", plotButton ]
+  		});
+	var plotTab = new Ext.Panel({
+			autoScroll : true,
+		    margins : '2 0 2 2',
+		    cmargins : '2 2 2 2',
+		    items : [ statusToolbar, plotSpace ],
+		    title : 'Plots',
+		    layout : 'border'
+	});
+	plotFunc = function(){ plotDataForVM( plotSpace, store ) }
+	plotCombo.on( 'change', function(){ plotSpace.acPlot = plotCombo.value; });
+	plotButton.on( 'click', plotFunc );
+	return plotTab;
+}
+
+function plotDataForVM( plotSpace, dataStore )
+{
+	plotSpace.body.dom.innerHTML = "<h1>Generating plot...</h1><h2>(this can take a while)</h2>";
+	var dataSources = plotSpace.acPlot.split("|");
+	var readerData = dataStore.reader.jsonData.history;
+	var encodedData = [];
+	var plotParams = {
+		chxr : [],
+		chxl : [],
+		chds : [],
+		chls : [],
+	};
+	for( var i = 0; i < dataSources.length; i++ )
+	{
+		var fieldData = extractDataForPlot( dataSources[i], readerData );
+		encodedData.push( fieldData.data );
+		plotParams.chxr.push( ""+(i*2)+",0,"+fieldData.max );
+		plotParams.chxl.push( ""+(i*2+1)+":||"+dataSources[i]+"||" );
+		plotParams.chds.push( "0,"+fieldData.max );
+		plotParams.chls.push( "3" );
+	}
+	var imgOps = [];
+	imgOps.push( "cht=lc" );
+	imgOps.push( "chtt=" + dataSources.join( ' vs ' ) );
+	//imgOps.push( "chma=0,0,0,20" );
+	imgOps.push( "chxt=y,y,r,r,x" );
+	imgOps.push( "chxr=" + plotParams.chxr.join( "|") );
+	imgOps.push( "chxl=" + plotParams.chxl.join( "" ) + "4:|"+readerData[0]['Update'] + "|" +readerData[readerData.length - 1]['Update']);
+	imgOps.push( "chxs=1,224499,13,0,t|3,fc9906,13,0,t" );
+	imgOps.push( "chls=" + plotParams.chls.join( "|") );
+	imgOps.push( "chco=224499,fc9906" );
+	imgOps.push( "chm=B,76A4FB,0,0,0" );
+	imgOps.push( "chs=" + ( plotSpace.getInnerWidth() - 10 ) + "x" + ( plotSpace.getInnerHeight() - 10 ) );
+	imgOps.push( "chds=" + plotParams.chds.join( "|") );
+	imgOps.push( "chd=s:" + encodedData.join( "," ) );
+	var imgSrc = "http://chart.apis.google.com/chart?"+ imgOps.join("&");
+	plotSpace.body.dom.innerHTML = "<img src='"+imgSrc+"'/ alt'"+plotSpace.acPlot+"' style:'margin-left:auto;margin-right:auto;'>"
+}
+
+var simpleEncoding = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+
+// This function scales the submitted values so that
+// maxVal becomes the highest value.
+function simpleEncode( valueArray, maxValue ) 
+{
+  var chartData = [];
+  for (var i = 0; i < valueArray.length; i++) {
+    var currentValue = valueArray[i];
+    if (!isNaN(currentValue) && currentValue >= 0) {
+    chartData.push(simpleEncoding.charAt(Math.round((simpleEncoding.length-1) * 
+      currentValue / maxValue)));
+    }
+      else {
+      chartData.push('_');
+      }
+  }
+  return chartData.join('');
+}
+
+
+function extractDataForPlot( field, readerData )
+{
+	var data = [];
+	var maxValue = 0;
+	for( var i = 0; i < readerData.length; i++ )
+	{
+		var value = readerData[i][ field ];
+		data.push( [ readerData[i][ 'Update' ], readerData[i][ field ] ] );
+		if( value > maxValue )
+			maxValue = value;
+	}
+	data.sort();
+	var entries = data.length;
+	maxValue = parseInt( maxValue  + 1 );
+	for( var i = 0; i < data.length; i++ )
+	{
+		data[i] = data[i][1];
+	}
+	return { max : maxValue, entries : entries, data : simpleEncode( data, maxValue ) }
 }
 
 /*

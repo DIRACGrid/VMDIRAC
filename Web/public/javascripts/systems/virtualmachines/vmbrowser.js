@@ -14,7 +14,8 @@ function renderPage()
 		totalProperty : 'numRecords',
 		id : 'inst_VMInstanceID',
 		fields : [ "inst_Name", "inst_VMInstanceID", "inst_ErrorMessage", "inst_Status", "inst_UniqueID", 
-		           "img_VMImageID", "img_Name", "inst_VMImageID", "inst_PublicIP", "img_Flavor", 'inst_LastUpdate' ]
+		           "img_VMImageID", "img_Name", "inst_VMImageID", "inst_PublicIP", "img_Flavor", 'inst_LastUpdate',
+		           'hist_Load']
     });
 
 	var store = new Ext.data.Store({
@@ -37,10 +38,10 @@ function renderPage()
 		columns: [
 		    { id : 'check', header : '', width : 30, dataIndex: 'inst_VMInstanceID', renderer : renderSelect },
             { header: "Image", width: 100, sortable: true, dataIndex: 'img_Name'},
-            { header: "Instance", width: 100, sortable: true, dataIndex: 'inst_Name'},
-            { header: "Status", width: 100, sortable: true, dataIndex: 'inst_Status'},
-            { header: "ID", width: 100, sortable: true, dataIndex: 'inst_UniqueID'},
+            { header: "Status", width: 60, sortable: true, dataIndex: 'inst_Status'},
+            { header: "ID", width: 80, sortable: true, dataIndex: 'inst_UniqueID'},
             { header: "IP", width: 100, sortable: true, dataIndex: 'inst_PublicIP'},
+            { header: "Load", width: 50, sortable: true, dataIndex: 'hist_Load'},
             { header: "Flavor", width: 100, sortable: true, dataIndex: 'img_Flavor'},
             { header: "Last Update (UTC)", width: 150, sortable: true, dataIndex: 'inst_LastUpdate' },
             { header: "Error", width: 350, sortable: true, dataIndex: 'inst_ErrorMessage'},

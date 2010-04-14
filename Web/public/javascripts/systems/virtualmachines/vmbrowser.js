@@ -273,7 +273,10 @@ function showInstanceHistoryWindow( uniqueID, instanceID )
 
 function generatePlotsPanel( store )
 {
-	var plotValues = [ [ 'Load|Jobs' ], [ 'Load|TransferredFiles' ], [ 'Load|TransferredBytes'], [ 'Jobs|TransferredFiles' ] ];
+	var plotValues = [ [ 'Load|Jobs' ], 
+	                   [ 'Load|TransferredFiles' ], [ 'Load|TransferredBytes'],
+	                   [ 'Load|Transfer Files' ], [ 'Load|Transfer Bytes' ],
+	                   [ 'Jobs|TransferredFiles' ] ];
 	
 	var plotSpace = new Ext.Panel( { 
 			region : 'center',
@@ -380,6 +383,12 @@ function extractDataForPlot( field, readerData )
 {
 	var data = [];
 	var maxValue = 0;
+	var deacum = false;
+	if( field.indexOf( 'Transfer ' ) == 0 )
+	{
+		deacum = true;
+		field = field.replace( 'Transfer ', 'Transferred' );
+	}
 	for( var i = 0; i < readerData.length; i++ )
 	{
 		var value = readerData[i][ field ];
@@ -388,12 +397,24 @@ function extractDataForPlot( field, readerData )
 			maxValue = value;
 	}
 	data.sort();
-	var entries = data.length;
-	maxValue = parseInt( maxValue  + 1 );
 	for( var i = 0; i < data.length; i++ )
 	{
 		data[i] = data[i][1];
 	}
+	if( deacum )
+	{
+		maxValue = 0;
+		for( var i = data.length -1; i > 0; i-- )
+		{
+			data[ i ] = data[ i ] - data[ i - 1 ];
+			if( data[i] < 0 )
+				data[i] = 0;
+			if( value > maxValue )
+				maxValue = value;
+		}
+	}
+	maxValue = parseInt( maxValue + 1 );
+	var entries = data.length;
 	return { max : maxValue, entries : entries, data : simpleEncode( data, maxValue ) }
 }
 

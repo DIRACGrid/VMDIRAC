@@ -90,7 +90,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
     gLogger.info( "** VM Info **" )
     gLogger.info( "Name                  : %s" % self.vmName )
     gLogger.info( "Flavor                : %s" % self.vmFlavor )
-    gLogger.info( "Min Working Load      : %d" % self.vmMinWorkingLoad )
+    gLogger.info( "Min Working Load      : %f" % self.vmMinWorkingLoad )
     gLogger.info( "Load Avg Timespan     : %d" % self.vmLoadAvgTimespan )
     gLogger.info( "Job wrappers location : %s" % self.vmJobWrappersLocation )
     gLogger.info( "Halt Period           : %d" % self.haltPeriod )

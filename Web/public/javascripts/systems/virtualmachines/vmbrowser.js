@@ -409,8 +409,8 @@ function extractDataForPlot( field, readerData )
 			data[ i ] = data[ i ] - data[ i - 1 ];
 			if( data[i] < 0 )
 				data[i] = 0;
-			if( value > maxValue )
-				maxValue = value;
+			if( data[i] > maxValue )
+				maxValue = data[i];
 		}
 	}
 	maxValue = parseInt( maxValue + 1 );

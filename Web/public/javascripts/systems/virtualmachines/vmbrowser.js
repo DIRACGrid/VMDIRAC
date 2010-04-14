@@ -228,7 +228,7 @@ function showInstanceHistoryWindow( uniqueID, instanceID )
 			root : 'history',
 			fields : [ 'Status', 'Load', 'Jobs', 'TransferredFiles', 'TransferredBytes', 'Update' ],
 			autoLoad : true,
-			baseParams : { instanceID : instanceID }
+			baseParams : { instanceID : instanceID, uniqueID : uniqueID }
 		}),
 		columns : [ { header : 'Update time', sortable : true, dataIndex : 'Update' },
 		            { header : 'Status', sortable : false, dataIndex : 'Status' },
@@ -339,7 +339,7 @@ function plotDataForVM( plotSpace, dataStore )
 	}
 	var imgOps = [];
 	imgOps.push( "cht=lc" );
-	imgOps.push( "chtt=" + dataSources.join( ' vs ' ) );
+	imgOps.push( "chtt=" + dataSources.join( ' vs ' ) + " for " + dataStore.baseParams.uniqueID );
 	//imgOps.push( "chma=0,0,0,20" );
 	imgOps.push( "chxt=y,y,r,r,x" );
 	imgOps.push( "chxr=" + plotParams.chxr.join( "|") );

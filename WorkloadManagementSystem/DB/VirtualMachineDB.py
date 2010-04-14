@@ -618,6 +618,7 @@ class VirtualMachineDB( DB ):
     Function to get the contents of the db
       parameters are a filter to the db
     """
+    #Main fields
     tables = ( "`vm_Images` AS img", "`vm_Instances` AS inst" )
     imageFields = ( 'VMImageID', 'Name', 'Flavor' )
     instanceFields = ( 'VMInstanceID', 'Name', 'UniqueID', 'VMImageID',
@@ -660,6 +661,7 @@ class VirtualMachineDB( DB ):
     if not retVal[ 'OK' ]:
       return retVal
     data = []
+    #Total records
     for record in retVal[ 'Value' ]:
       record = list( record )
       data.append( record )
@@ -669,6 +671,26 @@ class VirtualMachineDB( DB ):
     retVal = self._query( sqlQuery )
     if retVal[ 'OK' ]:
       totalRecords = retVal[ 'Value' ][0][0]
+    #Get load
+    running = 0
+    statusPos = fields.index( 'inst.Status' )
+    instanceIDPos = fields.index( 'inst.VMInstanceID' )
+    for record in data:
+      if record[ statusPos ] == 'Running':
+        running += 1
+    sqlQuery = "SELECT VMInstanceID, SUM(`Load`)/COUNT(`Load`) from `vm_History` WHERE VMInstanceID in ( SELECT VMInstanceID from `vm_Instances` WHERE `Status` = 'Running' ) AND `Status` = 'Running' GROUP BY VMInstanceID ORDER BY `Update` DESC limit 1, %d" % ( running * 2 )
+    result = self._query( sqlQuery )
+    if not result[ 'OK' ]:
+      return result
+    histData = dict( result[ 'Value' ] )
+    fields.append( "hist.Load" )
+    for record in data:
+      instID = record[ instanceIDPos ]
+      if instID in histData:
+        record.append( "%.2f" % histData[ instID ] )
+      else:
+        record.append( "" )
+    #return
     return DIRAC.S_OK( { 'ParameterNames' : fields,
                          'Records' : data,
                          'TotalRecords' : totalRecords } )

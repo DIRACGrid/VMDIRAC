@@ -22,7 +22,7 @@ function renderPage()
 		reader: reader,
 		url : "getInstancesList",
 		autoLoad : true,
-		sortInfo: { field: 'inst_VMInstanceID', direction: 'ASC' },
+		sortInfo: { field: 'inst_LastUpdate', direction: 'DESC' },
 		listeners : { 
 			beforeload : cbStoreBeforeLoad		
 	    },

@@ -93,7 +93,7 @@ class VirtualMachineDB( DB ):
                                }
 
 
-  def __init__( self, maxQueueSize = 10 ):
+  def __init__( self, maxQueueSize=10 ):
     DB.__init__( self, 'VirtualMachineDB', 'WorkloadManagement/VirtualMachineDB', maxQueueSize )
     if not self._MySQL__initialized:
       raise Exception( 'Can not connect to VirtualMachineDB, exiting...' )
@@ -173,7 +173,7 @@ class VirtualMachineDB( DB ):
 
     return status
 
-  def declareInstanceRunning( self, imageName, uniqueID, publicIP, privateIP = "" ):
+  def declareInstanceRunning( self, imageName, uniqueID, publicIP, privateIP="" ):
     """
     Declares an instance Running and sets its associated info (uniqueID, publicIP, privateIP)
     Returns S_ERROR if:
@@ -416,15 +416,21 @@ class VirtualMachineDB( DB ):
     if not currentState['OK']:
       return currentState
 
+    ( tableName, validStates, idName ) = self.__getTypeTuple( object )
+
     currentState = currentState['Value']
     if currentState == state:
+      cmd = 'UPDATE `%s` SET LastUpdate=UTC_TIMESTAMP() WHERE %s = %s' % \
+          ( tableName, idName, id )
+
+      ret = self._update( cmd )
+      if not ret['OK']:
+        return ret
       return DIRAC.S_OK( state )
 
     if not currentState in allowedStates:
       msg = 'Transition (%s -> %s) not allowed' % ( currentState, state )
       return DIRAC.S_ERROR( msg )
-
-    ( tableName, validStates, idName ) = self.__getTypeTuple( object )
 
     cmd = 'UPDATE `%s` SET Status="%s",LastUpdate=UTC_TIMESTAMP() WHERE %s = %s' % \
         ( tableName, state, idName, id )
@@ -513,8 +519,8 @@ class VirtualMachineDB( DB ):
       return DIRAC.S_OK( id )
     return DIRAC.S_ERROR( 'Failed to insert new Image' )
 
-  def __addInstanceHistory( self, instanceID, status, load = 0.0, jobs = 0,
-                            transferredFiles = 0, transferredBytes = 0 ):
+  def __addInstanceHistory( self, instanceID, status, load=0.0, jobs=0,
+                            transferredFiles=0, transferredBytes=0 ):
     """
     Insert a History Record
     """
@@ -609,7 +615,7 @@ class VirtualMachineDB( DB ):
 
   #Monitoring functions
 
-  def getInstancesContent( self, selDict, sortList, start = 0, limit = 0 ):
+  def getInstancesContent( self, selDict, sortList, start=0, limit=0 ):
     """
     Function to get the contents of the db
       parameters are a filter to the db
@@ -677,7 +683,7 @@ class VirtualMachineDB( DB ):
     try:
       instanceId = int( instanceId )
     except:
-      return S_ERROR( "Instance Id has to be a number!" )
+      return DIRAC.S_ERROR( "Instance Id has to be a number!" )
     fields = ( 'Status', 'Load', 'Update' )
     sqlQuery = "SELECT %s FROM `vm_History` WHERE VMInstanceId=%d" % ( ", ".join( fields ), instanceId )
     retVal = self._query( sqlQuery )

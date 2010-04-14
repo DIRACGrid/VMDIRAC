@@ -93,7 +93,7 @@ class VirtualMachineDB( DB ):
                                }
 
 
-  def __init__( self, maxQueueSize=10 ):
+  def __init__( self, maxQueueSize = 10 ):
     DB.__init__( self, 'VirtualMachineDB', 'WorkloadManagement/VirtualMachineDB', maxQueueSize )
     if not self._MySQL__initialized:
       raise Exception( 'Can not connect to VirtualMachineDB, exiting...' )
@@ -173,7 +173,7 @@ class VirtualMachineDB( DB ):
 
     return status
 
-  def declareInstanceRunning( self, imageName, uniqueID, publicIP, privateIP="" ):
+  def declareInstanceRunning( self, imageName, uniqueID, publicIP, privateIP = "" ):
     """
     Declares an instance Running and sets its associated info (uniqueID, publicIP, privateIP)
     Returns S_ERROR if:
@@ -223,11 +223,7 @@ class VirtualMachineDB( DB ):
     """
     Check last Heart Beat for all Running instances and declare them Stalled if older than interval
     """
-    now = DIRAC.Time.dateTime()
-    delta = DIRAC.Time.second * self.stallingInterval
-    origen = DIRAC.Time.toString( now - delta )
-
-    oldInstances = self.__getOldInstanceIDs( origen, self.allowedTransitions['Instance']['Stalled'] )
+    oldInstances = self.__getOldInstanceIDs( self.stallingInterval, self.allowedTransitions['Instance']['Stalled'] )
     if not oldInstances['OK']:
       return oldInstances
 
@@ -362,15 +358,17 @@ class VirtualMachineDB( DB ):
 
     return DIRAC.S_OK( imageID )
 
-  def __getOldInstanceIDs( self, olderThan, states ):
+  def __getOldInstanceIDs( self, secondsIdle, states ):
     """
     Return list of instance IDs that have not updated after the given time stamp
     they are required to be in one of the given states
     """
     ( tableName, validStates, idName ) = self.__getTypeTuple( 'Instance' )
-    cond = 'Status IN ( "%s" )' % '", "'.join( states )
-    cmd = 'SELECT %s from `%s` WHERE LastUpdate < "%s" AND %s' % \
-          ( idName, tableName, olderThan, cond )
+    sqlCond = []
+    sqlCond.append( 'TIMESTAMPDIFF( SECOND, `LastUpdate`, UTC_TIMESTAMP() ) > %d' % secondsIdle )
+    sqlCond.append( 'Status IN ( "%s" )' % '", "'.join( states ) )
+    cmd = 'SELECT %s from `%s` WHERE %s' % \
+          ( idName, tableName, " AND ".join( sqlCond ) )
     return self._query( cmd )
 
   def __getSubmittedInstanceID( self, imageName ):
@@ -519,8 +517,8 @@ class VirtualMachineDB( DB ):
       return DIRAC.S_OK( id )
     return DIRAC.S_ERROR( 'Failed to insert new Image' )
 
-  def __addInstanceHistory( self, instanceID, status, load=0.0, jobs=0,
-                            transferredFiles=0, transferredBytes=0 ):
+  def __addInstanceHistory( self, instanceID, status, load = 0.0, jobs = 0,
+                            transferredFiles = 0, transferredBytes = 0 ):
     """
     Insert a History Record
     """
@@ -615,7 +613,7 @@ class VirtualMachineDB( DB ):
 
   #Monitoring functions
 
-  def getInstancesContent( self, selDict, sortList, start=0, limit=0 ):
+  def getInstancesContent( self, selDict, sortList, start = 0, limit = 0 ):
     """
     Function to get the contents of the db
       parameters are a filter to the db
@@ -664,10 +662,6 @@ class VirtualMachineDB( DB ):
     data = []
     for record in retVal[ 'Value' ]:
       record = list( record )
-      if record[3] == 'True':
-        record[3] = True
-      else:
-        record[3] = False
       data.append( record )
     totalRecords = len( data )
     sqlQuery = "SELECT COUNT( VMInstanceID ) FROM %s WHERE %s" % ( ", ".join( tables ),
@@ -684,8 +678,9 @@ class VirtualMachineDB( DB ):
       instanceId = int( instanceId )
     except:
       return DIRAC.S_ERROR( "Instance Id has to be a number!" )
-    fields = ( 'Status', 'Load', 'Update' )
-    sqlQuery = "SELECT %s FROM `vm_History` WHERE VMInstanceId=%d" % ( ", ".join( fields ), instanceId )
+    fields = ( 'Status', 'Load', 'Update', 'Jobs', 'TransferredFiles', 'TransferredBytes' )
+    sqlFields = [ '`%s`' % f for f in fields ]
+    sqlQuery = "SELECT %s FROM `vm_History` WHERE VMInstanceId=%d" % ( ", ".join( sqlFields ), instanceId )
     retVal = self._query( sqlQuery )
     if not retVal[ 'OK' ]:
       return retVal

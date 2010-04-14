@@ -31,6 +31,7 @@ def initializeVirtualMachineManagerHandler( serviceInfo ):
 
   global gVirtualMachineDB
   gVirtualMachineDB = VirtualMachineDB()
+  gVirtualMachineDB.declareStalledInstances()
   if gVirtualMachineDB._connected:
     gThreadScheduler.addPeriodicTask( 60 * 15, gVirtualMachineDB.declareStalledInstances )
     return S_OK()

@@ -37,11 +37,18 @@ class VirtualmachinesController( BaseController ):
       sort = [ ( sortField, sortDir ) ]
     except:
       return S_ERROR( "Oops! Couldn't understand the request" )
+    condDict = {}
+    try:
+      if 'statusSelector' in request.params:
+        condDict[ 'inst.Status' ] = [ str( request.params[ 'statusSelector' ] ) ]
+    except:
+      pass
+    print condDict
     rpcClient = getRPCClient( "WorkloadManagement/VirtualMachineManager" )
-    retVal = rpcClient.getInstancesContent( {}, sort, start, limit )
-    if not retVal[ 'OK' ]:
-      return retVal
-    svcData = retVal[ 'Value' ]
+    result = rpcClient.getInstancesContent( condDict, sort, start, limit )
+    if not result[ 'OK' ]:
+      return result
+    svcData = result[ 'Value' ]
     data = { 'numRecords' : svcData[ 'TotalRecords' ], 'instances' : [] }
     dnMap = {}
     for record in svcData[ 'Records' ]:
@@ -53,4 +60,27 @@ class VirtualmachinesController( BaseController ):
         else:
           rD[ param ] = record[iP]
       data[ 'instances' ].append( rD )
+    return data
+
+  @jsonify
+  def getInstanceHistory( self ):
+    try:
+      instanceID = int( request.params[ 'instanceID' ] )
+    except:
+      return S_ERROR( "OOps, instance ID has to be an integer" )
+    rpcClient = getRPCClient( "WorkloadManagement/VirtualMachineManager" )
+    result = rpcClient.getHistoryForInstance( instanceID )
+    if not result[ 'OK' ]:
+      return result
+    svcData = result[ 'Value' ]
+    data = { 'history' : [] }
+    for record in svcData[ 'Records' ]:
+      rD = {}
+      for iP in range( len( svcData[ 'ParameterNames' ] ) ):
+        param = svcData[ 'ParameterNames' ][iP].replace( ".", "_" )
+        if param == 'Update':
+          rD[ param ] = record[iP].strftime( "%Y-%m-%d %H:%M:%S" )
+        else:
+          rD[ param ] = record[iP]
+      data[ 'history' ].append( rD )
     return data

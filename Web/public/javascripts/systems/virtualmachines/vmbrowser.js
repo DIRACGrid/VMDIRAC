@@ -1,4 +1,5 @@
 var gMainGrid = false;
+var gVMMenu = false;
 
 function initVMBrowser(){
   Ext.onReady(function(){
@@ -64,6 +65,15 @@ function renderPage()
       	}),
       	listeners : { sortchange : cbMainGridSortChange },
 	} );
+	
+	gVMMenu = new Ext.menu.Menu({
+	   	id : 'OptionContextualMenu',
+	   	items : [ { text : 'Show history', listeners : { click : cbShowVMHistory }
+  				 },
+   			  ]
+	   })
+	gMainGrid.on( 'cellcontextmenu', cbShowContextMenu );
+	
 	renderInMainViewport( [gMainGrid] );
 }
 
@@ -185,6 +195,82 @@ function createStatusSelector(){
 	return combo;
 }
 
+/*
+ * Menus
+ */
+
+function cbShowContextMenu( grid, rowId, colId, event )
+{
+	event.stopEvent();
+	gVMMenu.vm_data = grid.getStore().getAt( rowId ).data;
+	gVMMenu.vm_instanceID = gVMMenu.vm_data[ 'inst_VMInstanceID' ];
+	gVMMenu.showAt(event.getXY());
+}
+
+function cbShowVMHistory( a,b,c )
+{
+	gVMMenu.hide();
+	showInstanceHistoryWindow( gVMMenu.vm_data[ 'inst_UniqueID' ], gVMMenu.vm_instanceID );
+}
+
+
+/*
+ * History window
+ */
+
+function showInstanceHistoryWindow( uniqueID, instanceID )
+{
+	var items = [];
+	var historyLogPanel = new Ext.grid.GridPanel({
+		store : new Ext.data.JsonStore({
+			url : 'getInstanceHistory',
+			root : 'history',
+			fields : [ 'Status', 'Load', 'Jobs', 'TransferredFiles', 'TransferredBytes', 'Update' ],
+			autoLoad : true,
+			baseParams : { instanceID : instanceID }
+		}),
+		columns : [ { header : 'Update time', sortable : true, dataIndex : 'Update' },
+		            { header : 'Status', sortable : false, dataIndex : 'Status' },
+		            { header : 'Load', sortable : false, dataIndex : 'Load' },
+		            { header : 'Jobs', sortable : false, dataIndex : 'Jobs' },
+		            { header : 'Files transferred', sortable : false, dataIndex : 'TransferredFiles' },
+		            { header : 'Bytes transferred', sortable : false, dataIndex : 'TransferredBytes' },
+		],
+		viewConfig : {
+			forceFit : true,
+		},
+		title : 'History Log'
+	});
+	items.push( historyLogPanel );
+	var tabPanel = new Ext.TabPanel({
+		activeTab:0,			
+		enableTabScroll:true,
+	    items: items,
+	    region:'center'
+	});
+	var extendedInfoWindow = new Ext.Window({
+	    iconCls : 'icon-grid',
+	    closable : true,
+	    autoScroll : true,
+	    width : 600,
+	    height : 350,
+	    border : true,
+	    collapsible : true,
+	    constrain : true,
+	    constrainHeader : true,
+	    maximizable : true,
+	    layout : 'fit',
+	    plain : true,
+	    shim : false,
+	    title : 'VM '+uniqueID,
+	    items : [ tabPanel ]
+	  })
+	extendedInfoWindow.show();
+}
+
+/*
+ * OLD DELETE
+ */
 
 function cbDeleteSelected()
 {

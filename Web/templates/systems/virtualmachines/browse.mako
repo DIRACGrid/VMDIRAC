@@ -4,6 +4,7 @@
 
 <%def name="head_tags()">
 ${ h.javascript_link( "/javascripts/systems/virtualmachines/vmbrowser.js" ) }
+${ h.javascript_link( "/javascripts/systems/virtualmachines/vmInstanceInfoWindow.js" ) }
 <style>
 #action-panel .x-panel {
 	margin-bottom:3px;

@@ -1,5 +1,7 @@
 import logging
 
+import types
+import simplejson
 from dirac.lib.base import *
 from dirac.lib.diset import getRPCClient, getTransferClient
 
@@ -42,6 +44,18 @@ class VirtualmachinesController( BaseController ):
       return S_ERROR( "Oops! Couldn't understand the request" )
     condDict = {}
     try:
+      if 'cond' in request.params:
+        dec = simplejson.loads( request.params[ 'cond' ] )
+        for k in dec:
+          v = dec[ k ]
+          if type( v ) in ( types.StringType, types.UnicodeType ):
+            v = [ str( v ) ]
+          else:
+            v = [ str( f ) for f in v ]
+          condDict[ str( k ).replace( "_", "." ) ] = v
+    except:
+      raise
+    try:
       if 'statusSelector' in request.params:
         condDict[ 'inst.Status' ] = [ str( request.params[ 'statusSelector' ] ) ]
     except:
@@ -66,7 +80,7 @@ class VirtualmachinesController( BaseController ):
     return data
 
   @jsonify
-  def getInstanceHistory( self ):
+  def getHistoryForInstanceID( self ):
     try:
       instanceID = int( request.params[ 'instanceID' ] )
     except:
@@ -87,3 +101,31 @@ class VirtualmachinesController( BaseController ):
           rD[ param ] = record[iP]
       data[ 'history' ].append( rD )
     return data
+
+  @jsonify
+  def getInstanceStatusCounters( self ):
+    rpcClient = getRPCClient( "WorkloadManagement/VirtualMachineManager" )
+    result = rpcClient.getInstanceCounters()
+    if not result[ 'OK' ]:
+      return S_ERROR( result[ 'Message' ] )
+    return result
+
+  @jsonify
+  def getGroupedInstanceHistory( self ):
+    rpcClient = getRPCClient( "WorkloadManagement/VirtualMachineManager" )
+    result = rpcClient.getAverageHistoryValues( 3600, {}, [ 'Load', 'Jobs', 'TransferredFiles' ] )
+    if not result[ 'OK' ]:
+      return S_ERROR( result[ 'Message' ] )
+    svcData = result[ 'Value' ]
+    print svcData
+    data = []
+    for record in svcData[ 'Records' ]:
+      rL = []
+      for iP in range( len( svcData[ 'ParameterNames' ] ) ):
+        param = svcData[ 'ParameterNames' ][iP]
+        if param == 'Update':
+          rL.append( record[iP].strftime( "%Y-%m-%d %H:%M:%S" ) )
+        else:
+          rL.append( record[iP] )
+      data.append( rL )
+    return S_OK( { 'data': data, 'fields' : svcData[ 'ParameterNames' ] } )

@@ -9,6 +9,16 @@ function initVMBrowser(){
 
 function renderPage()
 {
+  gMainGrid = generateBrowseGrid();	
+  renderInMainViewport( [gMainGrid] );
+}
+
+function generateBrowseGrid( config )
+{
+	if( config == undefined )
+		config = {};
+	if( config.vmFilter == undefined )
+		config.vmFilter = {}
 	var reader = new Ext.data.JsonReader({
 		root : 'instances',
 		totalProperty : 'numRecords',
@@ -26,6 +36,7 @@ function renderPage()
 		listeners : { 
 			beforeload : cbStoreBeforeLoad		
 	    },
+	    vmCond : config.vmFilter
 	});
 
 	gMainGrid = new Ext.grid.GridPanel( {
@@ -66,6 +77,8 @@ function renderPage()
       	}),
       	listeners : { sortchange : cbMainGridSortChange },
 	} );
+	if( config.title )
+		gMainGrid.setTile( config.title );
 	
 	gVMMenu = new Ext.menu.Menu({
 	   	id : 'OptionContextualMenu',
@@ -75,7 +88,7 @@ function renderPage()
 	   })
 	gMainGrid.on( 'cellcontextmenu', cbShowContextMenu );
 	
-	renderInMainViewport( [gMainGrid] );
+	return gMainGrid;
 }
 
 function renderSelect( value, metadata, record, rowIndex, colIndex, store )
@@ -117,6 +130,10 @@ function cbStoreBeforeLoad( store, params )
 					     'sortDirection' : sortState.direction,
 						 'limit' : bb.pageSize,
 					   };
+	if( store.vmCond != undefined )
+	{
+		store.baseParams[ 'cond' ] = Ext.util.JSON.encode( store.vmCond );
+	}
 	if( bb.statusSelector && bb.statusSelector != "All" )
 		store.baseParams.statusSelector = bb.statusSelector;
 }

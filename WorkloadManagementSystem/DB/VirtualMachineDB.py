@@ -744,15 +744,16 @@ class VirtualMachineDB( DB ):
       if field not in validDataFields:
         return S_ERROR( "%s is not a valid data field" % field )
     if groupField:
-      selectFields = [ "SUM(`%s`)" % f for f in fields2Get ]
+      selectFields = [ "SUM(`%s`)/COUNT(`%s`)" % ( f, f ) for f in fields2Get ]
       paramFields = fields2Get
       if groupField.find( "BucketUpdate:" ) == 0:
         try:
           bucketSize = int( groupField[ groupField.find( ":" ) + 1:] )
         except:
           return S_ERROR( "Could not get size ot buckets" )
-        groupField = "FROM_UNIXTIME(UNIX_TIMESTAMP( `Update` ) - UNIX_TIMESTAMP( `Update` ) mod %d)" % bucketSize
-        selectFields.insert( 0, groupField )
+        sqlGroup = "FROM_UNIXTIME(UNIX_TIMESTAMP( `Update` ) - UNIX_TIMESTAMP( `Update` ) mod %d)" % bucketSize
+        selectFields.insert( 0, sqlGroup )
+        groupField = "%s, VMInstanceID" % sqlGroup
         paramFields.insert( 0, "Update" )
       else:
         if groupField:
@@ -790,8 +791,22 @@ class VirtualMachineDB( DB ):
         else:
           convertedRecord.append( record[i] )
       convertedData.append( convertedRecord )
+    if groupField:
+      acumData = {}
+      for record in convertedData:
+        date = record[0]
+        values = record[1:]
+        if date not in acumData:
+          acumData[ date ] = [ 0.0 for i in values ]
+        for i in range( len( values ) ):
+          acumData[ date ][i] += values[i]
+      finalData = []
+      for date in sorted( acumData ):
+        finalData.append( [ date ] )
+        finalData[-1].extend( acumData[ date ] )
+
     return DIRAC.S_OK( { 'ParameterNames' : paramFields,
-                         'Records' : convertedData } )
+                         'Records' : finalData } )
 
 
 

@@ -119,9 +119,25 @@ class VirtualMachineManagerHandler( RequestHandler ):
     return gVirtualMachineDB.getInstancesContent( selDict, sortDict, start, limit )
 
   ###########################################################################
-  types_getHistoryForInstance = [ ( IntType, LongType ) ]
-  def export_getHistoryForInstance( self, instanceId ):
+  types_getHistoryForInstanceID = [ ( IntType, LongType ) ]
+  def export_getHistoryForInstanceID( self, instanceId ):
     """
     Retrieve the contents of the DB
     """
     return gVirtualMachineDB.getHistoryForInstance( instanceId )
+
+  ###########################################################################
+  types_getInstanceCounters = []
+  def export_getInstanceCounters( self ):
+    """
+    Retrieve the contents of the DB
+    """
+    return gVirtualMachineDB.getInstanceCounters()
+
+  ###########################################################################
+  types_getGroupedInstanceHistory = [ ( StringType, UnicodeType ), DictType  ]
+  def export_getGroupedInstanceHistory( self, groupField, selDict, fields2Get = [] ):
+    """
+    Retrieve the contents of the DB
+    """
+    return gVirtualMachineDB.getGroupedInstanceHistory( groupField, selDict, fields2Get )

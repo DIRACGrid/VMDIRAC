@@ -636,6 +636,8 @@ class VirtualMachineDB( DB ):
         sqlField = field
       else:
         continue
+      if type( value ) in ( types.StringType, types.UnicodeType ):
+        value = [ str( value ) ]
       sqlCond.append( " OR ".join( [ "%s=%s" % ( sqlField, self._escapeString( str( value ) )[ 'Value' ] ) for value in selDict[field] ] ) )
     sqlQuery += " WHERE %s" % " AND ".join( sqlCond )
     if sortList:
@@ -696,7 +698,7 @@ class VirtualMachineDB( DB ):
                          'Records' : data,
                          'TotalRecords' : totalRecords } )
 
-  def getHistoryForInstance( self, instanceId ):
+  def getHistoryForInstanceID( self, instanceId ):
     try:
       instanceId = int( instanceId )
     except:
@@ -709,6 +711,89 @@ class VirtualMachineDB( DB ):
       return retVal
     return DIRAC.S_OK( { 'ParameterNames' : fields,
                          'Records' : retVal[ 'Value' ] } )
+
+  def getInstanceCounters( self, groupField = "Status", selDict = {} ):
+    validFields = VirtualMachineDB.tablesDesc[ 'vm_Instances' ][ 'Fields' ]
+    if groupField not in validFields:
+      return S_ERROR( "%s is not a valid field" % groupField )
+    sqlCond = []
+    for field in selDict:
+      if field not in validFields:
+        return S_ERROR( "%s is not a valid field" % field )
+      value = selDict[ field ]
+      if type( value ) not in ( types.DictType, types.TupleType ):
+        value = ( value, )
+      value = [ self._escapeString( str( v ) )[ 'Value' ] for v in values ]
+      sqlCond.append( "`%s` in (%s)" % ( field, ", ".join( value ) ) )
+    sqlQuery = "SELECT `%s`, COUNT( `%s` ) FROM `vm_Instances`" % ( groupField, groupField )
+    if sqlCond:
+      sqlQuery += " WHERE %s" % " AND ".join( sqlCond )
+    sqlQuery += " GROUP BY `%s`" % groupField
+    result = self._query( sqlQuery )
+    if not result[ 'OK' ]:
+      return result
+    return DIRAC.S_OK( dict( result[ 'Value' ] ) )
+
+  def getGroupedInstanceHistory( self, groupField = False, selDict = {}, fields2Get = False ):
+    validDataFields = [ 'Load', 'Jobs', 'TransferredFiles', 'TransferredBytes' ]
+    validGroupFields = [ 'VMInstanceID', 'Status' ]
+    allValidFields = VirtualMachineDB.tablesDesc[ 'vm_History' ][ 'Fields' ]
+    if not fields2Get:
+      fields2Get = list( validDataFields )
+    for field in fields2Get:
+      if field not in validDataFields:
+        return S_ERROR( "%s is not a valid data field" % field )
+    if groupField:
+      selectFields = [ "SUM(`%s`)" % f for f in fields2Get ]
+      paramFields = fields2Get
+      if groupField.find( "BucketUpdate:" ) == 0:
+        try:
+          bucketSize = int( groupField[ groupField.find( ":" ) + 1:] )
+        except:
+          return S_ERROR( "Could not get size ot buckets" )
+        groupField = "FROM_UNIXTIME(UNIX_TIMESTAMP( `Update` ) - UNIX_TIMESTAMP( `Update` ) mod %d)" % bucketSize
+        selectFields.insert( 0, groupField )
+        paramFields.insert( 0, "Update" )
+      else:
+        if groupField:
+          if groupField not in validGroupFields:
+            return S_ERROR( "%s is not a valid grouping field" % groupField )
+        selectFields.insert( 0, "`%s`" % groupField )
+        paramFields.insert( 0, groupField )
+        groupField = "`%s`" % groupField
+    else:
+      paramFields = fields2Get
+      selectFields = [ "`%s`" % f for f in fields2Get ]
+    sqlCond = []
+    for field in selDict:
+      if field not in allValidFields:
+        return S_ERROR( "%s is not a valid field" % field )
+      value = selDict[ field ]
+      if type( value ) not in ( types.DictType, types.TupleType ):
+        value = ( value, )
+      value = [ self._escapeString( str( v ) )[ 'Value' ] for v in values ]
+      sqlCond.append( "`%s` in (%s)" % ( field, ", ".join( value ) ) )
+    sqlQuery = "SELECT %s FROM `vm_History`" % ", ".join( selectFields )
+    if sqlCond:
+      sqlQuery += " WHERE %s" % " AND ".join( sqlCond )
+    if groupField:
+      sqlQuery += " GROUP BY %s" % groupField
+    result = self._query( sqlQuery )
+    if not result[ 'OK' ]:
+      return result
+    convertedData = []
+    for record in result[ 'Value' ]:
+      convertedRecord = []
+      for i in range( len( paramFields ) ):
+        if paramFields[ i ] in validDataFields:
+          convertedRecord.append( float( record[i] ) )
+        else:
+          convertedRecord.append( record[i] )
+      convertedData.append( convertedRecord )
+    return DIRAC.S_OK( { 'ParameterNames' : paramFields,
+                         'Records' : convertedData } )
+
+
 
 def getImageDict( imageName ):
   """

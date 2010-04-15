@@ -135,9 +135,9 @@ class VirtualMachineManagerHandler( RequestHandler ):
     return gVirtualMachineDB.getInstanceCounters()
 
   ###########################################################################
-  types_getGroupedInstanceHistory = [ ( StringType, UnicodeType ), DictType  ]
-  def export_getGroupedInstanceHistory( self, groupField, selDict, fields2Get = [] ):
+  types_getAverageHistoryValues = [ IntType, DictType  ]
+  def export_getAverageHistoryValues( self, averageBucket, selDict, fields2Get = [] ):
     """
     Retrieve the contents of the DB
     """
-    return gVirtualMachineDB.getGroupedInstanceHistory( groupField, selDict, fields2Get )
+    return gVirtualMachineDB.getAverageHistoryValues( averageBucket, selDict, fields2Get )

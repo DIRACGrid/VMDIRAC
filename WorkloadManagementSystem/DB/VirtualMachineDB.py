@@ -734,37 +734,24 @@ class VirtualMachineDB( DB ):
       return result
     return DIRAC.S_OK( dict( result[ 'Value' ] ) )
 
-  def getGroupedInstanceHistory( self, groupField = False, selDict = {}, fields2Get = False ):
+  def getAverageHistoryValues( self, averageBucket, selDict = {}, fields2Get = False ):
     validDataFields = [ 'Load', 'Jobs', 'TransferredFiles', 'TransferredBytes' ]
-    validGroupFields = [ 'VMInstanceID', 'Status' ]
     allValidFields = VirtualMachineDB.tablesDesc[ 'vm_History' ][ 'Fields' ]
     if not fields2Get:
       fields2Get = list( validDataFields )
     for field in fields2Get:
       if field not in validDataFields:
         return S_ERROR( "%s is not a valid data field" % field )
-    if groupField:
-      selectFields = [ "SUM(`%s`)/COUNT(`%s`)" % ( f, f ) for f in fields2Get ]
-      paramFields = fields2Get
-      if groupField.find( "BucketUpdate:" ) == 0:
-        try:
-          bucketSize = int( groupField[ groupField.find( ":" ) + 1:] )
-        except:
-          return S_ERROR( "Could not get size ot buckets" )
-        sqlGroup = "FROM_UNIXTIME(UNIX_TIMESTAMP( `Update` ) - UNIX_TIMESTAMP( `Update` ) mod %d)" % bucketSize
-        selectFields.insert( 0, sqlGroup )
-        groupField = "%s, VMInstanceID" % sqlGroup
-        paramFields.insert( 0, "Update" )
-      else:
-        if groupField:
-          if groupField not in validGroupFields:
-            return S_ERROR( "%s is not a valid grouping field" % groupField )
-        selectFields.insert( 0, "`%s`" % groupField )
-        paramFields.insert( 0, groupField )
-        groupField = "`%s`" % groupField
-    else:
-      paramFields = fields2Get
-      selectFields = [ "`%s`" % f for f in fields2Get ]
+
+    paramFields = fields2Get
+    try:
+      bucketSize = int( averageBucket )
+    except:
+      return S_ERROR( "Average bucket has to be an integer" )
+    sqlGroup = "FROM_UNIXTIME(UNIX_TIMESTAMP( `Update` ) - UNIX_TIMESTAMP( `Update` ) mod %d)" % bucketSize
+    sqlFields = [ sqlGroup ] + [ "SUM(`%s`)/COUNT(`%s`)" % ( f, f ) for f in fields2Get ]
+    sqlGroup = "%s, VMInstanceID" % sqlGroup
+    paramFields = [ 'Update' ] + fields2Get
     sqlCond = []
     for field in selDict:
       if field not in allValidFields:
@@ -774,11 +761,10 @@ class VirtualMachineDB( DB ):
         value = ( value, )
       value = [ self._escapeString( str( v ) )[ 'Value' ] for v in values ]
       sqlCond.append( "`%s` in (%s)" % ( field, ", ".join( value ) ) )
-    sqlQuery = "SELECT %s FROM `vm_History`" % ", ".join( selectFields )
+    sqlQuery = "SELECT %s FROM `vm_History`" % ", ".join( sqlFields )
     if sqlCond:
       sqlQuery += " WHERE %s" % " AND ".join( sqlCond )
-    if groupField:
-      sqlQuery += " GROUP BY %s" % groupField
+    sqlQuery += " GROUP BY %s" % sqlGroup
     result = self._query( sqlQuery )
     if not result[ 'OK' ]:
       return result
@@ -791,19 +777,18 @@ class VirtualMachineDB( DB ):
         else:
           convertedRecord.append( record[i] )
       convertedData.append( convertedRecord )
-    if groupField:
-      acumData = {}
-      for record in convertedData:
-        date = record[0]
-        values = record[1:]
-        if date not in acumData:
-          acumData[ date ] = [ 0.0 for i in values ]
-        for i in range( len( values ) ):
-          acumData[ date ][i] += values[i]
-      finalData = []
-      for date in sorted( acumData ):
-        finalData.append( [ date ] )
-        finalData[-1].extend( acumData[ date ] )
+    acumData = {}
+    for record in convertedData:
+      date = record[0]
+      values = record[1:]
+      if date not in acumData:
+        acumData[ date ] = [ 0.0 for i in values ]
+      for i in range( len( values ) ):
+        acumData[ date ][i] += values[i]
+    finalData = []
+    for date in sorted( acumData ):
+      finalData.append( [ date ] )
+      finalData[-1].extend( acumData[ date ] )
 
     return DIRAC.S_OK( { 'ParameterNames' : paramFields,
                          'Records' : finalData } )

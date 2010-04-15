@@ -21,6 +21,9 @@ class VirtualmachinesController( BaseController ):
   def browse( self ):
     return render( "/systems/virtualmachines/browse.mako" )
 
+  def dashboard( self ):
+    return render( "/systems/virtualmachines/dashboard.mako" )
+
   @jsonify
   def getInstancesList( self ):
     try:

@@ -126,7 +126,7 @@ function plotDataForVM( plotSpace, dataStore )
 	}
 	var imgOps = [];
 	imgOps.push( "cht=lc" );
-	imgOps.push( "chtt=" + dataSources.join( ' vs ' ) + " for " + dataStore.baseParams.uniqueID );
+	imgOps.push( "chtt=" + dataSources.join( ' vs ' ) + " for " + dataStore.vmInstanceData[ 'inst_UniqueID'] );
 	//imgOps.push( "chma=0,0,0,20" );
 	imgOps.push( "chxt=y,y,r,r,x" );
 	imgOps.push( "chxr=" + plotParams.chxr.join( "|") );

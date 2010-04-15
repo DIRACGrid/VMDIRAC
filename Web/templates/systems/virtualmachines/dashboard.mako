@@ -3,7 +3,7 @@
 <%inherit file="/diracPage.mako" />
 
 <%def name="head_tags()">
-${ h.javascript_link( "/javascripts/systems/virtualmachines/vmBrowser.js" ) }
+${ h.javascript_link( "/javascripts/systems/virtualmachines/vmDashboard.js" ) }
 ${ h.javascript_link( "/javascripts/systems/virtualmachines/vmInstanceInfoWindow.js" ) }
 <style>
 #action-panel .x-panel {
@@ -40,6 +40,6 @@ ${ h.javascript_link( "/javascripts/systems/virtualmachines/vmInstanceInfoWindow
 
 <%def name="body()">
 <script type="text/javascript">
-  initVMBrowser();
+  initVMDashboard();
 </script>
 </%def>

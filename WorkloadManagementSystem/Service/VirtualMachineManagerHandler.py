@@ -49,7 +49,6 @@ class VirtualMachineManagerHandler( RequestHandler ):
     self.diracSetup = self.serviceInfoDict[ 'clientSetup' ]
 
 
-
   ###########################################################################
   types_insertInstance = [ StringType, StringType ]
   def export_insertInstance( self, imageName, instanceName ):
@@ -60,16 +59,25 @@ class VirtualMachineManagerHandler( RequestHandler ):
     return gVirtualMachineDB.insertInstance( imageName, instanceName )
 
   ###########################################################################
-  types_declareInstanceSubmitted = [ LongType ]
-  def export_declareInstanceSubmitted( self, instanceID ):
+  types_setInstanceUniqueID = [ LongType, StringType ]
+  def export_setInstanceUniqueID( self, instanceID, uniqueID ):
+    """
+    Check Status of a given image
+    Will insert a new Instance in the DB
+    """
+    return gVirtualMachineDB.setInstanceUniqueID( instanceID, uniqueID )
+
+  ###########################################################################
+  types_declareInstanceSubmitted = [ StringType ]
+  def export_declareInstanceSubmitted( self, uniqueID ):
     """
     After submission of the instance the Director should declare the new Status
     """
-    return gVirtualMachineDB.declareInstanceSubmitted( instanceID )
+    return gVirtualMachineDB.declareInstanceSubmitted( uniqueID )
 
   ###########################################################################
-  types_declareInstanceRunning = [ StringType, StringType, StringType ]
-  def export_declareInstanceRunning( self, imageName, uniqueID, privateIP ):
+  types_declareInstanceRunning = [ StringType, StringType ]
+  def export_declareInstanceRunning( self, uniqueID, privateIP ):
     """
     Declares an instance Running and sets its associated info (uniqueID, publicIP, privateIP)
     Returns S_ERROR if:
@@ -77,7 +85,7 @@ class VirtualMachineManagerHandler( RequestHandler ):
       - uniqueID is not unique
     """
     publicIP = self.getRemoteAddress()[0]
-    return gVirtualMachineDB.declareInstanceRunning( imageName, uniqueID, publicIP, privateIP )
+    return gVirtualMachineDB.declareInstanceRunning( uniqueID, publicIP, privateIP )
 
   ###########################################################################
   types_instanceIDHeartBeat = [ StringType, FloatType, ( IntType, LongType ),
@@ -108,6 +116,14 @@ class VirtualMachineManagerHandler( RequestHandler ):
     Get dictionary of Image Names with InstanceIDs in given status 
     """
     return gVirtualMachineDB.getInstancesByStatus( status )
+
+  ###########################################################################
+  types_getAllInfoForUniqueID = [ StringType ]
+  def export_getAllInfoForUniqueID( self, uniqueID ):
+    """
+    Get all the info for a UniqueID
+    """
+    return gVirtualMachineDB.getAllInfoForUniqueID( uniqueID )
 
   ###########################################################################
   types_getInstancesContent = [ DictType, ( ListType, TupleType ),

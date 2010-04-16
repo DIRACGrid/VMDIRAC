@@ -33,5 +33,7 @@ class AmazonDirector( VMDirector ):
       Real backend method to submit a new Instance of a given Image
     """
     ami = AmazonImage( imageName )
-    return ami.startNewInstances()
-    return S_OK()
+    result = ami.startNewInstances()
+    if not result[ 'OK' ]:
+      return result
+    return S_OK( result[ 'Value' ][0].getID() )

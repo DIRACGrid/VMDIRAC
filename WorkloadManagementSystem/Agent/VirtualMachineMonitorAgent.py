@@ -5,7 +5,7 @@ import urllib2
 import os
 from DIRAC.Core.Base.AgentModule import AgentModule
 
-from DIRAC import gLogger, S_OK, S_ERROR, gConfig
+from DIRAC import gLogger, S_OK, S_ERROR, gConfig, rootPath
 from DIRAC.Core.Utilities import List, Network
 from BelleDIRAC.WorkloadManagementSystem.Client.ServerUtils import virtualMachineDB
 from BelleDIRAC.WorkloadManagementSystem.private.OutputDataExecutor import OutputDataExecutor
@@ -54,7 +54,6 @@ class VirtualMachineMonitorAgent( AgentModule ):
     return S_OK( hash.hexdigest() )
 
   def __getCSConfig( self ):
-    self.vmName = gConfig.getValue( "/LocalSite/VirtualMachineName", "" )
     if not self.vmName:
       return S_ERROR( "/LocalSite/VirtualMachineName is not defined" )
     #Variables coming from the vm 
@@ -106,24 +105,27 @@ class VirtualMachineMonitorAgent( AgentModule ):
     retries = 3
     sleepTime = 30
     for i in range( retries ):
-      result = virtualMachineDB.declareInstanceRunning( self.vmName, self.vmId, self.ipAddress )
+      result = virtualMachineDB.declareInstanceRunning( self.vmId, self.ipAddress )
       if result[ 'OK' ]:
         gLogger.info( "Declared instance running" )
         return S_OK()
       gLogger.error( "Could not declare instance running", result[ 'Message' ] )
       if i < retries - 1 :
         gLogger.info( "Sleeping for %d seconds and retrying" % sleepTime )
-        time.sleep( 60 )
+        time.sleep( sleepTime )
     return S_ERROR( "Could not declare instance running after %d retries" % retries )
 
   def initialize( self ):
+    #Init vars
+    self.vmName = ""
     self.__loadHistory = []
     self.__outDataExecutor = OutputDataExecutor()
     self.vmId = ""
-    result = self.__getCSConfig()
-    if not result[ 'OK' ]:
-      return result
-    flavor = self.vmFlavor.lower()
+    self.am_setOption( "MaxCycles", 0 )
+    self.am_setOption( "PollingTime", 60 )
+    #Discover id based on flavor
+    flavor = gConfig.getValue( "/LocalSite/VirtualMachineIDFlavor", "" ).lower()
+    gLogger.info( "ID flavor is %s" % flavor )
     if flavor == 'generic':
       result = self.getGenericVMId()
     elif flavor == 'amazon':
@@ -134,8 +136,19 @@ class VirtualMachineMonitorAgent( AgentModule ):
       return S_ERROR( "Could not generate VM id: %s" % result[ 'Message' ] )
     self.vmId = result[ 'Value' ]
     gLogger.info( "VM ID is %s" % self.vmId )
-    self.am_setOption( "MaxCycles", 0 )
-    self.am_setOption( "PollingTime", 60 )
+    #Need to discover the image name
+    result = virtualMachineDB.getAllInfoForUniqueID( self.vmId )
+    if not result[ 'OK' ]:
+      gLogger.error( "Could not retrieve image name", result[ 'Message' ] )
+      self.__haltInstance()
+      return S_ERROR( "Halting!" )
+    self.__instanceInfo = result[ 'Value' ]
+    self.vmName = self.__instanceInfo[ 'Image' ][ 'Name' ]
+    gLogger.info( "Image name is %s" % self.vmName )
+    #Get the cs config
+    result = self.__getCSConfig()
+    if not result[ 'OK' ]:
+      return result
     #Discover net address
     netData = Network.discoverInterfaces()
     for iface in sorted( netData ):
@@ -146,7 +159,9 @@ class VirtualMachineMonitorAgent( AgentModule ):
     #Declare instance running
     result = self.__declareInstanceRunning()
     if not result[ 'OK' ]:
-      return result
+      gLogger.error( "Could not declare instance running", result[ 'Message' ] )
+      self.__haltInstance()
+      return S_ERROR( "Halting!" )
     #Define the shifter proxy needed
     self.am_setModuleParam( "shifterProxy", "DataManager" )
     #Start output data executor
@@ -213,6 +228,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
         gLogger.info( " heartbeat sent!" )
       else:
         gLogger.error( "Could not send heartbeat", result[ 'Message' ] )
+      self.__processHeartBeatMessage( result[ 'Value' ] )
     #Check if there are local outgoing files
     localOutgoing = self.__outDataExecutor.getNumLocalOutgoingFiles()
     if localOutgoing or self.__outDataExecutor.transfersPending():
@@ -226,22 +242,41 @@ class VirtualMachineMonitorAgent( AgentModule ):
                                                                                   self.vmMinWorkingLoad ) )
       #If load less than X, then halt!
       if avgLoad < self.vmMinWorkingLoad:
-        gLogger.info( "Halting instance..." )
-        retries = 3
-        sleepTime = 10
-        for i in range( retries ):
-          result = virtualMachineDB.declareInstanceHalting( self.vmId, avgLoad )
-          if result[ 'OK' ]:
-            gLogger.info( "Declared instance halting" )
-            break
-          gLogger.error( "Could not send halting state", result[ 'Message' ] )
-          if i < retries - 1 :
-            gLogger.info( "Sleeping for %d seconds and retrying" % sleepTime )
-            time.sleep( 60 )
-
-        #HALT
-        gLogger.info( "Executing system halt..." )
-        os.system( "halt" )
+        self.__haltInstance( avgLoad )
     return S_OK()
 
+  def __processHeartBeatMessage( self, hbMsg ):
+    if 'stop' in hbMsg and hbMsg[ 'stop' ]:
+      #Write stop file for jobAgent
+      gLogger.info( "Received STOP signal. Writing stop files..." )
+      for agentName in [ "WorkloadManagement/JobAgent" ]:
+        ad = os.path.join( *agentName.split( "/" ) )
+        stopDir = os.path.join( rootPath, 'control', ad )
+        stopFile = os.path.join( stopDir, "stop_agent" )
+        try:
+          if not os.path.isdir( stopDir ):
+            os.makedirs( stopDir )
+          fd = open( stopFile, "w" )
+          fd.write( "stop!" )
+          fd.close()
+          gLogger.info( "Wrote stop file %s for agent %s" % ( stopFile, agentName ) )
+        except Exception, e:
+          gLogger.error( "Could not write stop agent file", stopFile )
 
+  def __haltInstance( self, avgLoad = 0 ):
+    gLogger.info( "Halting instance..." )
+    retries = 3
+    sleepTime = 10
+    for i in range( retries ):
+      result = virtualMachineDB.declareInstanceHalting( self.vmId, avgLoad )
+      if result[ 'OK' ]:
+        gLogger.info( "Declared instance halting" )
+        break
+      gLogger.error( "Could not send halting state", result[ 'Message' ] )
+      if i < retries - 1 :
+        gLogger.info( "Sleeping for %d seconds and retrying" % sleepTime )
+        time.sleep( 60 )
+
+    #HALT
+    gLogger.info( "Executing system halt..." )
+    os.system( "halt" )

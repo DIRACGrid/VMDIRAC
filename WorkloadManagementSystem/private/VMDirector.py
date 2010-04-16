@@ -98,10 +98,14 @@ class VMDirector:
     retDict = self._submitInstance( imageName, workDir )
     if not retDict['OK']:
       return retDict
-    retDict = virtualMachineDB.declareInstanceSubmitted( instanceID )
+    uniqueID = retDict[ 'Value' ]
+    retDict = virtualMachineDB.setInstanceUniqueID( instanceID, uniqueID )
+    if not retDict['OK']:
+      return retDict
+    retDict = virtualMachineDB.declareInstanceSubmitted( uniqueID )
     if not retDict['OK']:
       return retDict
     return DIRAC.S_OK( imageName )
 
   def exceptionCallBack( self, threadedJob, exceptionInfo ):
-    self.log.exception( 'Error in VM Instance Submission:', lExcInfo=exceptionInfo )
+    self.log.exception( 'Error in VM Instance Submission:', lExcInfo = exceptionInfo )

@@ -163,17 +163,43 @@ class VirtualMachineDB( DB ):
 
     return self.__insertInstance( imageName, instanceName )
 
-  def declareInstanceSubmitted( self, instanceID ):
+  def setInstanceUniqueID( self, instanceID, uniqueID ):
+    """
+    Assign a uniqueID to an instance
+    """
+    result = self.__getInstanceID( uniqueID )
+    if result['OK']:
+      return DIRAC.S_ERROR( 'UniqueID is not unique: %s' % uniqueID )
+
+    result = self._escapeString( uniqueID )
+    if not result['OK']:
+      return result
+    uniqueID = result[ 'Value' ]
+    try:
+      instanceID = int( instanceID )
+    except Exception, e:
+      raise e
+      return DIRAC.S_ERROR( "Instance id has to be a number" )
+    ( tableName, validStates, idName ) = self.__getTypeTuple( 'Instance' )
+    sqlUpdate = "UPDATE `%s` SET UniqueID = %s WHERE %s = %d" % ( tableName, uniqueID, idName, instanceID )
+    return self._update( sqlUpdate )
+
+  def declareInstanceSubmitted( self, uniqueID ):
     """
     After submission of the instance the Director should declare the new Status
     """
+    instanceID = self.__getInstanceID( uniqueID )
+    if not instanceID['OK']:
+      return instanceID
+    instanceID = instanceID['Value']
+
     status = self.__setState( 'Instance', instanceID, 'Submitted' )
     if status['OK']:
       self.__addInstanceHistory( instanceID, 'Submitted' )
 
     return status
 
-  def declareInstanceRunning( self, imageName, uniqueID, publicIP, privateIP = "" ):
+  def declareInstanceRunning( self, uniqueID, publicIP, privateIP = "" ):
     """
     Declares an instance Running and sets its associated info (uniqueID, publicIP, privateIP)
     Returns S_ERROR if:
@@ -181,20 +207,11 @@ class VirtualMachineDB( DB ):
       - uniqueID is not unique
     """
     instanceID = self.__getInstanceID( uniqueID )
-    if instanceID['OK']:
-      return DIRAC.S_ERROR( 'UniqueID is not unique: %s' % uniqueID )
-
-    values = self._escapeValues( [uniqueID, publicIP, privateIP] )
-    if not values['OK']:
-      return values
-    ( uniqueID, publicIP, privateIP ) = values['Value']
-
-    instanceID = self.__getSubmittedInstanceID( imageName )
     if not instanceID['OK']:
       return instanceID
     instanceID = instanceID['Value']
 
-    self.__setInstanceParameters( instanceID, uniqueID, publicIP, privateIP )
+    self.__setInstanceIPs( instanceID, publicIP, privateIP )
 
     status = self.__setState( 'Instance', instanceID, 'Running' )
     if status['OK']:
@@ -237,6 +254,7 @@ class VirtualMachineDB( DB ):
       stalled = self.__setState( 'Instance', id, 'Stalled' )
       if not stalled['OK']:
         continue
+      self.__addInstanceHistory( id, 'Stalled' )
       stallingInstances.append( id )
 
     return DIRAC.S_OK( stallingInstances )
@@ -258,7 +276,8 @@ class VirtualMachineDB( DB ):
     if not status['OK']:
       return status
 
-    return DIRAC.S_OK()
+    #TODO: Send empty dir just in case we want to send flags (such as stop vm)
+    return DIRAC.S_OK( {} )
 
   def getInstancesByStatus( self, status ):
     """
@@ -287,6 +306,25 @@ class VirtualMachineDB( DB ):
       instancesDict[imagesDict[imageID]].append( uniqueID )
 
     return DIRAC.S_OK( instancesDict )
+
+  def getAllInfoForUniqueID( self, uniqueID ):
+    """
+    Get all fields for a uniqueID
+    """
+    result = self.__getInstanceID( uniqueID )
+    if not result['OK']:
+      return result
+    instanceID = result['Value']
+    result = self.__getInfo( 'Instance', instanceID )
+    if not result[ 'OK' ]:
+      return result
+    instData = result[ 'Value' ]
+    result = self.__getInfo( 'Image', instData[ 'VMImageID' ] )
+    if not result[ 'OK' ]:
+      return result
+    imgData = result[ 'Value' ]
+    return DIRAC.S_OK( { 'Image' : imgData, 'Instance' : instData } )
+
 
   def __insertInstance( self, imageName, instanceName ):
     """
@@ -345,9 +383,10 @@ class VirtualMachineDB( DB ):
       S_OK( imageID )
       S_ERROR( Reason ) 
     """
-    info = self.__getInfo( 'Instance', instanceID )
-    if not info['OK']:
-      return info
+    result = self.__getInfo( 'Instance', instanceID )
+    if not result['OK']:
+      return result
+    info = result[ 'Value' ]
     ( tableName, validStates, idName ) = self.__getTypeTuple( 'Image' )
 
     imageID = info[ idName ]
@@ -439,13 +478,18 @@ class VirtualMachineDB( DB ):
 
     return DIRAC.S_OK( state )
 
-  def __setInstanceParameters( self, instanceID, uniqueID, publicIP, privateIP ):
+  def __setInstanceIPs( self, instanceID, publicIP, privateIP ):
     """
     Update parameters for an instanceID reporting as running
     """
+    values = self._escapeValues( [ publicIP, privateIP] )
+    if not values['OK']:
+      return S_ERROR( "Cannot escape values: %s" % str( values ) )
+    ( publicIP, privateIP ) = values['Value']
+
     ( tableName, validStates, idName ) = self.__getTypeTuple( 'Instance' )
-    cmd = 'UPDATE `%s` SET UniqueID = %s, PublicIP = %s, PrivateIP = %s WHERE %s = %s' % \
-             ( tableName, uniqueID, publicIP, privateIP, idName, instanceID )
+    cmd = 'UPDATE `%s` SET PublicIP = %s, PrivateIP = %s WHERE %s = %s' % \
+             ( tableName, publicIP, privateIP, idName, instanceID )
 
     return self._update( cmd )
 
@@ -507,8 +551,9 @@ class VirtualMachineDB( DB ):
       if not ret['OK']:
         return ret
       if not ret['Value'] or id <> ret['Value'][0][0]:
-        image = self.__getInfo( 'Image', id )
-        if image['OK']:
+        result = self.__getInfo( 'Image', id )
+        if result['OK']:
+          image = result[ 'Value' ]
           self.log.error( 'Trying to insert Name: "%s", Flavor: "%s", Requirements: "%s"' %
                                             ( imageName, flavor, requirements ) )
           self.log.error( 'But inserted     Name: "%s", Flavor: "%s", Requirements: "%s"' %
@@ -557,13 +602,13 @@ class VirtualMachineDB( DB ):
     if not ret['Value']:
       return DIRAC.S_ERROR( 'Unknown %s = %s' % ( idName, id ) )
 
-    info = DIRAC.S_OK()
+    data = {}
     values = ret['Value'][0]
     fields = fields.keys()
     for i in range( len( fields ) ):
-      info[fields[i]] = values[i]
+      data[fields[i]] = values[i]
 
-    return info
+    return DIRAC.S_OK( data )
 
 
   def __getStatus( self, object, id ):

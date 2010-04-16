@@ -107,8 +107,8 @@ class AmazonImage:
           self.log.info( "Sleeping for 10 secs for instance %s (current state %s)" % ( instance, instance.state ) )
           time.sleep( 10 )
           instance.update()
-      if instance.state != u'terminated':
-        self.log.info( "Instance %s started" % instance.id )
+        if instance.state != u'terminated':
+          self.log.info( "Instance %s started" % instance.id )
       idList.append( AmazonInstance( instance.id, self.__amAccessKey, self.__amSecretKey ) )
     return S_OK( idList )
 

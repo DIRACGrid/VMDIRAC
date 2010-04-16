@@ -36,4 +36,4 @@ class AmazonDirector( VMDirector ):
     result = ami.startNewInstances()
     if not result[ 'OK' ]:
       return result
-    return S_OK( result[ 'Value' ][0].getID() )
+    return S_OK( result[ 'Value' ][0] )

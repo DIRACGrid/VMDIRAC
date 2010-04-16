@@ -109,7 +109,7 @@ class AmazonImage:
           instance.update()
         if instance.state != u'terminated':
           self.log.info( "Instance %s started" % instance.id )
-      idList.append( AmazonInstance( instance.id, self.__amAccessKey, self.__amSecretKey ) )
+      idList.append( instance.id )
     return S_OK( idList )
 
 

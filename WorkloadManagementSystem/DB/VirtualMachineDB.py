@@ -217,7 +217,7 @@ class VirtualMachineDB( DB ):
     if status['OK']:
       self.__addInstanceHistory( instanceID, 'Running' )
 
-    return status
+    return self.getAllInfoForUniqueID( uniqueID )
 
   def declareInstanceHalting( self, uniqueID, load ):
     """

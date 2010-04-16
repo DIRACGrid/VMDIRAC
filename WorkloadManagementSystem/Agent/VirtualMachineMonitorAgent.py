@@ -108,7 +108,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
       result = virtualMachineDB.declareInstanceRunning( self.vmId, self.ipAddress )
       if result[ 'OK' ]:
         gLogger.info( "Declared instance running" )
-        return S_OK()
+        return result
       gLogger.error( "Could not declare instance running", result[ 'Message' ] )
       if i < retries - 1 :
         gLogger.info( "Sleeping for %d seconds and retrying" % sleepTime )
@@ -136,19 +136,6 @@ class VirtualMachineMonitorAgent( AgentModule ):
       return S_ERROR( "Could not generate VM id: %s" % result[ 'Message' ] )
     self.vmId = result[ 'Value' ]
     gLogger.info( "VM ID is %s" % self.vmId )
-    #Need to discover the image name
-    result = virtualMachineDB.getAllInfoForUniqueID( self.vmId )
-    if not result[ 'OK' ]:
-      gLogger.error( "Could not retrieve image name", result[ 'Message' ] )
-      self.__haltInstance()
-      return S_ERROR( "Halting!" )
-    self.__instanceInfo = result[ 'Value' ]
-    self.vmName = self.__instanceInfo[ 'Image' ][ 'Name' ]
-    gLogger.info( "Image name is %s" % self.vmName )
-    #Get the cs config
-    result = self.__getCSConfig()
-    if not result[ 'OK' ]:
-      return result
     #Discover net address
     netData = Network.discoverInterfaces()
     for iface in sorted( netData ):
@@ -162,6 +149,13 @@ class VirtualMachineMonitorAgent( AgentModule ):
       gLogger.error( "Could not declare instance running", result[ 'Message' ] )
       self.__haltInstance()
       return S_ERROR( "Halting!" )
+    self.__instanceInfo = result[ 'Value' ]
+    self.vmName = self.__instanceInfo[ 'Image' ][ 'Name' ]
+    gLogger.info( "Image name is %s" % self.vmName )
+    #Get the cs config
+    result = self.__getCSConfig()
+    if not result[ 'OK' ]:
+      return result
     #Define the shifter proxy needed
     self.am_setModuleParam( "shifterProxy", "DataManager" )
     #Start output data executor

@@ -256,6 +256,8 @@ class VirtualMachineMonitorAgent( AgentModule ):
           gLogger.info( "Wrote stop file %s for agent %s" % ( stopFile, agentName ) )
         except Exception, e:
           gLogger.error( "Could not write stop agent file", stopFile )
+    if 'halt' in hbMsg and hbMsg[ 'halt' ]:
+      self.__haltInstance()
 
   def __haltInstance( self, avgLoad = 0 ):
     gLogger.info( "Halting instance..." )

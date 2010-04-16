@@ -636,6 +636,7 @@ class VirtualMachineDB( DB ):
         sqlField = field
       else:
         continue
+      value = selDict[ field ]
       if type( value ) in ( types.StringType, types.UnicodeType ):
         value = [ str( value ) ]
       sqlCond.append( " OR ".join( [ "%s=%s" % ( sqlField, self._escapeString( str( value ) )[ 'Value' ] ) for value in selDict[field] ] ) )

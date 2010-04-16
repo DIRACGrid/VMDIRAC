@@ -14,9 +14,9 @@ class VMDirector:
   def __init__( self, submitPool ):
 
     if submitPool == self.Flavor:
-      self.log = DIRAC.gLogger.getSubLogger( '%sPilotDirector' % self.Flavor )
+      self.log = DIRAC.gLogger.getSubLogger( '%sDirector' % self.Flavor )
     else:
-      self.log = DIRAC.gLogger.getSubLogger( '%sPilotDirector/%s' % ( self.Flavor, submitPool ) )
+      self.log = DIRAC.gLogger.getSubLogger( '%sDirector/%s' % ( self.Flavor, submitPool ) )
 
     self.errorMailAddress = DIRAC.errorMail
     self.alarmMailAddress = DIRAC.alarmMail

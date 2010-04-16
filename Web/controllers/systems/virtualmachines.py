@@ -86,7 +86,7 @@ class VirtualmachinesController( BaseController ):
     except:
       return S_ERROR( "OOps, instance ID has to be an integer" )
     rpcClient = getRPCClient( "WorkloadManagement/VirtualMachineManager" )
-    result = rpcClient.getHistoryForInstance( instanceID )
+    result = rpcClient.getHistoryForInstanceID( instanceID )
     if not result[ 'OK' ]:
       return result
     svcData = result[ 'Value' ]

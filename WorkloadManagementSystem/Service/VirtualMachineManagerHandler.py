@@ -124,7 +124,7 @@ class VirtualMachineManagerHandler( RequestHandler ):
     """
     Retrieve the contents of the DB
     """
-    return gVirtualMachineDB.getHistoryForInstance( instanceId )
+    return gVirtualMachineDB.getHistoryForInstanceID( instanceId )
 
   ###########################################################################
   types_getInstanceCounters = []

@@ -7,7 +7,7 @@ function showInstanceInfoWindow( instanceData )
 	var items = [];
 	var historyLogPanel = new Ext.grid.GridPanel({
 		store : new Ext.data.JsonStore({
-			url : 'getInstanceHistory',
+			url : 'getHistoryForInstanceID',
 			root : 'history',
 			fields : [ 'Status', 'Load', 'Jobs', 'TransferredFiles', 'TransferredBytes', 'Update' ],
 			autoLoad : true,

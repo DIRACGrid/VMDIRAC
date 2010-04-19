@@ -139,6 +139,7 @@ function plotDataForVM( plotSpace, dataStore )
 	imgOps.push( "chds=" + plotParams.chds.join( "|") );
 	imgOps.push( "chd=e:" + encodedData.join( "," ) );
 	var imgSrc = "http://chart.apis.google.com/chart?"+ imgOps.join("&");
+	console.log( "IMG URL " + imgSrc );
 	plotSpace.body.dom.innerHTML = "<img src='"+imgSrc+"'/ alt'"+plotSpace.acPlot+"' style:'margin-left:auto;margin-right:auto;'>"
 }
 
@@ -228,6 +229,14 @@ function extractDataForPlot( field, readerData )
 		}
 	}
 	maxValue = parseInt( maxValue + 1 );
-	var entries = data.length;
-	return { max : maxValue, entries : entries, data : extendedEncode( data, maxValue ) }
+	while( data.length > 200 )
+	{
+		var reducedData = [];
+		for( var i = 0; i< data.length -1; i+=2 )
+		{
+			reducedData.push( ( data[i]+data[i+1] ) / 2 );
+		}
+		data = reducedData;
+	}
+	return { max : maxValue, entries : data.length, data : extendedEncode( data, maxValue ) }
 }

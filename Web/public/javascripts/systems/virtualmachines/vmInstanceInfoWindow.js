@@ -139,7 +139,6 @@ function plotDataForVM( plotSpace, dataStore )
 	imgOps.push( "chds=" + plotParams.chds.join( "|") );
 	imgOps.push( "chd=e:" + encodedData.join( "," ) );
 	var imgSrc = "http://chart.apis.google.com/chart?"+ imgOps.join("&");
-	console.log( "IMG URL " + imgSrc );
 	plotSpace.body.dom.innerHTML = "<img src='"+imgSrc+"'/ alt'"+plotSpace.acPlot+"' style:'margin-left:auto;margin-right:auto;'>"
 }
 

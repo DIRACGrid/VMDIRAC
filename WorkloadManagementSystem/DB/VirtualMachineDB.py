@@ -733,12 +733,24 @@ class VirtualMachineDB( DB ):
       return result
     histData = dict( result[ 'Value' ] )
     fields.append( "hist.Load" )
+    #Running time
+    sqlQuery = 'SELECT `VMInstanceID`, MAX(UNIX_TIMESTAMP(`Update`))-MIN(UNIX_TIMESTAMP(`Update`)) FROM `vm_History` WHERE Status="Running" GROUP BY `VMInstanceID`';
+    result = self._query( sqlQuery )
+    if not result[ 'OK' ]:
+      return result
+    runningTime = dict( result[ 'Value' ] )
+    fields.append( "hist.RunningTime" )
+    #Append to data
     for record in data:
       instID = record[ instanceIDPos ]
       if instID in histData:
         record.append( "%.2f" % histData[ instID ] )
       else:
         record.append( "" )
+      if instID in runningTime:
+        record.append( int( runningTime[ instID ] ) )
+      else:
+        record.append( 0 )
     #return
     return DIRAC.S_OK( { 'ParameterNames' : fields,
                          'Records' : data,

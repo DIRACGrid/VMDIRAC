@@ -25,7 +25,7 @@ function generateBrowseGrid( config )
 		id : 'inst_VMInstanceID',
 		fields : [ "inst_Name", "inst_VMInstanceID", "inst_ErrorMessage", "inst_Status", "inst_UniqueID", 
 		           "img_VMImageID", "img_Name", "inst_VMImageID", "inst_PublicIP", "img_Flavor", 'inst_LastUpdate',
-		           'hist_Load']
+		           'hist_Load', 'hist_RunningTime']
     });
 
 	var store = new Ext.data.Store({
@@ -53,8 +53,9 @@ function generateBrowseGrid( config )
             { header: "ID", width: 80, sortable: true, dataIndex: 'inst_UniqueID'},
             { header: "IP", width: 100, sortable: true, dataIndex: 'inst_PublicIP'},
             { header: "Load", width: 50, sortable: true, dataIndex: 'hist_Load'},
-            { header: "Flavor", width: 100, sortable: true, dataIndex: 'img_Flavor'},
-            { header: "Last Update (UTC)", width: 150, sortable: true, dataIndex: 'inst_LastUpdate' },
+            { header: "Flavor", width: 75, sortable: true, dataIndex: 'img_Flavor'},
+            { header: "Uptime", width: 75, sortable: true, dataIndex: 'hist_RunningTime', renderer : renderUptime },
+            { header: "Last Update (UTC)", width: 125, sortable: true, dataIndex: 'inst_LastUpdate' },
             { header: "Error", width: 350, sortable: true, dataIndex: 'inst_ErrorMessage'},
         ],
         region : 'center',
@@ -95,6 +96,20 @@ function renderSelect( value, metadata, record, rowIndex, colIndex, store )
 {
 	return '<input id="' + record.id + '" type="checkbox"/>';
 }
+
+function renderUptime( value, metadata, record, rowIndex, colIndex, store )
+{
+	var hour = parseInt( value / 3600 );
+	var min = parseInt( ( value % 3600  ) / 60 );
+	var sec = parseInt( value % 60 );
+	if( min < 10 )
+		min = "0"+min;
+	if( sec < 10 )
+		sec = "0"+sec;
+	return ""+hour+":"+min+":"+sec;
+}
+
+
 
 function toggleAll( select )
 {

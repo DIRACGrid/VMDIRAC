@@ -137,9 +137,17 @@ function ajaxCBPlotLoad( ajaxResponse, reqArguments )
 	}
 	dataTable.addRows( rows );
 	var chart = new google.visualization.AnnotatedTimeLine(document.getElementById(gPanels.load.vmTitle));
+	var sC = [];
+	for( var i= 0; i < plotData.fields.length - i; i++ )
+	{
+		if( i > 2 )
+			continue;
+		sC.push( i );
+	}
     chart.draw(dataTable, {
     	displayAnnotations: true,
     	//scaleColumns : [0,1,2],
+    	scaleColumns : sC,
     	scaleType : 'allmaximized',
     	fill : 20,
     	displayRangeSelector : false,

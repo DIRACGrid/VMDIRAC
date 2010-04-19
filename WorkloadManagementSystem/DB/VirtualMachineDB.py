@@ -826,27 +826,18 @@ class VirtualMachineDB( DB ):
     result = self._query( sqlQuery )
     if not result[ 'OK' ]:
       return result
-    convertedData = []
+    sumData = {}
     for record in result[ 'Value' ]:
-      convertedRecord = []
-      for i in range( len( paramFields ) ):
-        if paramFields[ i ] in validDataFields:
-          convertedRecord.append( float( record[i] ) )
-        else:
-          convertedRecord.append( record[i] )
-      convertedData.append( convertedRecord )
-    acumData = {}
-    for record in convertedData:
-      date = record[0]
-      values = record[1:]
-      if date not in acumData:
-        acumData[ date ] = [ 0.0 for i in values ]
-      for i in range( len( values ) ):
-        acumData[ date ][i] += values[i]
+      recDate = record[0]
+      rawData = record[1:]
+      if recDate not in sumData:
+        sumData[ recDate ] = [ 0.0 for f in rawData ]
+      for i in range( len( rawData ) ):
+        sumData[ recDate ][i] += float( rawData[i] )
     finalData = []
-    for date in sorted( acumData ):
+    for date in sorted( sumData ):
       finalData.append( [ date ] )
-      finalData[-1].extend( acumData[ date ] )
+      finalData[-1].extend( sumData[ date ] )
 
     return DIRAC.S_OK( { 'ParameterNames' : paramFields,
                          'Records' : finalData } )

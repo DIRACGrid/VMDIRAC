@@ -112,8 +112,12 @@ class VirtualmachinesController( BaseController ):
 
   @jsonify
   def getGroupedInstanceHistory( self ):
+    try:
+      dbVars = [ str( f ) for f in simplejson.loads( request.params[ 'vars' ] ) ]
+    except:
+      dbVars = [ 'Load', 'Jobs', 'TransferredFiles' ]
     rpcClient = getRPCClient( "WorkloadManagement/VirtualMachineManager" )
-    result = rpcClient.getAverageHistoryValues( 3600, {}, [ 'Load', 'Jobs', 'TransferredFiles' ] )
+    result = rpcClient.getAverageHistoryValues( 3600, {}, dbVars )
     if not result[ 'OK' ]:
       return S_ERROR( result[ 'Message' ] )
     svcData = result[ 'Value' ]
@@ -124,7 +128,7 @@ class VirtualmachinesController( BaseController ):
       for iP in range( len( svcData[ 'ParameterNames' ] ) ):
         param = svcData[ 'ParameterNames' ][iP]
         if param == 'Update':
-          rL.append( record[iP].strftime( "%Y-%m-%d %H:%M:%S" ) )
+          rL.append( Time.toEpoch( record[iP] ) )
         else:
           rL.append( record[iP] )
       data.append( rL )

@@ -1,6 +1,4 @@
-var gMainPanel = false;
-var gPiePanel = false
-var gHistPanel =  false;
+var gPanels = {};
 
 function initVMDashboard(){
   google.load('visualization', '1', {'packages':['piechart','annotatedtimeline']});
@@ -16,9 +14,150 @@ function secondInitDashboard(){
 
 function renderPage()
 {
-	
-    //google.setOnLoadCallback( drawDashboardPlots );
+	gPanels.load = new Ext.Panel ({
+		region : 'center',
+		html : 'load',
+		height : '50%',
+		vmTitle : 'Load'
+	});
 
+	gPanels.running = new Ext.Panel ({
+		region : 'center',
+		html : 'running',
+		height : '50%',
+		vmTitle : 'Running'
+	});
+	
+	gPanels.jobs = new Ext.Panel ({
+		region : 'south',
+		html : 'jobs',
+		vmTitle : 'Jobs'
+	});
+
+	gPanels.transfers = new Ext.Panel ({
+		region : 'south',
+		html : 'transfers',
+		vmTitle : 'Transfers'
+	});
+	
+	var rightPanelContainer = new Ext.Panel ({
+		region : 'center',
+		layout : 'border',
+		items : [ gPanels.running, gPanels.transfers ],
+	}); 
+	
+	var leftPanelContainer = new Ext.Panel ({
+		region : 'west',
+		layout : 'border',
+		width : '50%',
+		items : [ gPanels.load, gPanels.jobs ],
+	}); 
+	
+	var mainPanels =  [ leftPanelContainer, rightPanelContainer ];
+	renderInMainViewport(  mainPanels );
+	
+	for( var i= 0; i < mainPanels.length; i++ )
+	{
+		var panel = mainPanels[ i ];
+		var height = panel.getInnerHeight();
+		var subPanels = panel.items.items;
+		var subHeight = parseInt( ( height - 2 )/ subPanels.length );
+		for( var j = 0; j < subPanels.length; j ++ )
+		{
+			subPanels[ j ].setHeight( subHeight );
+			if( j > 0 )
+			{
+				var prevPos = subPanels[j-1].getPosition()
+				subPanels[j].setPagePosition( prevPos[0], prevPos[1] + subHeight );
+			}
+			var divDim = [ subPanels[j].getInnerWidth() - 2, subPanels[j].getInnerHeight() - 20 ];
+			var vT = subPanels[j].vmTitle;
+			var pHTML = "<p style='text-align:center'>" + vT + "</p><div id='"+vT+"' style='width: "+divDim[0]+"px; height: "+divDim[1]+"px;'></div>"
+			subPanels[j].body.dom.innerHTML = pHTML;
+		}
+	}
+}
+
+function drawDashboardPlots()
+{
+	plotLoad();
+}
+
+function plotLoad()
+{
+	Ext.Ajax.request({
+		url : "getGroupedInstanceHistory",
+		success : ajaxCBPlotLoad,
+		failure : ajaxFailure,
+		params : { vars : Ext.util.JSON.encode( [ 'Load' ] ) }
+	});
+}
+
+function ajaxCBPlotLoad( ajaxResponse, reqArguments )
+{
+	var retVal = Ext.util.JSON.decode( ajaxResponse.responseText );
+	if( ! retVal.OK )
+	{
+		alert( "Failed to plot history: " + retVal.Message );
+		return
+	}
+	var plotData = retVal.Value;
+	
+	var dataTable = new google.visualization.DataTable();
+	for( var i = 0; i < plotData.fields.length; i++ )
+	{
+		var field = plotData.fields[i];
+		if( field == "Update" )
+			dataTable.addColumn( 'date', 'Date' );
+		else
+			dataTable.addColumn( 'number', field )
+	}
+	var rows = [];
+	var utcOffset = ( new Date() ).getTimezoneOffset() * 60000;
+	for( var i = 0; i < plotData.data.length; i++ )
+	{
+		var record = plotData.data[i];
+		var row = [];
+		for( var j = 0; j < record.length; j++ )
+		{	
+			if( plotData.fields[j] == 'Update' )
+			{
+				var s = ( record[j] * 1000 ) - utcOffset;
+
+				var d = new Date( s );
+				console.log( d );
+				row.push( d );
+			}
+			else
+			{
+				row.push( record[j] );
+			}
+		}
+		rows.push( row );
+	}
+	dataTable.addRows( rows );
+	var chart = new google.visualization.AnnotatedTimeLine(document.getElementById(gPanels.load.vmTitle));
+    chart.draw(dataTable, {
+    	displayAnnotations: true,
+    	//scaleColumns : [0,1,2],
+    	scaleType : 'allmaximized',
+    	fill : 20,
+    	displayRangeSelector : false,
+    	thickness : 3,
+    	displayZoomButtons : false,
+    	displayGrid : false,
+    	dateFormat : 'y-MM-dd HH:mm (v)'
+    	});
+}
+
+
+/*
+ * OLD
+ * 
+ */
+
+function oldRenderPage()
+{
     gPiePanel = new Ext.Panel({ 
     	html : 'Generating pie chart...',
     	width : 400,
@@ -52,7 +191,7 @@ function renderPage()
 	renderInMainViewport( [ gMainPanel ] );
 }
 
-function drawDashboardPlots()
+function oldDrawDashboardPlots()
 {
 	plotStatusCounters();
 	plotHistory();
@@ -122,7 +261,8 @@ function ajaxCBPlotHistory( ajaxResponse, reqArguments )
 	gHistPanel.body.dom.innerHTML = "<div id='historyPlotSpace' style='width: "+width+"px; height: "+height+"px;'></div>"
 	
 	var dataTable = new google.visualization.DataTable();
-	for( var i = 0; i < plotData.fields.length; i++ )
+	//for( var i = 0; i < plotData.fields.length; i++ )
+	for( var i = 0; i < 2; i++ )
 	{
 		var field = plotData.fields[i];
 		if( field == "Update" )
@@ -135,7 +275,8 @@ function ajaxCBPlotHistory( ajaxResponse, reqArguments )
 	{
 		var record = plotData.data[i];
 		var row = [];
-		for( var j = 0; j < record.length; j++ )
+		//for( var j = 0; j < record.length; j++ )
+		for( var j = 0; j < 2; j++ )
 		{	
 			if( plotData.fields[j] == 'Update' )
 			{
@@ -157,9 +298,13 @@ function ajaxCBPlotHistory( ajaxResponse, reqArguments )
 	var chart = new google.visualization.AnnotatedTimeLine(document.getElementById('historyPlotSpace'));
     chart.draw(dataTable, {
     	displayAnnotations: true,
-    	scaleColumns : [0,1,2],
+    	//scaleColumns : [0,1,2],
     	scaleType : 'allmaximized',
+    	fill : 20,
+    	displayRangeSelector : false,
+    	thickness : 4,
     	displayZoomButtons : false,
+    	dateFormat : 'y-MM-dd HH:mm'
     	});
 }
 

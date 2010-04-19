@@ -22,7 +22,7 @@ class OutputDataExecutor:
     self.__requiredCSOptions = ['InputPath', 'InputFC', 'OutputPath', 'OutputFC', 'OutputSE']
 
     self.__threadPool = ThreadPool( gConfig.getValue( "%s/MinTransfers" % self.__transfersCSPath, 1 ),
-                                    gConfig.getValue( "%s/MaxTransfers" % self.__transfersCSPath, 20 ),
+                                    gConfig.getValue( "%s/MaxTransfers" % self.__transfersCSPath, 4 ),
                                     gConfig.getValue( "%s/MaxQueuedTransfers" % self.__transfersCSPath, 100 ) )
     self.__threadPool.daemonize()
     self.__processingFiles = set()
@@ -175,7 +175,7 @@ class OutputDataExecutor:
       self.log.info( 'Retrieving from %s:' % inputSE.name, inFile )
       # ret = inputSE.getFile( inFile )
       # lcg_util binding prevent multithreading, use subprocess instead
-      res = pythonCall( 0, inputSE.getFile, inFile )
+      res = pythonCall( 2 * 3600, inputSE.getFile, inFile )
       if not res['OK']:
         self.log.error( res['Message'] )
         return S_ERROR( fileName )
@@ -199,7 +199,7 @@ class OutputDataExecutor:
     self.log.info( 'Uploading to %s:' % outputSE.name, outFile )
     # ret = replicaManager.putAndRegister( outFile, os.path.realpath( file ), outputSE.name, catalog=outputFCName )
     # lcg_util binding prevent multithreading, use subprocess instead
-    res = pythonCall( 0, replicaManager.putAndRegister, outFile, os.path.realpath( file ), outputSE.name, catalog = outputFCName )
+    res = pythonCall( 2 * 3600, replicaManager.putAndRegister, outFile, os.path.realpath( file ), outputSE.name, catalog = outputFCName )
     if not res['OK']:
       self.log.error( res['Message'] )
       return S_ERROR( fileName )

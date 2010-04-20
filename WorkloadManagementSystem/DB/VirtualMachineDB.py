@@ -853,11 +853,11 @@ class VirtualMachineDB( DB ):
     try:
       bucketSize = max( 300, int( averageBucket ) )
     except:
-      return S_ERROR( "Average bucket has to be an integer" )
+      return DIRAC.S_ERROR( "Average bucket has to be an integer" )
     try:
       timespan = max( 0, int( timespan ) )
     except:
-      return S_ERROR( "Timespan has to be an integer" )
+      return DIRAC.S_ERROR( "Timespan has to be an integer" )
 
     groupby = "FROM_UNIXTIME(UNIX_TIMESTAMP( `Update` ) - UNIX_TIMESTAMP( `Update` ) mod %d )" % bucketsize
     sqlFields = [ "COUNT( DISTINCT( `VMInstanceID` ) )", groupby ]

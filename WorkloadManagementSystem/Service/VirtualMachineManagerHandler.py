@@ -164,4 +164,4 @@ class VirtualMachineManagerHandler( RequestHandler ):
     """
     Retrieve number of running instances in each bucket
     """
-    return gVirtualMachineDB.getAverageHistoryValues( timespan, bucketSize )
+    return gVirtualMachineDB.getRunningInstancesHistory( timespan, bucketSize )

@@ -825,7 +825,7 @@ class VirtualMachineDB( DB ):
       value = [ self._escapeString( str( v ) )[ 'Value' ] for v in values ]
       sqlCond.append( "`%s` in (%s)" % ( field, ", ".join( value ) ) )
     if timespan > 0:
-      sqlCond.append( "TIMESTAMPDIFF( SECOND, `Update`, UTC_TIMESTAMP() ) > %d" % timespan )
+      sqlCond.append( "TIMESTAMPDIFF( SECOND, `Update`, UTC_TIMESTAMP() ) < %d" % timespan )
     sqlQuery = "SELECT %s FROM `vm_History`" % ", ".join( sqlFields )
     if sqlCond:
       sqlQuery += " WHERE %s" % " AND ".join( sqlCond )

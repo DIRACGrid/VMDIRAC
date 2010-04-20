@@ -864,7 +864,7 @@ class VirtualMachineDB( DB ):
     sqlQuery = "SELECT %s FROM `vm_History`" % ", ".join( sqlFields )
     if timespan > 0:
       sqlQuery += " WHERE TIMESTAMPDIFF( SECOND, `Update`, UTC_TIMESTAMP() ) < %d" % timespan
-    sqlQuery += "GROUP BY %s ORDER BY `Update` ASC" % groupby
+    sqlQuery += " GROUP BY %s ORDER BY `Update` ASC" % groupby
     return self._query( sqlQuery )
 
 def getImageDict( imageName ):

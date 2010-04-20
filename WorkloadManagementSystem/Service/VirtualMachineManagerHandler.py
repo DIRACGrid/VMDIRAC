@@ -157,3 +157,11 @@ class VirtualMachineManagerHandler( RequestHandler ):
     Retrieve the contents of the DB
     """
     return gVirtualMachineDB.getAverageHistoryValues( averageBucket, selDict, fields2Get, timespan )
+
+  ###########################################################################
+  types_getRunningInstancesHistory = [ IntType, IntType ]
+  def export_getRunningInstancesHistory( self, timespan, bucketSize ):
+    """
+    Retrieve number of running instances in each bucket
+    """
+    return gVirtualMachineDB.getAverageHistoryValues( timespan, bucketSize )

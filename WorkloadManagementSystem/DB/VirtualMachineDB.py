@@ -829,7 +829,7 @@ class VirtualMachineDB( DB ):
     sqlQuery = "SELECT %s FROM `vm_History`" % ", ".join( sqlFields )
     if sqlCond:
       sqlQuery += " WHERE %s" % " AND ".join( sqlCond )
-    sqlQuery += " GROUP BY %s" % sqlGroup
+    sqlQuery += " GROUP BY %s ORDER BY `Update` ASC" % sqlGroup
     result = self._query( sqlQuery )
     if not result[ 'OK' ]:
       return result
@@ -849,7 +849,23 @@ class VirtualMachineDB( DB ):
     return DIRAC.S_OK( { 'ParameterNames' : paramFields,
                          'Records' : finalData } )
 
+  def getRunningInstancesHistory( self, timespan = 0, bucketSize = 900 ):
+    try:
+      bucketSize = max( 300, int( averageBucket ) )
+    except:
+      return S_ERROR( "Average bucket has to be an integer" )
+    try:
+      timespan = max( 0, int( timespan ) )
+    except:
+      return S_ERROR( "Timespan has to be an integer" )
 
+    groupby = "FROM_UNIXTIME(UNIX_TIMESTAMP( `Update` ) - UNIX_TIMESTAMP( `Update` ) mod %d )" % bucketsize
+    sqlFields = [ "COUNT( DISTINCT( `VMInstanceID` ) )", groupby ]
+    sqlQuery = "SELECT %s FROM `vm_History`" % ", ".join( sqlFields )
+    if timespan > 0:
+      sqlQuery += " WHERE TIMESTAMPDIFF( SECOND, `Update`, UTC_TIMESTAMP() ) < %d" % timespan
+    sqlQuery += "GROUP BY %s ORDER BY `Update` ASC" % groupby
+    return self._query( sqlQuery )
 
 def getImageDict( imageName ):
   """

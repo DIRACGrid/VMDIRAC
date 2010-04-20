@@ -859,7 +859,7 @@ class VirtualMachineDB( DB ):
     except:
       return DIRAC.S_ERROR( "Timespan has to be an integer" )
 
-    groupby = "FROM_UNIXTIME(UNIX_TIMESTAMP( `Update` ) - UNIX_TIMESTAMP( `Update` ) mod %d )" % bucketsize
+    groupby = "FROM_UNIXTIME(UNIX_TIMESTAMP( `Update` ) - UNIX_TIMESTAMP( `Update` ) mod %d )" % bucketSize
     sqlFields = [ "COUNT( DISTINCT( `VMInstanceID` ) )", groupby ]
     sqlQuery = "SELECT %s FROM `vm_History`" % ", ".join( sqlFields )
     if timespan > 0:

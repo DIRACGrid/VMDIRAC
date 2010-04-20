@@ -851,9 +851,9 @@ class VirtualMachineDB( DB ):
 
   def getRunningInstancesHistory( self, timespan = 0, bucketSize = 900 ):
     try:
-      bucketSize = max( 300, int( averageBucket ) )
+      bucketSize = max( 300, int( bucketSize ) )
     except:
-      return DIRAC.S_ERROR( "Average bucket has to be an integer" )
+      return DIRAC.S_ERROR( "Bucket has to be an integer" )
     try:
       timespan = max( 0, int( timespan ) )
     except:

@@ -23,8 +23,8 @@ class VirtualmachinesController( BaseController ):
   def browse( self ):
     return render( "/systems/virtualmachines/browse.mako" )
 
-  def dashboard( self ):
-    return render( "/systems/virtualmachines/dashboard.mako" )
+  def overview( self ):
+    return render( "/systems/virtualmachines/overview.mako" )
 
   @jsonify
   def getInstancesList( self ):
@@ -111,17 +111,20 @@ class VirtualmachinesController( BaseController ):
     return result
 
   @jsonify
-  def getGroupedInstanceHistory( self ):
+  def getHistoryValues( self ):
     try:
       dbVars = [ str( f ) for f in simplejson.loads( request.params[ 'vars' ] ) ]
     except:
       dbVars = [ 'Load', 'Jobs', 'TransferredFiles' ]
+    try:
+      timespan = int( request.params[ 'timespan' ] )
+    except:
+      timespan = 86400
     rpcClient = getRPCClient( "WorkloadManagement/VirtualMachineManager" )
-    result = rpcClient.getAverageHistoryValues( 3600, {}, dbVars )
+    result = rpcClient.getHistoryValues( 3600, {}, dbVars, timespan )
     if not result[ 'OK' ]:
       return S_ERROR( result[ 'Message' ] )
     svcData = result[ 'Value' ]
-    print svcData
     data = []
     for record in svcData[ 'Records' ]:
       rL = []
@@ -133,3 +136,24 @@ class VirtualmachinesController( BaseController ):
           rL.append( record[iP] )
       data.append( rL )
     return S_OK( { 'data': data, 'fields' : svcData[ 'ParameterNames' ] } )
+
+  @jsonify
+  def getRunningInstancesHistory( self ):
+    try:
+      bucketSize = int( request.params[ 'bucketSize' ] )
+    except:
+      bucketSize = 900
+    try:
+      timespan = int( request.params[ 'timespan' ] )
+    except:
+      timespan = 86400
+    rpcClient = getRPCClient( "WorkloadManagement/VirtualMachineManager" )
+    result = rpcClient.getRunningInstancesHistory( timespan, bucketSize )
+    if not result[ 'OK' ]:
+      return S_ERROR( result[ 'Message' ] )
+    svcData = result[ 'Value' ]
+    data = []
+    for record in svcData:
+      rL = [ Time.toEpoch( record[0] ), int( record[1] ) ]
+      data.append( rL )
+    return S_OK( data )

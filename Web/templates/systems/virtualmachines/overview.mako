@@ -5,7 +5,7 @@
 <%def name="head_tags()">
 ${ h.javascript_link( "http://www.google.com/jsapi" ) }
 ${ h.javascript_link( "/javascripts/systems/virtualmachines/vmInstanceInfoWindow.js" ) }
-${ h.javascript_link( "/javascripts/systems/virtualmachines/vmDashboard.js" ) }
+${ h.javascript_link( "/javascripts/systems/virtualmachines/vmOverview.js" ) }
 <style>
 .allPanel table.x-table-layout {
     width: 100%;

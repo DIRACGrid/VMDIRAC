@@ -152,8 +152,8 @@ class VirtualMachineManagerHandler( RequestHandler ):
 
   ###########################################################################
   types_getAverageHistoryValues = [ IntType, DictType  ]
-  def export_getAverageHistoryValues( self, averageBucket, selDict, fields2Get = [] ):
+  def export_getAverageHistoryValues( self, averageBucket, selDict, fields2Get = [], timespan = 0 ):
     """
     Retrieve the contents of the DB
     """
-    return gVirtualMachineDB.getAverageHistoryValues( averageBucket, selDict, fields2Get )
+    return gVirtualMachineDB.getAverageHistoryValues( averageBucket, selDict, fields2Get, timespan )

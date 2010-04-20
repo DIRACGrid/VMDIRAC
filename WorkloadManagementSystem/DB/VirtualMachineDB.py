@@ -792,7 +792,12 @@ class VirtualMachineDB( DB ):
       return result
     return DIRAC.S_OK( dict( result[ 'Value' ] ) )
 
-  def getAverageHistoryValues( self, averageBucket, selDict = {}, fields2Get = False ):
+  def getAverageHistoryValues( self, averageBucket, selDict = {}, fields2Get = False, timespan = 0 ):
+    try:
+      timespan = max( 0, int( timespan ) )
+    except:
+      return S_ERROR( "Timespan has to be an integer" )
+
     validDataFields = [ 'Load', 'Jobs', 'TransferredFiles', 'TransferredBytes' ]
     allValidFields = VirtualMachineDB.tablesDesc[ 'vm_History' ][ 'Fields' ]
     if not fields2Get:
@@ -819,6 +824,8 @@ class VirtualMachineDB( DB ):
         value = ( value, )
       value = [ self._escapeString( str( v ) )[ 'Value' ] for v in values ]
       sqlCond.append( "`%s` in (%s)" % ( field, ", ".join( value ) ) )
+    if timespan > 0:
+      sqlCond.append( "TIMESTAMPDIFF( SECOND, Update, UTC_TIMESTAMP() ) > %d" % timespan )
     sqlQuery = "SELECT %s FROM `vm_History`" % ", ".join( sqlFields )
     if sqlCond:
       sqlQuery += " WHERE %s" % " AND ".join( sqlCond )

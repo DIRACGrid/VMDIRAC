@@ -792,12 +792,13 @@ class VirtualMachineDB( DB ):
       return result
     return DIRAC.S_OK( dict( result[ 'Value' ] ) )
 
-  def getAverageHistoryValues( self, averageBucket, selDict = {}, fields2Get = False, timespan = 0 ):
+  def getHistoryValues( self, averageBucket, selDict = {}, fields2Get = False, timespan = 0 ):
     try:
       timespan = max( 0, int( timespan ) )
     except:
       return S_ERROR( "Timespan has to be an integer" )
 
+    cumulativeFields = [ 'Jobs', 'TransferredFiles', 'TransferredBytes' ]
     validDataFields = [ 'Load', 'Jobs', 'TransferredFiles', 'TransferredBytes' ]
     allValidFields = VirtualMachineDB.tablesDesc[ 'vm_History' ][ 'Fields' ]
     if not fields2Get:
@@ -812,7 +813,13 @@ class VirtualMachineDB( DB ):
     except:
       return S_ERROR( "Average bucket has to be an integer" )
     sqlGroup = "FROM_UNIXTIME(UNIX_TIMESTAMP( `Update` ) - UNIX_TIMESTAMP( `Update` ) mod %d)" % bucketSize
-    sqlFields = [ sqlGroup ] + [ "SUM(`%s`)/COUNT(`%s`)" % ( f, f ) for f in fields2Get ]
+    sqlFields = [ '`VMInstanceID`', sqlGroup ] #+ [ "SUM(`%s`)/COUNT(`%s`)" % ( f, f ) for f in fields2Get ]
+    for f in fields2Get:
+      if f in cumulativeFields:
+        sqlFields.append( "MAX(`%s`)" % f )
+      else:
+        sqlFields.append( "SUM(`%s`)/COUNT(`%s`)" % ( f, f ) )
+
     sqlGroup = "%s, VMInstanceID" % sqlGroup
     paramFields = [ 'Update' ] + fields2Get
     sqlCond = []
@@ -833,8 +840,48 @@ class VirtualMachineDB( DB ):
     result = self._query( sqlQuery )
     if not result[ 'OK' ]:
       return result
+    dbData = result[ 'Value' ]
+    #Need ext?
+    requireExtension = set()
+    for i in range( len( fields2Get ) ):
+      f = fields2Get[i]
+      if f in cumulativeFields:
+        requireExtension.add( i )
+    if requireExtension:
+      rDates = []
+      for row in dbData:
+        if row[1] not in rDates:
+          rDates.append( row[1] )
+      vmData = {}
+      for row in dbData:
+        vmID = row[0]
+        if vmID not in vmData:
+          vmData[ vmID ] = {}
+        vmData[ vmID ][ row[1] ] = row[2:]
+
+      dbData = []
+      for vmID in vmData:
+        lastValues = []
+        for rDate in rDates:
+          if rDate not in vmData[ vmID ]:
+            if lastValues:
+              dbData.append( [ rDate ] + lastValues )
+          else:
+            row = vmData[ vmID ][ rDate ]
+            dbData.append( [ rDate ] + list( row ) )
+            lastValues = []
+            for i in range( len ( row ) ):
+              if i in requireExtension:
+                lastValues.append( row[i] )
+              else:
+                lastValues.append( 0 )
+    else:
+      #If we don't require extension just strip vmName
+      dbData = [ row[1:] for row in dbData ]
+
+    #Final sum
     sumData = {}
-    for record in result[ 'Value' ]:
+    for record in dbData:
       recDate = record[0]
       rawData = record[1:]
       if recDate not in sumData:

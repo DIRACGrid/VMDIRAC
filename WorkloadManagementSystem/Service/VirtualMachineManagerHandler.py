@@ -151,12 +151,12 @@ class VirtualMachineManagerHandler( RequestHandler ):
     return gVirtualMachineDB.getInstanceCounters()
 
   ###########################################################################
-  types_getAverageHistoryValues = [ IntType, DictType  ]
-  def export_getAverageHistoryValues( self, averageBucket, selDict, fields2Get = [], timespan = 0 ):
+  types_getHistoryValues = [ IntType, DictType  ]
+  def export_getHistoryValues( self, averageBucket, selDict, fields2Get = [], timespan = 0 ):
     """
     Retrieve the contents of the DB
     """
-    return gVirtualMachineDB.getAverageHistoryValues( averageBucket, selDict, fields2Get, timespan )
+    return gVirtualMachineDB.getHistoryValues( averageBucket, selDict, fields2Get, timespan )
 
   ###########################################################################
   types_getRunningInstancesHistory = [ IntType, IntType ]

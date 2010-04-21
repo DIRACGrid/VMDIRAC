@@ -50,7 +50,7 @@ class VirtualMachineManagerHandler( RequestHandler ):
 
 
   ###########################################################################
-  types_insertInstance = [ StringType, StringType ]
+  types_insertInstance = [ StringType, ( StringType, UnicodeType ) ]
   def export_insertInstance( self, imageName, instanceName ):
     """
     Check Status of a given image
@@ -59,7 +59,7 @@ class VirtualMachineManagerHandler( RequestHandler ):
     return gVirtualMachineDB.insertInstance( imageName, instanceName )
 
   ###########################################################################
-  types_setInstanceUniqueID = [ LongType, StringType ]
+  types_setInstanceUniqueID = [ LongType, ( StringType, UnicodeType ) ]
   def export_setInstanceUniqueID( self, instanceID, uniqueID ):
     """
     Check Status of a given image

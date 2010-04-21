@@ -861,20 +861,33 @@ class VirtualMachineDB( DB ):
 
       dbData = []
       for vmID in vmData:
+        firstValues = []
         lastValues = []
         for rDate in rDates:
           if rDate not in vmData[ vmID ]:
-            if lastValues:
-              dbData.append( [ rDate ] + lastValues )
+            if lastValues and firstValues:
+              instValues = [ rDate ]
+              for i in range( len( lastValues ) ):
+                instValues.append( lastValues[ i ] - firstValues[ i ] )
+              dbData.append( instValues )
           else:
             row = vmData[ vmID ][ rDate ]
-            dbData.append( [ rDate ] + list( row ) )
             lastValues = []
             for i in range( len ( row ) ):
               if i in requireExtension:
                 lastValues.append( row[i] )
               else:
                 lastValues.append( 0 )
+            if not firstValues:
+              for i in range( len ( row ) ):
+                if i in requireExtension:
+                  firstValues.append( row[i] )
+                else:
+                  firstValues.append( 0 )
+            instValues = [ rDate ]
+            for i in range( len( row ) ):
+              instValues.append( row[ i ] - firstValues[ i ] )
+            dbData.append( instValues )
     else:
       #If we don't require extension just strip vmName
       dbData = [ row[1:] for row in dbData ]

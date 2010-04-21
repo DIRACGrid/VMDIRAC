@@ -9,6 +9,7 @@ function secondInitDashboard(){
   Ext.onReady(function(){
     renderPage();
     drawDashboardPlots();
+    setInterval( "drawDashboardPlots()", 3600 * 1000 ); //redraw every hour
   });
 }
 

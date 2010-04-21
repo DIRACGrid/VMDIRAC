@@ -14,34 +14,7 @@ function secondInitDashboard(){
 
 function renderPage()
 {
-	/*
-	gPanels.load = new Ext.Panel ({
-		region : 'center',
-		html : 'load',
-		height : '50%',
-		vmTitle : 'Load',
-		tbar : generatePlotSpaceToolbar()
-	});
 
-	gPanels.running = new Ext.Panel ({
-		region : 'center',
-		html : 'running',
-		height : '50%',
-		vmTitle : 'Running'
-	});
-	
-	gPanels.jobs = new Ext.Panel ({
-		region : 'south',
-		html : 'jobs',
-		vmTitle : 'Jobs'
-	});
-
-	gPanels.transfers = new Ext.Panel ({
-		region : 'south',
-		html : 'transfers',
-		vmTitle : 'Transfers'
-	});
-	*/
 	gPanels.load = new plotSpace ({
 			region : 'center',
 			html : 'load',
@@ -362,7 +335,7 @@ function plotSpace( panelConfig, spaceConfig )
 						row.push( d );
 						break;
 					case 'TransferredBytes':
-						row.push( record[j] / 1073741824 );
+						row.push( record[j] / 1073741824.0 );
 						break;
 					default:
 						row.push( record[j] );
@@ -409,7 +382,8 @@ function plotSpace( panelConfig, spaceConfig )
 		    	displayZoomButtons : false,
 		    	displayGrid : false,
 		    	dateFormat : 'y-MM-dd HH:mm (v)',
-		    	colors : colors
+		    	colors : colors,
+		    	min : 0
 		    };
 		if( this.plotTimespan == 0 )
 			chartConfig.displayRangeSelector = true;

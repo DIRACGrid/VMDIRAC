@@ -81,12 +81,12 @@ class VirtualMachineDB( DB ):
                                    'Indexes': { 'Status': [ 'Status' ] },
                                  }
 
-  tablesDesc[ 'vm_History' ] = { 'Fields' : { 'VMInstanceID' : 'BIGINT UNSIGNED NOT NULL',
+  tablesDesc[ 'vm_History' ] = { 'Fields' : { 'VMInstanceID' : 'INTEGER UNSIGNED NOT NULL',
                                               'Status' : 'VARCHAR(32) NOT NULL',
                                               'Load' : 'FLOAT NOT NULL',
-                                              'Jobs' : 'BIGINT UNSIGNED NOT NULL DEFAULT 0',
-                                              'TransferredFiles' : 'BIGINT UNSIGNED NOT NULL DEFAULT 0',
-                                              'TransferredBytes' : 'INTEGER(50) UNSIGNED NOT NULL DEFAULT 0',
+                                              'Jobs' : 'INTEGER UNSIGNED NOT NULL DEFAULT 0',
+                                              'TransferredFiles' : 'INTEGER UNSIGNED NOT NULL DEFAULT 0',
+                                              'TransferredBytes' : 'BIGINT UNSIGNED NOT NULL DEFAULT 0',
                                               'Update' : 'DATETIME'
                                             },
                                  'Indexes': { 'VMInstanceID': [ 'VMInstanceID' ] },

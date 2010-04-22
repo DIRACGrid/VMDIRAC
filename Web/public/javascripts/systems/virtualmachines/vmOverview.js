@@ -186,30 +186,11 @@ function plotSpace( panelConfig, spaceConfig )
 	
 	this.drawPlot = function()
 	{
-		var title = "";
-		switch( this.plotName )
-		{
-			case 'load':
-				title = "Load";
-				break;
-			case 'running':
-				title = "Running VMs"
-				break;
-			case 'jobs':
-				title = "Started Jobs"
-				break;
-			case 'transferbytes':
-				title = "GiB transferred"
-				break;
-			case 'transferfiles':
-				title = "Files transferred"
-				break;
-		}
-		var divDim = [ this.panel.getInnerWidth() - 2, this.panel.getInnerHeight() - 20 ];
+		var divDim = [ this.panel.getInnerWidth() - 2, this.panel.getInnerHeight() - 2 ];
 		var panelPos = this.panel.getPosition()
 		this.divID = ""+panelPos[0]+"_"+panelPos[1];
 			
-		var pHTML = "<p style='text-align:center'>" + title + "</p><div id='"+this.divID+"' style='width: "+divDim[0]+"px; height: "+divDim[1]+"px;'></div>"
+		var pHTML = "<div id='"+this.divID+"' style='width: "+divDim[0]+"px; height: "+divDim[1]+"px;'></div>"
 		this.panel.body.dom.innerHTML = pHTML;
 
 		switch( this.plotName )

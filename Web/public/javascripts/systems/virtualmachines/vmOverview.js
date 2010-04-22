@@ -441,7 +441,8 @@ function plotSpace( panelConfig, spaceConfig )
 		    	displayZoomButtons : false,
 		    	displayGrid : false,
 		    	dateFormat : 'y-MM-dd HH:mm (v)',
-		    	colors : [ '3fa900' ]
+		    	colors : [ '3fa900' ],
+		    	min : 0
 		    };
 		if( this.plotTimespan == 0 )
 			chartConfig.displayRangeSelector = true;

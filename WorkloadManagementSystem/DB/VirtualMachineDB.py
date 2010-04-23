@@ -903,7 +903,10 @@ class VirtualMachineDB( DB ):
       finalData.append( [ date ] )
       values = sumData[ date ]
       for i in range( len( values ) ):
-        finalData[-1].append( max( 0, values[i] - firstValues[i] ) )
+        if i in requireExtension:
+          finalData[-1].append( max( 0, values[i] - firstValues[i] ) )
+        else:
+          finalData[-1].append( values[i] )
 
     return DIRAC.S_OK( { 'ParameterNames' : paramFields,
                          'Records' : finalData } )

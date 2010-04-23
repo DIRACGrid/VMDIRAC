@@ -727,7 +727,7 @@ class VirtualMachineDB( DB ):
       if record[ statusPos ] == 'Running':
         running += 1
     #sqlQuery = "SELECT VMInstanceID, SUM(`Load`)/COUNT(`Load`) from `vm_History` WHERE VMInstanceID in ( SELECT VMInstanceID from `vm_Instances` WHERE `Status` = 'Running' ) AND `Status` = 'Running' GROUP BY VMInstanceID ORDER BY `Update` DESC limit 1, %d" % ( running * 2 )
-    sqlQuery = 'SELECT `VMInstanceID`, SUM(`Load`)/COUNT(`Load`) from  (SELECT `VMInstanceID`, `Load` from `vm_History` WHERE Status="Running" order by `Update` DESC limit %d) as a GROUP BY `VMInstanceID`' % ( running * 2 )
+    sqlQuery = 'SELECT `VMInstanceID`, SUM(`Load`)/COUNT(`Load`) from  (SELECT `VMInstanceID`, `Load` from `vm_History` WHERE Status="Running" order by `Update` DESC limit %d) as a GROUP BY `VMInstanceID`' % int( running * 2.5 )
     result = self._query( sqlQuery )
     if not result[ 'OK' ]:
       return result

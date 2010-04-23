@@ -93,9 +93,12 @@ class AmazonImage:
     self.log.info( "Starting %d new instances for AMI %s (type %s)" % ( numImages,
                                                                         self.__vmAMI,
                                                                         instanceType ) )
-    reservation = self.__vmImage.run( min_count = numImages,
-                                      max_count = numImages,
-                                      instance_type = instanceType )
+    try:
+      reservation = self.__vmImage.run( min_count = numImages,
+                                        max_count = numImages,
+                                        instance_type = instanceType )
+    except Exception, e:
+      return S_ERROR( "Could not start instances: %s" % str( e ) )
     idList = []
     for instance in reservation.instances:
       if waitForConfirmation:

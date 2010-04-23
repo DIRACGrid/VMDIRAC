@@ -126,6 +126,7 @@ class VirtualmachinesController( BaseController ):
       return S_ERROR( result[ 'Message' ] )
     svcData = result[ 'Value' ]
     data = []
+    olderThan = Time.toEpoch() - 400
     for record in svcData[ 'Records' ]:
       rL = []
       for iP in range( len( svcData[ 'ParameterNames' ] ) ):
@@ -134,7 +135,8 @@ class VirtualmachinesController( BaseController ):
           rL.append( Time.toEpoch( record[iP] ) )
         else:
           rL.append( record[iP] )
-      data.append( rL )
+      if rL[0] < olderThan:
+        data.append( rL )
     return S_OK( { 'data': data, 'fields' : svcData[ 'ParameterNames' ] } )
 
   @jsonify

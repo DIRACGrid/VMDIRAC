@@ -827,9 +827,9 @@ class VirtualMachineDB( DB ):
       if field not in allValidFields:
         return S_ERROR( "%s is not a valid field" % field )
       value = selDict[ field ]
-      if type( value ) not in ( types.DictType, types.TupleType ):
+      if type( value ) not in ( types.ListType, types.TupleType ):
         value = ( value, )
-      value = [ self._escapeString( str( v ) )[ 'Value' ] for v in values ]
+      value = [ self._escapeString( str( v ) )[ 'Value' ] for v in value ]
       sqlCond.append( "`%s` in (%s)" % ( field, ", ".join( value ) ) )
     if timespan > 0:
       sqlCond.append( "TIMESTAMPDIFF( SECOND, `Update`, UTC_TIMESTAMP() ) < %d" % timespan )
@@ -847,6 +847,7 @@ class VirtualMachineDB( DB ):
       f = fields2Get[i]
       if f in cumulativeFields:
         requireExtension.add( i )
+
     if requireExtension:
       rDates = []
       for row in dbData:
@@ -858,35 +859,30 @@ class VirtualMachineDB( DB ):
         if vmID not in vmData:
           vmData[ vmID ] = {}
         vmData[ vmID ][ row[1] ] = row[2:]
+      rDates.sort()
 
       dbData = []
       for vmID in vmData:
-        firstValues = []
-        lastValues = []
+        prevValues = False
         for rDate in rDates:
           if rDate not in vmData[ vmID ]:
-            if lastValues and firstValues:
+            if prevValues:
               instValues = [ rDate ]
-              for i in range( len( lastValues ) ):
-                instValues.append( lastValues[ i ] - firstValues[ i ] )
+              for i in range( len( prevValues ) ):
+                instValues.append( prevValues[ i ] )
               dbData.append( instValues )
           else:
             row = vmData[ vmID ][ rDate ]
-            lastValues = []
+            prevValues = []
             for i in range( len ( row ) ):
               if i in requireExtension:
-                lastValues.append( row[i] )
+                prevValues.append( row[i] )
               else:
-                lastValues.append( 0 )
-            if not firstValues:
-              for i in range( len ( row ) ):
-                if i in requireExtension:
-                  firstValues.append( row[i] )
-                else:
-                  firstValues.append( 0 )
+                prevValues.append( 0 )
+
             instValues = [ rDate ]
             for i in range( len( row ) ):
-              instValues.append( row[ i ] - firstValues[ i ] )
+              instValues.append( row[ i ] )
             dbData.append( instValues )
     else:
       #If we don't require extension just strip vmName
@@ -902,9 +898,12 @@ class VirtualMachineDB( DB ):
       for i in range( len( rawData ) ):
         sumData[ recDate ][i] += float( rawData[i] )
     finalData = []
+    firstValues = sumData[ sorted( sumData )[0] ]
     for date in sorted( sumData ):
       finalData.append( [ date ] )
-      finalData[-1].extend( sumData[ date ] )
+      values = sumData[ date ]
+      for i in range( len( values ) ):
+        finalData[-1].append( max( 0, values[i] - firstValues[i] ) )
 
     return DIRAC.S_OK( { 'ParameterNames' : paramFields,
                          'Records' : finalData } )

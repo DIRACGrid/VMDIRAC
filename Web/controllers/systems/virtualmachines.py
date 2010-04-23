@@ -155,7 +155,10 @@ class VirtualmachinesController( BaseController ):
       return S_ERROR( result[ 'Message' ] )
     svcData = result[ 'Value' ]
     data = []
+    olderThan = Time.toEpoch() - 400
     for record in svcData:
-      rL = [ Time.toEpoch( record[0] ), int( record[1] ) ]
+      eTime = Time.toEpoch( record[0] )
+      if eTime < olderThan:
+        rL = [ eTime, int( record[1] ) ]
       data.append( rL )
     return S_OK( data )

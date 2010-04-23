@@ -922,8 +922,10 @@ class VirtualMachineDB( DB ):
     groupby = "FROM_UNIXTIME(UNIX_TIMESTAMP( `Update` ) - UNIX_TIMESTAMP( `Update` ) mod %d )" % bucketSize
     sqlFields = [ groupby, "COUNT( DISTINCT( `VMInstanceID` ) )" ]
     sqlQuery = "SELECT %s FROM `vm_History`" % ", ".join( sqlFields )
+    sqlCond = [ "`Status` = 'Running'" ]
     if timespan > 0:
-      sqlQuery += " WHERE TIMESTAMPDIFF( SECOND, `Update`, UTC_TIMESTAMP() ) < %d" % timespan
+      sqlCond.append( "TIMESTAMPDIFF( SECOND, `Update`, UTC_TIMESTAMP() ) < %d" % timespan )
+    sqlQuery += " WHERE %s" % " AND ".join( sqlCond )
     sqlQuery += " GROUP BY %s ORDER BY `Update` ASC" % groupby
     return self._query( sqlQuery )
 

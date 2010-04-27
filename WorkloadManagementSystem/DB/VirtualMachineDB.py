@@ -898,15 +898,16 @@ class VirtualMachineDB( DB ):
       for i in range( len( rawData ) ):
         sumData[ recDate ][i] += float( rawData[i] )
     finalData = []
-    firstValues = sumData[ sorted( sumData )[0] ]
-    for date in sorted( sumData ):
-      finalData.append( [ date ] )
-      values = sumData[ date ]
-      for i in range( len( values ) ):
-        if i in requireExtension:
-          finalData[-1].append( max( 0, values[i] - firstValues[i] ) )
-        else:
-          finalData[-1].append( values[i] )
+    if len( sumData ) > 0:
+      firstValues = sumData[ sorted( sumData )[0] ]
+      for date in sorted( sumData ):
+        finalData.append( [ date ] )
+        values = sumData[ date ]
+        for i in range( len( values ) ):
+          if i in requireExtension:
+            finalData[-1].append( max( 0, values[i] - firstValues[i] ) )
+          else:
+            finalData[-1].append( values[i] )
 
     return DIRAC.S_OK( { 'ParameterNames' : paramFields,
                          'Records' : finalData } )

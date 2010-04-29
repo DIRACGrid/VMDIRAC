@@ -4,6 +4,7 @@ from DIRAC import gConfig, S_OK, S_ERROR, gLogger
 from DIRAC.Core.Utilities.ThreadPool import ThreadPool
 from DIRAC.Core.Utilities.ThreadSafe import Synchronizer
 from DIRAC.Core.Utilities.Subprocess import pythonCall
+from DIRAC.Core.Utilities import List
 from DIRAC.DataManagementSystem.Client.ReplicaManager               import ReplicaManager
 from DIRAC.Resources.Catalog.FileCatalog                            import FileCatalog
 from DIRAC.Resources.Storage.StorageElement                         import StorageElement
@@ -132,20 +133,43 @@ class OutputDataExecutor:
     self.__threadPool.processAllResults()
 
   @transferSync
-  def __addFilesToThreadPool( self, files, outputDict ):
+  def __addFilesToThreadPool( self, files, transferDict ):
     for file in files:
       file = os.path.basename( file )
       if file in self.__processingFiles:
         continue
       self.__processingFiles.add( file )
       ret = self.__threadPool.generateJobAndQueueIt( self.__retrieveAndUploadFile,
-                                            args = ( file, outputDict ),
+                                            args = ( file, transferDict ),
                                             oCallback = self.transferCallback,
                                             blocking = False )
       if not ret['OK']:
         # The thread pool got full 
         return ret
     return S_OK()
+
+  def __transferFile( self, file, transferDict ):
+    if self.__isRegisteredInOutputCatalog( file, transferDict ):
+      return S_OK()
+
+  def __getFCClient( self, fcName ):
+    if fcName == 'LcgFileCatalog':
+      from DIRAC.Resources.Catalog.LcgFileCatalogClient import LcgFileCatalogClient
+      return S_OK( LcgFileCatalogClient() )
+    elif fcName == 'FileCatalog':
+      from DIRAC.Resources.Catalog.FileCatalogClient import FileCatalogClient
+      return S_OK( FileCatalogClient() )
+    return S_ERROR( "Unknown catalog %s" % fcName )
+
+  def __isRegisteredInOutputCatalog( file, transferDict ):
+    result = self.__getFCClient( transferDict[ 'OutputFC' ] )
+    if not result[ 'OK' ]:
+      return result
+    fc = result[ 'Value' ]
+    lfn = os.path.join( transferDict['OutputPath'], os.path.basename( file ) )
+    result = fc.getReplicas( lfn )
+
+
 
   def __retrieveAndUploadFile( self, file, outputDict ):
     """
@@ -191,19 +215,25 @@ class OutputDataExecutor:
       inBytes = os.stat( file )[6]
 
     outputPath = outputDict['OutputPath']
-    outputSE = StorageElement( outputDict['OutputSE'] )
     outputFCName = outputDict['OutputFC']
     replicaManager = ReplicaManager()
-
     outFile = os.path.join( outputPath, os.path.basename( file ) )
-    self.log.info( 'Uploading to %s:' % outputSE.name, outFile )
-    # ret = replicaManager.putAndRegister( outFile, os.path.realpath( file ), outputSE.name, catalog=outputFCName )
-    # lcg_util binding prevent multithreading, use subprocess instead
-    res = pythonCall( 2 * 3600, replicaManager.putAndRegister, outFile, os.path.realpath( file ), outputSE.name, catalog = outputFCName )
-    if not res['OK']:
-      self.log.error( res['Message'] )
+    transferOK = False
+    for outputSEName in List.randomize( List.fromChar( outputDict['OutputSE'], "," ) ):
+      outputSE = StorageElement( outputSEName )
+      self.log.info( 'Uploading to %s:' % outputSE.name, outFile )
+      # ret = replicaManager.putAndRegister( outFile, os.path.realpath( file ), outputSE.name, catalog=outputFCName )
+      # lcg_util binding prevent multithreading, use subprocess instead
+      result = pythonCall( 2 * 3600, replicaManager.putAndRegister, outFile, os.path.realpath( file ), outputSE.name, catalog = outputFCName )
+      if result['OK']:
+        transferOK = True
+        ret = result[ 'Value' ]
+      else:
+        self.log.error( result['Message'] )
+
+    if not transferOK:
       return S_ERROR( fileName )
-    ret = res['Value']
+
     if ret['OK'] or not inputFCName == 'LocalDisk':
       os.unlink( file )
 

@@ -139,7 +139,7 @@ class OutputDataExecutor:
       if file in self.__processingFiles:
         continue
       self.__processingFiles.add( file )
-      ret = self.__threadPool.generateJobAndQueueIt( self.__retrieveAndUploadFile,
+      ret = self.__threadPool.generateJobAndQueueIt( self.__transferIfNotRegistered,
                                             args = ( file, transferDict ),
                                             oCallback = self.transferCallback,
                                             blocking = False )
@@ -148,26 +148,70 @@ class OutputDataExecutor:
         return ret
     return S_OK()
 
-  def __transferFile( self, file, transferDict ):
-    if self.__isRegisteredInOutputCatalog( file, transferDict ):
-      return S_OK()
-
-  def __getFCClient( self, fcName ):
-    if fcName == 'LcgFileCatalog':
-      from DIRAC.Resources.Catalog.LcgFileCatalogClient import LcgFileCatalogClient
-      return S_OK( LcgFileCatalogClient() )
-    elif fcName == 'FileCatalog':
-      from DIRAC.Resources.Catalog.FileCatalogClient import FileCatalogClient
-      return S_OK( FileCatalogClient() )
-    return S_ERROR( "Unknown catalog %s" % fcName )
-
-  def __isRegisteredInOutputCatalog( file, transferDict ):
-    result = self.__getFCClient( transferDict[ 'OutputFC' ] )
+  def __transferIfNotRegistered( self, file, transferDict ):
+    result = self.isRegisteredInOutputCatalog( file, transferDict )
     if not result[ 'OK' ]:
+      self.log.error( result[ 'Message' ] )
       return result
-    fc = result[ 'Value' ]
+    #Already registered. Need to delete
+    if result[ 'Value' ]:
+      #Delete 
+      if transferDict[ 'InputFC' ] == 'LocalDisk':
+        os.unlink( file )
+      else:
+        inputSE = StorageElement( transferDict[ 'InputSE' ] )
+        inputSE.removeFile( file )
+        inputFC = FileCatalog( [ transferDict['InputFC'] ] ) 
+        inputFC.removeFile( file )
+      return S_OK( file ) 
+    #Do the transfer
+    return self.__retrieveAndUploadFile( file, transferDict )
+
+  def isRegisteredInOutputCatalog( self, file, transferDict ):
+    fc = FileCatalog( [ transferDict[ 'OutputFC' ] ] )
     lfn = os.path.join( transferDict['OutputPath'], os.path.basename( file ) )
     result = fc.getReplicas( lfn )
+    if not result[ 'OK' ]:
+      return result
+    if lfn not in result[ 'Value' ][ 'Successful' ]:
+      return S_OK( False )
+    replicas = result[ 'Value' ][ 'Successful' ][ lfn ]
+    if transferDict[ 'OutputSE' ] in replicas:
+      return S_OK( True )
+    return S_OK( False ) 
+
+  def __retrieveFile( self, fileName, outputDict ):
+    inputPath = outputDict['InputPath']
+    inputFCName = outputDict['InputFC']
+    filePath = os.path.join( inputPath, file )
+    if inputFCName == 'LocalDisk':
+      return S_OK( filePath )
+    inputFC = FileCatalog( [inputFCName] )
+    replicaDict = inputFC.getReplicas( filePath )
+    if not replicaDict['OK']:
+      self.log.error( replicaDict['Message'] )
+      return S_ERROR( fileName )
+    if not filePath in replicaDict['Value']['Successful']:
+      self.log.error( replicaDict['Value']['Failed'][filePath] )
+      return S_ERROR( fileName )
+    seList = replicaDict['Value']['Successful'][filePath].keys()
+
+    inputSE = StorageElement( seList[0] )
+    self.log.info( 'Retrieving from %s:' % inputSE.name, inFile )
+    # ret = inputSE.getFile( inFile )
+    # lcg_util binding prevent multithreading, use subprocess instead
+    res = pythonCall( 2 * 3600, inputSE.getFile, filePath )
+    if not res['OK']:
+      self.log.error( res['Message'] )
+      return S_ERROR( fileName )
+    ret = res['Value']
+    if not ret['OK']:
+      self.log.error( ret['Message'] )
+      return S_ERROR( fileName )
+    if not filePath in ret['Value']['Successful']:
+      self.log.error( ret['Value']['Failed'][filePath] )
+      return S_ERROR( fileName )
+    print ret
 
 
 

@@ -23,7 +23,7 @@ from DIRAC.Core.Base.AgentModule                                    import Agent
 from DIRAC.Core.Utilities.ThreadPool                                import ThreadPool
 from DIRAC.Core.Utilities.Shifter                                   import setupShifterProxyInEnv
 from BelleDIRAC.WorkloadManagementSystem.private.OutputDataExecutor import OutputDataExecutor
-from DIRAC import S_OK, S_ERROR, gConfig
+from DIRAC import S_OK, S_ERROR, gConfig, gLogger
 
 
 class OutputDataAgent( AgentModule ):

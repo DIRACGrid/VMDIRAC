@@ -76,7 +76,7 @@ class VirtualMachineDB( DB ):
                                                 'PublicIP' : 'VARCHAR(32) NOT NULL DEFAULT ""',
                                                 'PrivateIP' : 'VARCHAR(32) NOT NULL DEFAULT ""',
                                                 'ErrorMessage' : 'VARCHAR(255) NOT NULL DEFAULT ""',
-                                                'MaxPrice' : 'FLOAT DEFAULT NULL',
+                                                'MaxAllowedPrice' : 'FLOAT DEFAULT NULL',
                                                 'Uptime' : 'MEDIUMINT UNSIGNED DEFAULT 0',
                                                 'Load' : 'FLOAT DEFAULT 0'
                                              },
@@ -348,9 +348,9 @@ class VirtualMachineDB( DB ):
     if not result[ 'OK' ]:
       return result
     imgDict = result[ 'Value' ]
-    if 'MaxPrice' in imgDict:
-      fields.append( 'MaxPrice' )
-      values.append( imgDict[ 'MaxPrice' ] )
+    if 'MaxAllowedPrice' in imgDict:
+      fields.append( 'MaxAllowedPrice' )
+      values.append( imgDict[ 'MaxAllowedPrice' ] )
 
     instance = self._insert( tableName , fields, values )
 

@@ -20,6 +20,7 @@ class OutputDataExecutor:
       self.__transfersCSPath = '/Operations/%s/OutputData' % vo
     else:
       self.__transfersCSPath = csPath
+    self.log.verbose( "Reading transfer paths from %s" % self.__transfersCSPath )
     self.__requiredCSOptions = ['InputPath', 'InputFC', 'OutputPath', 'OutputFC', 'OutputSE']
 
     self.__threadPool = ThreadPool( gConfig.getValue( "%s/MinTransfers" % self.__transfersCSPath, 1 ),
@@ -123,7 +124,9 @@ class OutputDataExecutor:
     tPaths = result[ 'Value' ]
     for name in tPaths:
       transferPath = tPaths[ name ]
+      self.log.verbose( "Checking %s transfer path" % name )
       filesToTransfer = self.getOutgoingFiles( tPaths[ name ] )
+      self.log.info( "Transfer path %s has %d files" % ( name, len( filesToTransfer ) ) )
       ret = self.__addFilesToThreadPool( filesToTransfer, transferPath )
       if not ret['OK']:
         # The thread pool got full 
@@ -155,15 +158,18 @@ class OutputDataExecutor:
       return result
     #Already registered. Need to delete
     if result[ 'Value' ]:
+      self.log.info( "Transfer file %s is already registered in the output catalog" % file )
       #Delete 
       if transferDict[ 'InputFC' ] == 'LocalDisk':
-        os.unlink( file )
+        os.unlink( os.path.join( transferDict[ 'InputPath' ], file ) )
       else:
         inputSE = StorageElement( transferDict[ 'InputSE' ] )
         inputSE.removeFile( file )
-        inputFC = FileCatalog( [ transferDict['InputFC'] ] ) 
+        inputFC = FileCatalog( [ transferDict['InputFC'] ] )
         inputFC.removeFile( file )
-      return S_OK( file ) 
+      self.log.info( "File %s deleted from %s" % ( file, transferDict[ 'InputSE' ] ) )
+      self.__processingFiles.discard( file )
+      return S_OK( file )
     #Do the transfer
     return self.__retrieveAndUploadFile( file, transferDict )
 
@@ -177,43 +183,9 @@ class OutputDataExecutor:
       return S_OK( False )
     replicas = result[ 'Value' ][ 'Successful' ][ lfn ]
     if transferDict[ 'OutputSE' ] in replicas:
+      self.log.verbose( "Transfer file is already registered in %s SE" % ( file, transferDict[ 'OutputSE' ] ) )
       return S_OK( True )
-    return S_OK( False ) 
-
-  def __retrieveFile( self, fileName, outputDict ):
-    inputPath = outputDict['InputPath']
-    inputFCName = outputDict['InputFC']
-    filePath = os.path.join( inputPath, file )
-    if inputFCName == 'LocalDisk':
-      return S_OK( filePath )
-    inputFC = FileCatalog( [inputFCName] )
-    replicaDict = inputFC.getReplicas( filePath )
-    if not replicaDict['OK']:
-      self.log.error( replicaDict['Message'] )
-      return S_ERROR( fileName )
-    if not filePath in replicaDict['Value']['Successful']:
-      self.log.error( replicaDict['Value']['Failed'][filePath] )
-      return S_ERROR( fileName )
-    seList = replicaDict['Value']['Successful'][filePath].keys()
-
-    inputSE = StorageElement( seList[0] )
-    self.log.info( 'Retrieving from %s:' % inputSE.name, inFile )
-    # ret = inputSE.getFile( inFile )
-    # lcg_util binding prevent multithreading, use subprocess instead
-    res = pythonCall( 2 * 3600, inputSE.getFile, filePath )
-    if not res['OK']:
-      self.log.error( res['Message'] )
-      return S_ERROR( fileName )
-    ret = res['Value']
-    if not ret['OK']:
-      self.log.error( ret['Message'] )
-      return S_ERROR( fileName )
-    if not filePath in ret['Value']['Successful']:
-      self.log.error( ret['Value']['Failed'][filePath] )
-      return S_ERROR( fileName )
-    print ret
-
-
+    return S_OK( False )
 
   def __retrieveAndUploadFile( self, file, outputDict ):
     """

@@ -159,15 +159,25 @@ class OutputDataExecutor:
     #Already registered. Need to delete
     if result[ 'Value' ]:
       self.log.info( "Transfer file %s is already registered in the output catalog" % file )
-      #Delete 
+      #Delete
+      filePath = os.path.join( transferDict[ 'InputPath' ], file )
       if transferDict[ 'InputFC' ] == 'LocalDisk':
-        os.unlink( os.path.join( transferDict[ 'InputPath' ], file ) )
+        os.unlink( filePath )
       else:
-        inputSE = StorageElement( transferDict[ 'InputSE' ] )
-        inputSE.removeFile( file )
         inputFC = FileCatalog( [ transferDict['InputFC'] ] )
-        inputFC.removeFile( file )
-      self.log.info( "File %s deleted from %s" % ( file, transferDict[ 'InputSE' ] ) )
+        replicaDict = inputFC.getReplicas( filePath )
+        if not replicaDict['OK']:
+          self.log.error( "Error deleting file", replicaDict['Message'] )
+        elif not inFile in replicaDict['Value']['Successful']:
+          self.log.error( "Error deleting file", replicaDict['Value']['Failed'][inFile] )
+        else:
+          seList = replicaDict['Value']['Successful'][inFile].keys()
+          for se in seList:
+            se = StorageElement( se )
+            self.log.info( 'Removing from %s:' % se.name, inFile )
+            se.removeFile( inFile )
+          inputFC.removeFile( file )
+      self.log.info( "File %s deleted from %s" % ( file, transferDict[ 'InputFC' ] ) )
       self.__processingFiles.discard( file )
       return S_OK( file )
     #Do the transfer
@@ -265,9 +275,7 @@ class OutputDataExecutor:
       return S_OK( fileName )
 
     # Now the file is on final SE/FC, remove from input SE/FC
-    self.log.info( 'Removing from %s:' % inputSE.name, inFile )
-    inputSE.removeFile( inFile )
-    for se in seList[1:]:
+    for se in seList:
       se = StorageElement( se )
       self.log.info( 'Removing from %s:' % se.name, inFile )
       se.removeFile( inFile )

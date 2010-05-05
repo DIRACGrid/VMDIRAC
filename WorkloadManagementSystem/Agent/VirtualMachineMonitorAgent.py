@@ -217,7 +217,8 @@ class VirtualMachineMonitorAgent( AgentModule ):
       gLogger.info( "Sending hearbeat..." )
       result = virtualMachineDB.instanceIDHeartBeat( self.vmId, avgLoad, numJobs,
                                                      self.__outDataExecutor.getNumOKTransferredFiles(),
-                                                     self.__outDataExecutor.getNumOKTransferredBytes() )
+                                                     self.__outDataExecutor.getNumOKTransferredBytes(),
+                                                     int( uptime ) )
       if result[ 'OK' ]:
         gLogger.info( " heartbeat sent!" )
       else:

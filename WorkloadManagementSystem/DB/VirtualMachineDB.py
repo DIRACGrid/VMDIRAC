@@ -76,6 +76,9 @@ class VirtualMachineDB( DB ):
                                                 'PublicIP' : 'VARCHAR(32) NOT NULL DEFAULT ""',
                                                 'PrivateIP' : 'VARCHAR(32) NOT NULL DEFAULT ""',
                                                 'ErrorMessage' : 'VARCHAR(255) NOT NULL DEFAULT ""',
+                                                'MaxPrice' : 'FLOAT DEFAULT NULL',
+                                                'Uptime' : 'MEDIUMINT UNSIGNED DEFAULT 0',
+                                                'Load' : 'FLOAT DEFAULT 0'
                                              },
                                    'PrimaryKey' : 'VMInstanceID',
                                    'Indexes': { 'Status': [ 'Status' ] },
@@ -260,7 +263,7 @@ class VirtualMachineDB( DB ):
     return DIRAC.S_OK( stallingInstances )
 
 
-  def instanceIDHeartBeat( self, uniqueID, load, jobs, transferredFiles, transferredBytes ):
+  def instanceIDHeartBeat( self, uniqueID, load, jobs, transferredFiles, transferredBytes, uptime ):
     """
     Insert the heart beat info from a running instance
     It checks the status of the instance and the corresponding image
@@ -275,6 +278,8 @@ class VirtualMachineDB( DB ):
     status = self.__runningInstance( instanceID, load, jobs, transferredFiles, transferredBytes )
     if not status['OK']:
       return status
+
+    self.__setLastLoadAndUptime( instanceID, load, uptime )
 
     #TODO: Send empty dir just in case we want to send flags (such as stop vm)
     return DIRAC.S_OK( {} )
@@ -337,8 +342,17 @@ class VirtualMachineDB( DB ):
 
     ( tableName, validStates, idName ) = self.__getTypeTuple( 'Instance' )
 
-    instance = self._insert( tableName , ['Name', 'VMImageID', 'Status', 'LastUpdate' ],
-                                         [instanceName, imageID, validStates[0], DIRAC.Time.toString() ] )
+    fields = ['Name', 'VMImageID', 'Status', 'LastUpdate' ]
+    values = [instanceName, imageID, validStates[0], DIRAC.Time.toString() ]
+    result = getImageDict( imageName )
+    if not result[ 'OK' ]:
+      return result
+    imgDict = result[ 'Value' ]
+    if 'MaxPrice' in imgDict:
+      fields.append( 'MaxPrice' )
+      values.append( imgDict[ 'MaxPrice' ] )
+
+    instance = self._insert( tableName , fields, values )
 
     if instance['OK'] and 'lastRowId' in instance:
       self.__addInstanceHistory( instance['lastRowId'], validStates[0] )
@@ -404,7 +418,7 @@ class VirtualMachineDB( DB ):
     """
     ( tableName, validStates, idName ) = self.__getTypeTuple( 'Instance' )
     sqlCond = []
-    sqlCond.append( 'TIMESTAMPDIFF( SECOND, `LastUpdate`, UTC_TIMESTAMP() ) > %d' % secondsIdle )
+    sqlCond.append( 'TIMESTAMPDIFF( SECOND, `LastUpdate`, UTC_TIMESTAMP() ) > % d' % secondsIdle )
     sqlCond.append( 'Status IN ( "%s" )' % '", "'.join( states ) )
     cmd = 'SELECT %s from `%s` WHERE %s' % \
           ( idName, tableName, " AND ".join( sqlCond ) )
@@ -457,7 +471,7 @@ class VirtualMachineDB( DB ):
 
     currentState = currentState['Value']
     if currentState == state:
-      cmd = 'UPDATE `%s` SET LastUpdate=UTC_TIMESTAMP() WHERE %s = %s' % \
+      cmd = 'UPDATE `%s` SET LastUpdate = UTC_TIMESTAMP() WHERE %s = %s' % \
           ( tableName, idName, id )
 
       ret = self._update( cmd )
@@ -466,10 +480,10 @@ class VirtualMachineDB( DB ):
       return DIRAC.S_OK( state )
 
     if not currentState in allowedStates:
-      msg = 'Transition (%s -> %s) not allowed' % ( currentState, state )
+      msg = 'Transition ( %s -> %s ) not allowed' % ( currentState, state )
       return DIRAC.S_ERROR( msg )
 
-    cmd = 'UPDATE `%s` SET Status="%s",LastUpdate=UTC_TIMESTAMP() WHERE %s = %s' % \
+    cmd = 'UPDATE `%s` SET Status = "%s", LastUpdate = UTC_TIMESTAMP() WHERE %s = %s' % \
         ( tableName, state, idName, id )
 
     ret = self._update( cmd )
@@ -526,9 +540,10 @@ class VirtualMachineDB( DB ):
       # The image exits in DB, has to match
       imageID = imageID['Value'][0][0]
 
-    imageDict = getImageDict( imageName )
-    if not imageDict['OK']:
-      return imageDict
+    result = getImageDict( imageName )
+    if not result['OK']:
+      return result
+    imageDict = result[ 'Value' ]
     flavor = imageDict['Flavor']
     requirements = DIRAC.DEncode.encode( imageDict['Requirements'] )
 
@@ -588,6 +603,13 @@ class VirtualMachineDB( DB ):
                                    transferredFiles, transferredBytes ] )
     return
 
+  def __setLastLoadAndUptime( self, instanceID, load, uptime ):
+    sqlUpdate = "UPDATE `vm_Instances` SET `Uptime` = %f, `Load` = %f WHERE `VMInstanceID` = %d" % ( uptime,
+                                                                                                     load,
+                                                                                                     instanceID )
+    self._update( sqlUpdate )
+    return DIRAC.S_OK()
+
   def __getInfo( self, object, id ):
     """
     Return dictionary with info for Images and Instances by ID
@@ -645,7 +667,7 @@ class VirtualMachineDB( DB ):
     if not tableName:
       return DIRAC.S_ERROR( 'Unknown DB object: %s' % object )
 
-    cmd = 'UPDATE `%s` SET Status="%s",ErrorMessage="%s",LastUpdate=UTC_TIMESTAMP() WHERE %s = %s' % ( tableName,
+    cmd = 'UPDATE `%s` SET Status = "%s", ErrorMessage = "%s", LastUpdate = UTC_TIMESTAMP() WHERE %s = %s' % ( tableName,
                                                                                  validStates[-1],
                                                                                  reason,
                                                                                  idName,
@@ -727,14 +749,14 @@ class VirtualMachineDB( DB ):
       if record[ statusPos ] == 'Running':
         running += 1
     #sqlQuery = "SELECT VMInstanceID, SUM(`Load`)/COUNT(`Load`) from `vm_History` WHERE VMInstanceID in ( SELECT VMInstanceID from `vm_Instances` WHERE `Status` = 'Running' ) AND `Status` = 'Running' GROUP BY VMInstanceID ORDER BY `Update` DESC limit 1, %d" % ( running * 2 )
-    sqlQuery = 'SELECT `VMInstanceID`, SUM(`Load`)/COUNT(`Load`) from  (SELECT `VMInstanceID`, `Load` from `vm_History` WHERE Status="Running" order by `Update` DESC limit %d) as a GROUP BY `VMInstanceID`' % int( running * 3 )
+    sqlQuery = 'SELECT `VMInstanceID`, SUM( `Load` ) / COUNT( `Load` ) from  ( SELECT `VMInstanceID`, `Load` from `vm_History` WHERE Status = "Running" order by `Update` DESC limit % d ) as a GROUP BY `VMInstanceID`' % int( running * 3 )
     result = self._query( sqlQuery )
     if not result[ 'OK' ]:
       return result
     histData = dict( result[ 'Value' ] )
     fields.append( "hist.Load" )
     #Running time
-    sqlQuery = 'SELECT `VMInstanceID`, MAX(UNIX_TIMESTAMP(`Update`))-MIN(UNIX_TIMESTAMP(`Update`)) FROM `vm_History` WHERE Status="Running" GROUP BY `VMInstanceID`';
+    sqlQuery = 'SELECT `VMInstanceID`, MAX( UNIX_TIMESTAMP( `Update` ) ) - MIN( UNIX_TIMESTAMP( `Update` ) ) FROM `vm_History` WHERE Status = "Running" GROUP BY `VMInstanceID`';
     result = self._query( sqlQuery )
     if not result[ 'OK' ]:
       return result
@@ -946,7 +968,7 @@ def getImageDict( imageName ):
 
   imageCSPath = '%s/%s' % ( imagesCSPath, imageName )
 
-  imageDict = DIRAC.S_OK()
+  imageDict = {}
   flavor = DIRAC.gConfig.getValue( '%s/Flavor' % imageCSPath , '' )
   if not flavor:
     return DIRAC.S_ERROR( 'Missing Flavor for image "%s"' % imageName )
@@ -959,5 +981,5 @@ def getImageDict( imageName ):
     imageRequirementsDict['Value']['CPUTime'] = int( imageRequirementsDict['Value']['CPUTime'] )
   imageDict['Requirements'] = imageRequirementsDict['Value']
 
-  return imageDict
+  return DIRAC.S_OK( imageDict )
 

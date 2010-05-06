@@ -245,9 +245,9 @@ class OutputDataExecutor:
     replicaManager = ReplicaManager()
     outFile = os.path.join( outputPath, os.path.basename( file ) )
     transferOK = False
-    for outputSEName in List.randomize( List.fromChar( outputDict['OutputSE'], "," ) ):
+    for outputSEName in List.fromChar( outputDict['OutputSE'], "," ):
       outputSE = StorageElement( outputSEName )
-      self.log.info( 'Uploading to %s:' % outputSE.name, outFile )
+      self.log.info( 'Trying to upload to %s:' % outputSE.name, outFile )
       # ret = replicaManager.putAndRegister( outFile, os.path.realpath( file ), outputSE.name, catalog=outputFCName )
       # lcg_util binding prevent multithreading, use subprocess instead
       result = pythonCall( 2 * 3600, replicaManager.putAndRegister, outFile, os.path.realpath( file ), outputSE.name, catalog = outputFCName )

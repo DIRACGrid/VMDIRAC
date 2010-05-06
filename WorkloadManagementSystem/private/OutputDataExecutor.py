@@ -263,7 +263,7 @@ class OutputDataExecutor:
     if result['OK'] or not inputFCName == 'LocalDisk':
       os.unlink( file )
 
-    if not ret['OK']:
+    if not result['OK']:
       self.log.error( ret['Message'] )
       return S_ERROR( fileName )
 

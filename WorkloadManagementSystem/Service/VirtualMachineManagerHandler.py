@@ -90,14 +90,20 @@ class VirtualMachineManagerHandler( RequestHandler ):
   ###########################################################################
   types_instanceIDHeartBeat = [ StringType, FloatType, ( IntType, LongType ),
                                ( IntType, LongType ), ( IntType, LongType ) ]
-  def export_instanceIDHeartBeat( self, uniqueID, load, jobs, transferredFiles, transferredBytes ):
+  def export_instanceIDHeartBeat( self, uniqueID, load, jobs,
+                                  transferredFiles, transferredBytes, uptime = 0 ):
     """
     Insert the heart beat info from a running instance
     It checks the status of the instance and the corresponding image
     Declares "Running" the instance and the image 
     It returns S_ERROR if the status is not OK
     """
-    return gVirtualMachineDB.instanceIDHeartBeat( uniqueID, load, jobs, transferredFiles, transferredBytes )
+    try:
+      uptime = int( uptime )
+    except:
+      uptime = 0
+    return gVirtualMachineDB.instanceIDHeartBeat( uniqueID, load, jobs,
+                                                  transferredFiles, transferredBytes, uptime )
 
   ###########################################################################
   types_declareInstanceHalting = [ StringType, FloatType ]

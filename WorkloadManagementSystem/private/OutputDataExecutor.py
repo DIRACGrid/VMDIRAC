@@ -253,14 +253,14 @@ class OutputDataExecutor:
       result = pythonCall( 2 * 3600, replicaManager.putAndRegister, outFile, os.path.realpath( file ), outputSE.name, catalog = outputFCName )
       if result['OK']:
         transferOK = True
-        ret = result[ 'Value' ]
+        break
       else:
         self.log.error( result['Message'] )
 
     if not transferOK:
       return S_ERROR( fileName )
 
-    if ret['OK'] or not inputFCName == 'LocalDisk':
+    if result['OK'] or not inputFCName == 'LocalDisk':
       os.unlink( file )
 
     if not ret['OK']:

@@ -31,6 +31,8 @@ class AmazonImage:
       self.__errorStatus = "Can't find AMI for image %s" % self.__vmName
       self.log.error( self.__errorStatus )
       return
+    #Get Max allowed price
+    self.__vmMaxAllowedPrice = self.__getCSImageOption( "MaxAllowedPrice", 0.0 )
     #Get Amazon credentials
     # Access key
     self.__amAccessKey = self.__getCSFlavorOption( "AccessKey" )
@@ -83,22 +85,30 @@ class AmazonImage:
   In a typical Amazon Web Services account, a maximum of 20 instances can run at once.
   Use http://aws.amazon.com/contact-us/ec2-request/ to request an increase for your account.
   """
-  def startNewInstances( self, numImages = 1, instanceType = "", waitForConfirmation = False ):
+  def startNewInstances( self, numImages = 1, instanceType = "", waitForConfirmation = False, forceNormalInstance = False ):
     if self.__errorStatus:
       return S_ERROR( self.__errorStatus )
-    if not self.__vmImage:
-      self.__vmImage = self.__conn.get_image( self.__vmAMI )
     if not instanceType:
       instanceType = self.__getCSImageOption( 'InstanceType' , "m1.large" )
+    if forceNormalInstance or not self.__vmMaxAllowedPrice:
+      return self.__startNormalInstances( numImages, instanceType, waitForConfirmation )
+    self.log.info( "Requesting spot instances" )
+    return self.__startSpotInstances( numImages, instanceType, waitForConfirmation )
+
+
+  def __startNormalInstances( self, numImages, instanceType, waitForConfirmation ):
     self.log.info( "Starting %d new instances for AMI %s (type %s)" % ( numImages,
                                                                         self.__vmAMI,
                                                                         instanceType ) )
+    if not self.__vmImage:
+      self.__vmImage = self.__conn.get_image( self.__vmAMI )
     try:
       reservation = self.__vmImage.run( min_count = numImages,
                                         max_count = numImages,
                                         instance_type = instanceType )
     except Exception, e:
       return S_ERROR( "Could not start instances: %s" % str( e ) )
+
     idList = []
     for instance in reservation.instances:
       if waitForConfirmation:
@@ -115,14 +125,49 @@ class AmazonImage:
       idList.append( instance.id )
     return S_OK( idList )
 
+  def __startSpotInstances( self, numImages, instanceType, waitForConfirmation ):
+    self.log.info( "Starting %d new spot instances for AMI %s (type %s)" % ( numImages,
+                                                                        self.__vmAMI,
+                                                                        instanceType ) )
+    try:
+      spotInstanceRequests = self.__conn.request_spot_instances( price = "%f" % self.__vmMaxAllowedPrice,
+                                                        image_id = self.__vmAMI,
+                                                        count = numImages,
+                                                        instance_type = instanceType )
+      self.log.verbose( "Got %d spot instance requests" % len( spotInstanceRequests ) )
+    except Exception, e:
+      return S_ERROR( "Could not start spot instances: %s" % str( e ) )
 
+    idList = []
+    openSIRs = spotInstanceRequests
+    sirIDToCheck = [ sir.id for sir in openSIRs ]
+    invalidSIRs = []
+    while sirIDToCheck:
+      time.sleep( 10 )
+      self.log.verbose( "Refreshing SIRS %s" % ", ".join( sirIDToCheck ) )
+      openSIRs = self.__conn.get_all_spot_instance_requests( sirIDToCheck )
+      sirIDToCheck = []
+      while openSIRs:
+        sir = openSIRs.pop()
+        self.log.verbose( "SIR %s is in state %s" % ( sir.id, sir.state ) )
+        if sir.state == u'active' and 'instanceId' in dir( sir ):
+          self.log.verbose( "SIR %s has instance %s" % ( sir.id, sir.instanceId ) )
+          idList.append( sir.instanceId )
+        elif sir.state == u'closed':
+          invalidSIRs.append( sir.id )
+        else:
+          sirIDToCheck.append( sir.id )
+
+    if idList:
+      return S_OK( idList )
+    return S_ERROR( "Could not start any spot instance. Failed SIRs : %s" % ", ".join( invalidSIRs ) )
   """
   Simple call to terminate a VM based on its id
   """
   def stopInstances( self, instancesList ):
     if type( instancesList ) in ( types.StringType, types.UnicodeType ):
       instancesList = [ instancesList ]
-    print self.__conn.terminate_instances( instancesList )
+    self.__conn.terminate_instances( instancesList )
 
   """
   Get all instances for this image

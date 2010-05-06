@@ -604,7 +604,11 @@ class VirtualMachineDB( DB ):
     return
 
   def __setLastLoadAndUptime( self, instanceID, load, uptime ):
-    sqlUpdate = "UPDATE `vm_Instances` SET `Uptime` = %f, `Load` = %f WHERE `VMInstanceID` = %d" % ( uptime,
+    if not uptime:
+      result = self._query( "SELECT MAX( UNIX_TIMESTAMP( `Update` ) ) - MIN( UNIX_TIMESTAMP( `Update` ) ) FROM `vm_History` WHERE VMInstanceID = %d GROUP BY VMInstanceID" % instanceID )
+      if result[ 'OK' ] and len( result[ 'Value' ] ) > 0:
+        uptime = int( result[ 'Value' ][0][0] )
+    sqlUpdate = "UPDATE `vm_Instances` SET `Uptime` = %d, `Load` = %f WHERE `VMInstanceID` = %d" % ( uptime,
                                                                                                      load,
                                                                                                      instanceID )
     self._update( sqlUpdate )

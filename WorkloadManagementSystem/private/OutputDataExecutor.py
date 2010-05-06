@@ -195,7 +195,7 @@ class OutputDataExecutor:
     replicas = result[ 'Value' ][ 'Successful' ][ lfn ]
     for seName in List.fromChar( transferDict[ 'OutputSE' ], "," ):
       if seName in replicas:
-        self.log.verbose( "Transfer file %s is already registered in %s SE" % ( file, transferDict[ 'OutputSE' ] ) )
+        self.log.verbose( "Transfer file %s is already registered in %s SE" % ( file, seName ) )
         return S_OK( True )
     return S_OK( False )
 

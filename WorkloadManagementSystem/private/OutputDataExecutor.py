@@ -193,9 +193,10 @@ class OutputDataExecutor:
     if lfn not in result[ 'Value' ][ 'Successful' ]:
       return S_OK( False )
     replicas = result[ 'Value' ][ 'Successful' ][ lfn ]
-    if transferDict[ 'OutputSE' ] in replicas:
-      self.log.verbose( "Transfer file %s is already registered in %s SE" % ( file, transferDict[ 'OutputSE' ] ) )
-      return S_OK( True )
+    for seName in List.fromChar( transferDict[ 'OutputSE' ], "," ):
+      if seName in replicas:
+        self.log.verbose( "Transfer file %s is already registered in %s SE" % ( file, transferDict[ 'OutputSE' ] ) )
+        return S_OK( True )
     return S_OK( False )
 
   def __retrieveAndUploadFile( self, file, outputDict ):

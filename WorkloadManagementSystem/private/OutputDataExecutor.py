@@ -1,5 +1,5 @@
 
-import os, shutil
+import os, shutil, time
 from DIRAC import gConfig, S_OK, S_ERROR, gLogger
 from DIRAC.Core.Utilities.ThreadPool import ThreadPool
 from DIRAC.Core.Utilities.ThreadSafe import Synchronizer
@@ -142,6 +142,7 @@ class OutputDataExecutor:
       if file in self.__processingFiles:
         continue
       self.__processingFiles.add( file )
+      time.sleep( 1 )
       ret = self.__threadPool.generateJobAndQueueIt( self.__transferIfNotRegistered,
                                             args = ( file, transferDict ),
                                             oCallback = self.transferCallback,

@@ -77,7 +77,7 @@ class VirtualMachineDB( DB ):
                                                 'PrivateIP' : 'VARCHAR(32) NOT NULL DEFAULT ""',
                                                 'ErrorMessage' : 'VARCHAR(255) NOT NULL DEFAULT ""',
                                                 'MaxAllowedPrice' : 'FLOAT DEFAULT NULL',
-                                                'Uptime' : 'MEDIUMINT UNSIGNED DEFAULT 0',
+                                                'Uptime' : 'INTEGER UNSIGNED DEFAULT 0',
                                                 'Load' : 'FLOAT DEFAULT 0'
                                              },
                                    'PrimaryKey' : 'VMInstanceID',

@@ -73,6 +73,7 @@ class VMDirector:
       imageDict = getImageDict( imageName )
       if not imageDict['OK']:
         return imageDict
+      imageDict = imageDict[ 'Value' ]
       if self.Flavor <> imageDict['Flavor']:
         continue
       for option in ['MaxInstances', 'CPUPerInstance', 'Priority']:

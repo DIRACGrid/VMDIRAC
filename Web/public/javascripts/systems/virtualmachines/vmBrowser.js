@@ -25,7 +25,7 @@ function generateBrowseGrid( config )
 		id : 'inst_VMInstanceID',
 		fields : [ "inst_Name", "inst_VMInstanceID", "inst_ErrorMessage", "inst_Status", "inst_UniqueID", 
 		           "img_VMImageID", "img_Name", "inst_VMImageID", "inst_PublicIP", "img_Flavor", 'inst_LastUpdate',
-		           'hist_Load', 'hist_RunningTime']
+		           'inst_Load', 'inst_Uptime']
     });
 
 	var store = new Ext.data.Store({
@@ -52,9 +52,9 @@ function generateBrowseGrid( config )
             { header: "Status", width: 60, sortable: true, dataIndex: 'inst_Status'},
             { header: "ID", width: 80, sortable: true, dataIndex: 'inst_UniqueID'},
             { header: "IP", width: 100, sortable: true, dataIndex: 'inst_PublicIP'},
-            { header: "Load", width: 50, sortable: true, dataIndex: 'hist_Load'},
+            { header: "Load", width: 50, sortable: true, dataIndex: 'inst_Load', renderer : renderLoad },
             { header: "Flavor", width: 75, sortable: true, dataIndex: 'img_Flavor'},
-            { header: "Uptime", width: 75, sortable: true, dataIndex: 'hist_RunningTime', renderer : renderUptime },
+            { header: "Uptime", width: 75, sortable: true, dataIndex: 'inst_Uptime', renderer : renderUptime },
             { header: "Last Update (UTC)", width: 125, sortable: true, dataIndex: 'inst_LastUpdate' },
             { header: "Error", width: 350, sortable: true, dataIndex: 'inst_ErrorMessage'},
         ],
@@ -109,7 +109,10 @@ function renderUptime( value, metadata, record, rowIndex, colIndex, store )
 	return ""+hour+":"+min+":"+sec;
 }
 
-
+function renderLoad( value, metadata, record, rowIndex, colIndex, store )
+{
+	return value.toFixed(2);
+}
 
 function toggleAll( select )
 {

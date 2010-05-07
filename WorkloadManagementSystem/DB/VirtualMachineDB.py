@@ -693,7 +693,7 @@ class VirtualMachineDB( DB ):
     tables = ( "`vm_Images` AS img", "`vm_Instances` AS inst" )
     imageFields = ( 'VMImageID', 'Name', 'Flavor' )
     instanceFields = ( 'VMInstanceID', 'Name', 'UniqueID', 'VMImageID',
-                       'Status', 'PublicIP', 'Status', 'ErrorMessage', 'LastUpdate' )
+                       'Status', 'PublicIP', 'Status', 'ErrorMessage', 'LastUpdate', 'Load', 'Uptime' )
 
     fields = [ 'img.%s' % f for f in imageFields ] + [ 'inst.%s' % f for f in instanceFields ]
     sqlQuery = "SELECT %s FROM %s" % ( ", ".join( fields ), ", ".join( tables ) )
@@ -745,38 +745,6 @@ class VirtualMachineDB( DB ):
     retVal = self._query( sqlQuery )
     if retVal[ 'OK' ]:
       totalRecords = retVal[ 'Value' ][0][0]
-    #Get load
-    running = 0
-    statusPos = fields.index( 'inst.Status' )
-    instanceIDPos = fields.index( 'inst.VMInstanceID' )
-    for record in data:
-      if record[ statusPos ] == 'Running':
-        running += 1
-    #sqlQuery = "SELECT VMInstanceID, SUM(`Load`)/COUNT(`Load`) from `vm_History` WHERE VMInstanceID in ( SELECT VMInstanceID from `vm_Instances` WHERE `Status` = 'Running' ) AND `Status` = 'Running' GROUP BY VMInstanceID ORDER BY `Update` DESC limit 1, %d" % ( running * 2 )
-    sqlQuery = 'SELECT `VMInstanceID`, SUM( `Load` ) / COUNT( `Load` ) from  ( SELECT `VMInstanceID`, `Load` from `vm_History` WHERE Status = "Running" order by `Update` DESC limit % d ) as a GROUP BY `VMInstanceID`' % int( running * 3 )
-    result = self._query( sqlQuery )
-    if not result[ 'OK' ]:
-      return result
-    histData = dict( result[ 'Value' ] )
-    fields.append( "hist.Load" )
-    #Running time
-    sqlQuery = 'SELECT `VMInstanceID`, MAX( UNIX_TIMESTAMP( `Update` ) ) - MIN( UNIX_TIMESTAMP( `Update` ) ) FROM `vm_History` WHERE Status = "Running" GROUP BY `VMInstanceID`';
-    result = self._query( sqlQuery )
-    if not result[ 'OK' ]:
-      return result
-    runningTime = dict( result[ 'Value' ] )
-    fields.append( "hist.RunningTime" )
-    #Append to data
-    for record in data:
-      instID = record[ instanceIDPos ]
-      if instID in histData:
-        record.append( "%.2f" % histData[ instID ] )
-      else:
-        record.append( "" )
-      if instID in runningTime:
-        record.append( int( runningTime[ instID ] ) )
-      else:
-        record.append( 0 )
     #return
     return DIRAC.S_OK( { 'ParameterNames' : fields,
                          'Records' : data,

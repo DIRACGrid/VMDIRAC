@@ -254,8 +254,11 @@ class OutputDataExecutor:
       # lcg_util binding prevent multithreading, use subprocess instead
       result = pythonCall( 2 * 3600, replicaManager.putAndRegister, outFile, os.path.realpath( file ), outputSE.name, catalog = outputFCName )
       if result['OK']:
-        transferOK = True
-        break
+        if outFile in result['Value']['Successful']:
+          transferOK = True
+          break
+        else:
+          self.log.error( result['Value']['Failed'][outFile] )
       else:
         self.log.error( result['Message'] )
 

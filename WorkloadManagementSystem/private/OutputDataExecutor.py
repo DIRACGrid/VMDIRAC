@@ -253,14 +253,17 @@ class OutputDataExecutor:
       # ret = replicaManager.putAndRegister( outFile, os.path.realpath( file ), outputSE.name, catalog=outputFCName )
       # lcg_util binding prevent multithreading, use subprocess instead
       result = pythonCall( 2 * 3600, replicaManager.putAndRegister, outFile, os.path.realpath( file ), outputSE.name, catalog = outputFCName )
-      if result['OK']:
-        if outFile in result['Value']['Successful']:
+      if result['OK'] and result['Value']['OK']:
+        if outFile in result['Value']['Value']['Successful']:
           transferOK = True
           break
         else:
-          self.log.error( result['Value']['Failed'][outFile] )
+          self.log.error( result['Value']['Value']['Failed'][outFile] )
       else:
-        self.log.error( result['Message'] )
+        if result['OK']:
+          self.log.error( result['Value']['Message'] )
+        else:
+          self.log.error( result['Message'] )
 
     if not transferOK:
       return S_ERROR( fileName )

@@ -246,7 +246,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
       gLogger.info( "Received STOP signal. Writing stop files..." )
       for agentName in [ "WorkloadManagement/JobAgent" ]:
         ad = os.path.join( *agentName.split( "/" ) )
-        stopDir = os.path.join( rootPath, 'control', ad )
+        stopDir = os.path.join( gConfig.getValue( '/LocalSite/InstancePath', rootPath ), 'control', ad )
         stopFile = os.path.join( stopDir, "stop_agent" )
         try:
           if not os.path.isdir( stopDir ):

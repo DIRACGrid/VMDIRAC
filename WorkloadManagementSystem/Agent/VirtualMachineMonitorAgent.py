@@ -7,8 +7,8 @@ from DIRAC.Core.Base.AgentModule import AgentModule
 
 from DIRAC import gLogger, S_OK, S_ERROR, gConfig, rootPath
 from DIRAC.Core.Utilities import List, Network
-from BelleDIRAC.WorkloadManagementSystem.Client.ServerUtils import virtualMachineDB
-from BelleDIRAC.WorkloadManagementSystem.private.OutputDataExecutor import OutputDataExecutor
+from DIRACVM.WorkloadManagementSystem.Client.ServerUtils import virtualMachineDB
+from DIRACVM.WorkloadManagementSystem.private.OutputDataExecutor import OutputDataExecutor
 
 try:
   from hashlib import md5

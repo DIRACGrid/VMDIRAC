@@ -22,7 +22,7 @@ __RCSID__ = "$Id$"
 from DIRAC.Core.Base.AgentModule                                    import AgentModule
 from DIRAC.Core.Utilities.ThreadPool                                import ThreadPool
 from DIRAC.Core.Utilities.Shifter                                   import setupShifterProxyInEnv
-from BelleDIRAC.WorkloadManagementSystem.private.OutputDataExecutor import OutputDataExecutor
+from DIRACVM.WorkloadManagementSystem.private.OutputDataExecutor import OutputDataExecutor
 from DIRAC import S_OK, S_ERROR, gConfig, gLogger
 
 

@@ -1,5 +1,5 @@
 ########################################################################
-# $HeadURL: https://dirac-grid.googlecode.com/svn/BelleDIRAC/trunk/BelleDIRAC/WorkloadManagementSystem/Client/ServerUtils.py $
+# $HeadURL$
 # File :   ServerUtils.py
 # Author : Ricardo Graciani
 ########################################################################
@@ -15,7 +15,7 @@ def getVirtualMachineDB():
   serverName = 'WorkloadManagement/VirtualMachineManager'
   VirtualMachineDB = None
   try:
-    from BelleDIRAC.WorkloadManagementSystem.DB.VirtualMachineDB               import VirtualMachineDB
+    from DIRACVM.WorkloadManagementSystem.DB.VirtualMachineDB               import VirtualMachineDB
   except:
     pass
   return getDBOrClient( VirtualMachineDB, serverName )

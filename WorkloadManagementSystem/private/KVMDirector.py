@@ -1,12 +1,12 @@
 ########################################################################
-# $HeadURL: https://dirac-grid.googlecode.com/svn/BelleDIRAC/trunk/BelleDIRAC/WorkloadManagementSystem/private/KVMDirector.py $
+# $HeadURL$
 # File :   KVMDirector.py
 # Author : Ricardo Graciani
 ########################################################################
 __RCSID__ = "$Id: KVMDirector.py 16 2010-03-15 11:39:29Z ricardo.graciani@gmail.com $"
 
 from DIRAC import S_OK, S_ERROR
-from BelleDIRAC.WorkloadManagementSystem.private.VMDirector import VMDirector
+from DIRACVM.WorkloadManagementSystem.private.VMDirector import VMDirector
 
 class KVMDirector( VMDirector ):
   def __init__( self, submitPool ):

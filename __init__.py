@@ -1,4 +1,4 @@
-# $HeadURL: https://dirac-grid.googlecode.com/svn/BelleDIRAC/trunk/BelleDIRAC/__init__.py $
+# $HeadURL$
 from pkgutil import extend_path
 __path__ = extend_path( __path__, __name__ )
 

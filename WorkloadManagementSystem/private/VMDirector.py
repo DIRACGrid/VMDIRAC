@@ -1,5 +1,5 @@
 ########################################################################
-# $HeadURL: https://dirac-grid.googlecode.com/svn/BelleDIRAC/trunk/BelleDIRAC/WorkloadManagementSystem/private/VMDirector.py $
+# $HeadURL$
 # File :   KVMDirector.py
 # Author : Ricardo Graciani
 ########################################################################
@@ -8,7 +8,7 @@ __RCSID__ = "$Id: VMDirector.py 16 2010-03-15 11:39:29Z ricardo.graciani@gmail.c
 import DIRAC
 FROM_MAIL = "dirac.project@gmail.com"
 
-from BelleDIRAC.WorkloadManagementSystem.Client.ServerUtils import virtualMachineDB
+from DIRACVM.WorkloadManagementSystem.Client.ServerUtils import virtualMachineDB
 
 class VMDirector:
   def __init__( self, submitPool ):
@@ -57,7 +57,7 @@ class VMDirector:
     """
       reload from CS
     """
-    from BelleDIRAC.WorkloadManagementSystem.DB.VirtualMachineDB               import getImageDict
+    from DIRACVM.WorkloadManagementSystem.DB.VirtualMachineDB               import getImageDict
     self.log.debug( 'Configuring from %s' % mySection )
     self.errorMailAddress = DIRAC.gConfig.getValue( mySection + '/ErrorMailAddress'     , self.errorMailAddress )
     self.alarmMailAddress = DIRAC.gConfig.getValue( mySection + '/AlarmMailAddress'     , self.alarmMailAddress )

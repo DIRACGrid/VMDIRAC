@@ -1,13 +1,13 @@
 ########################################################################
-# $HeadURL: https://dirac-grid.googlecode.com/svn/BelleDIRAC/trunk/BelleDIRAC/WorkloadManagementSystem/private/AmazonDirector.py $
+# $HeadURL$
 # File :   AmazonDirector.py
 # Author : Ricardo Graciani
 ########################################################################
 __RCSID__ = "$Id: AmazonDirector.py 16 2010-03-15 11:39:29Z ricardo.graciani@gmail.com $"
 
 from DIRAC import S_OK, S_ERROR
-from BelleDIRAC.WorkloadManagementSystem.private.VMDirector import VMDirector
-from BelleDIRAC.WorkloadManagementSystem.Client.AmazonImage import AmazonImage
+from DIRACVM.WorkloadManagementSystem.private.VMDirector import VMDirector
+from DIRACVM.WorkloadManagementSystem.Client.AmazonImage import AmazonImage
 
 class AmazonDirector( VMDirector ):
   def __init__( self, submitPool ):

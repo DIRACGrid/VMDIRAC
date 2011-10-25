@@ -1,5 +1,5 @@
 ########################################################################
-# $HeadURL: https://dirac-grid.googlecode.com/svn/BelleDIRAC/trunk/BelleDIRAC/WorkloadManagementSystem/DB/VirtualMachineDB.py $
+# $HeadURL$
 # File :   VirtualMachineDB.py
 # Author : Ricardo Graciani
 ########################################################################

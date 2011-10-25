@@ -4,7 +4,7 @@ import boto
 import time
 from DIRAC import gLogger, gConfig, S_OK, S_ERROR
 
-from BelleDIRAC.WorkloadManagementSystem.Client.AmazonInstance import AmazonInstance
+from DIRACVM.WorkloadManagementSystem.Client.AmazonInstance import AmazonInstance
 
 class AmazonImage:
 

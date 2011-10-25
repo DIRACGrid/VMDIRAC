@@ -3,7 +3,7 @@
 from DIRAC.Core.Base import Script
 Script.parseCommandLine( ignoreErrors=False )
 
-from BelleDIRAC.WorkloadManagementSystem.DB.VirtualMachineDB               import VirtualMachineDB
+from DIRACVM.WorkloadManagementSystem.DB.VirtualMachineDB               import VirtualMachineDB
 
 import DIRAC
 

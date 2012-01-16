@@ -285,29 +285,3 @@ class OcciClient:
       last = request.stdout.find("</STATE>",first) 
       request.stdout = request.stdout[first:last]
       return request
-	
-
-# Checking
-#########################
-
-cliocci = OcciClient("http://one01.pic.es:4569","lhc","lhc")
-
-request = cliocci.get_image_ids_of_instance("190")
-
-#request =  cliocci.get_status_VMinstance("200")
-#request = cliocci.get_image_id("mkcontext hdc")
-#request = cliocci.get_all_VMinstances("mijacaboot")
-#request = cliocci.get_running_VMinstances("mijacaboot")
-
-#request = cliocci.terminate_VMinstance("187")
-if request.returncode != 0:
-  print "Request error"
-
-print request.stdout
-print
-print "list:"
-print request.rlist
-
-sys.exit()
-
-request = cliocci.create_VMInstance("mijacaboot","mijacahdc", "small", "3", "60", "193.109.175.5", "193.109.172.144", "pic.es", "http://lhcweb.pic.es/vmendez/context/root.pub http://lhcweb.pic.es/vmendez/context/e2fsprogs-1.41.14.tar.gz http://lhcweb.pic.es/vmendez/context/expat-2.0.1.tar.gz http://lhcweb.pic.es/vmendez/context/gettext-0.18.1.1.tar.gz http://lhcweb.pic.es/vmendez/context/git-1.7.7.2.tar.gz", "10")

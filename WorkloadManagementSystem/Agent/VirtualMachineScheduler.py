@@ -1,7 +1,7 @@
 ########################################################################
 # $HeadURL$
 # File :   VirtualMachineScheduler.py
-# Author : Ricardo Graciani
+# Author : Ricardo Graciani (small Occi support by Victor Mendez)
 ########################################################################
 
 """  The Virtual Machine Scheduler controls the submission of VM via the
@@ -33,10 +33,10 @@
        - SubmitPools (see above)
 
      SubmitPools may refer to:
-       - a full Cloud provider (AmazonEC2) 
+       - a full Cloud provider (AmazonEC2, Occi) 
        - a locally accessible Xen or KVM server
 
-     For every SubmitPool category (Amazon, Xen, KVM) and there must be a corresponding Section with the
+     For every SubmitPool category (Amazon, Occi, Xen, KVM) and there must be a corresponding Section with the
      necessary parameters:
 
        - Pool: if a dedicated Threadpool is desired for this SubmitPool
@@ -85,6 +85,8 @@ from DIRAC.Resources.Computing.ComputingElement                 import getResour
 from DIRAC.WorkloadManagementSystem.Client.ServerUtils          import taskQueueDB
 from DIRACVM.WorkloadManagementSystem.Client.ServerUtils     import virtualMachineDB
 from DIRACVM.WorkloadManagementSystem.private.AmazonDirector import AmazonDirector
+from DIRACVM.WorkloadManagementSystem.private.OcciDirector import OcciDirector
+
 from DIRACVM.WorkloadManagementSystem.private.KVMDirector    import KVMDirector
 
 from DIRAC.Core.Utilities.ThreadPool                            import ThreadPool
@@ -339,6 +341,8 @@ class VirtualMachineScheduler( AgentModule ):
       director = KVMDirector( submitPool )
     elif directorName == "AmazonDirector":
       director = AmazonDirector( submitPool )
+    elif directorName == "OcciDirector":
+      director = OcciDirector( submitPool )
     else:
       return
 

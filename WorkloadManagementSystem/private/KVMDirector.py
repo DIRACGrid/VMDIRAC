@@ -6,7 +6,7 @@
 __RCSID__ = "$Id: KVMDirector.py 16 2010-03-15 11:39:29Z ricardo.graciani@gmail.com $"
 
 from DIRAC import S_OK, S_ERROR
-from DIRACVM.WorkloadManagementSystem.private.VMDirector import VMDirector
+from VMDIRAC.WorkloadManagementSystem.private.VMDirector import VMDirector
 
 class KVMDirector( VMDirector ):
   def __init__( self, submitPool ):

@@ -15,7 +15,7 @@ def getVirtualMachineDB():
   serverName = 'WorkloadManagement/VirtualMachineManager'
   VirtualMachineDB = None
   try:
-    from DIRACVM.WorkloadManagementSystem.DB.VirtualMachineDB               import VirtualMachineDB
+    from VMDIRAC.WorkloadManagementSystem.DB.VirtualMachineDB               import VirtualMachineDB
   except:
     pass
   return getDBOrClient( VirtualMachineDB, serverName )

@@ -20,7 +20,7 @@ __RCSID__ = "$Id$"
 from DIRAC.Core.DISET.RequestHandler import RequestHandler
 from DIRAC import S_OK, S_ERROR
 from DIRAC.Core.Utilities.ThreadScheduler              import gThreadScheduler
-from DIRACVM.WorkloadManagementSystem.DB.VirtualMachineDB               import VirtualMachineDB
+from VMDIRAC.WorkloadManagementSystem.DB.VirtualMachineDB               import VirtualMachineDB
 
 from types import *
 

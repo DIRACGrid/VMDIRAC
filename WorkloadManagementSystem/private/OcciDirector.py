@@ -5,8 +5,8 @@
 ########################################################################
 
 from DIRAC import S_OK, S_ERROR
-from DIRACVM.WorkloadManagementSystem.private.VMDirector import VMDirector
-from DIRACVM.WorkloadManagementSystem.Client.OcciImage import OcciImage
+from VMDIRAC.WorkloadManagementSystem.private.VMDirector import VMDirector
+from VMDIRAC.WorkloadManagementSystem.Client.OcciImage import OcciImage
 
 class OcciDirector( VMDirector ):
   def __init__( self, submitPool ):

@@ -83,11 +83,11 @@ from DIRAC.Core.Base.AgentModule import AgentModule
 from DIRAC.Resources.Computing.ComputingElement                 import getResourceDict
 
 from DIRAC.WorkloadManagementSystem.Client.ServerUtils          import taskQueueDB
-from DIRACVM.WorkloadManagementSystem.Client.ServerUtils     import virtualMachineDB
-from DIRACVM.WorkloadManagementSystem.private.AmazonDirector import AmazonDirector
-from DIRACVM.WorkloadManagementSystem.private.OcciDirector import OcciDirector
+from VMDIRAC.WorkloadManagementSystem.Client.ServerUtils     import virtualMachineDB
+from VMDIRAC.WorkloadManagementSystem.private.AmazonDirector import AmazonDirector
+from VMDIRAC.WorkloadManagementSystem.private.OcciDirector import OcciDirector
 
-from DIRACVM.WorkloadManagementSystem.private.KVMDirector    import KVMDirector
+from VMDIRAC.WorkloadManagementSystem.private.KVMDirector    import KVMDirector
 
 from DIRAC.Core.Utilities.ThreadPool                            import ThreadPool
 

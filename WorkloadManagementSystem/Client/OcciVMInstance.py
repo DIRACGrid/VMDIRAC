@@ -6,7 +6,7 @@
 
 import time
 from DIRAC import gLogger, gConfig, S_OK, S_ERROR
-from DIRACVM.WorkloadManagementSystem.Client.OcciClient import OcciClient
+from VMDIRAC.WorkloadManagementSystem.Client.OcciClient import OcciClient
 
 
 class OcciVMInstance:

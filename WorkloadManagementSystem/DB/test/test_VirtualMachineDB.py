@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 #
 from DIRAC.Core.Base import Script
-Script.parseCommandLine( ignoreErrors=False )
+Script.parseCommandLine( ignoreErrors = False )
 
-from DIRACVM.WorkloadManagementSystem.DB.VirtualMachineDB               import VirtualMachineDB
+from VMDIRAC.WorkloadManagementSystem.DB.VirtualMachineDB               import VirtualMachineDB
 
 import DIRAC
 

@@ -26,6 +26,15 @@ class VirtualMachineMonitorAgent( AgentModule ):
     except Exception, e:
       return S_ERROR( "Could not retrieve amazon instance id: %s" % str( e ) )
 
+  def getOcciVMId( self ):
+    try:
+      fd = open('/tmp/VMID','r')
+      id = fd.read().strip()
+      fd.close()
+      return S_OK( id )
+    except Exception, e:
+      return S_ERROR( "Could not retrieve occi instance id: %s" % str( e ) )
+
   def getUptime( self ):
     fd = open( "/proc/uptime" )
     uptime = float( List.fromChar( fd.read().strip(), " " )[0] )
@@ -130,6 +139,8 @@ class VirtualMachineMonitorAgent( AgentModule ):
       result = self.getGenericVMId()
     elif flavor == 'amazon':
       result = self.getAmazonVMId()
+    elif flavor == 'occi':
+      result = self.getOcciVMId()
     else:
       return S_ERROR( "Unknown VM Flavor (%s)" % self.vmFlavor )
     if not result[ 'OK' ]:

@@ -20,7 +20,7 @@
 
   New Instances can be launched by Director if VMImage is not in Error Status.
 
-  Instance UniqueID: depends on Flavor, for KVM it could be the MAC, for Amazon the returned InstanceID(i-5dec3236)
+  Instance UniqueID: depends on Flavor, for KVM it could be the MAC, for Amazon the returned InstanceID(i-5dec3236), for Occi returned the VMID
 
 
 """

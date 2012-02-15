@@ -194,10 +194,10 @@ class VirtualMachineScheduler( AgentModule ):
           pool = self.pools[self.directors[directorName]['pool']]
 
           ret = pool.generateJobAndQueueIt( director.submitInstance,
-                                            args=( imageName, self.workDir ),
-                                            oCallback=self.callBack,
-                                            oExceptionCallback=director.exceptionCallBack,
-                                            blocking=False )
+                                            args = ( imageName, self.workDir ),
+                                            oCallback = self.callBack,
+                                            oExceptionCallback = director.exceptionCallBack,
+                                            blocking = False )
 
           if not ret['OK']:
             # Disable submission until next iteration
@@ -264,10 +264,10 @@ class VirtualMachineScheduler( AgentModule ):
       pool = self.pools[self.directors[submitPool]['pool']]
       director = self.directors[submitPool]['director']
       ret = pool.generateJobAndQueueIt( director.submitPilots,
-                                        args=( taskQueueDict, pilotsToSubmit, self.workDir ),
-                                        oCallback=self.callBack,
-                                        oExceptionCallback=director.exceptionCallBack,
-                                        blocking=False )
+                                        args = ( taskQueueDict, pilotsToSubmit, self.workDir ),
+                                        oCallback = self.callBack,
+                                        oExceptionCallback = director.exceptionCallBack,
+                                        blocking = False )
       if not ret['OK']:
         # Disable submission until next iteration
         self.directors[submitPool]['isEnabled'] = False
@@ -367,7 +367,7 @@ class VirtualMachineScheduler( AgentModule ):
 
     return
 
-  def __configureDirector( self, submitPool=None ):
+  def __configureDirector( self, submitPool = None ):
     # Update Configuration from CS
     # if submitPool == None then,
     #     disable all Directors

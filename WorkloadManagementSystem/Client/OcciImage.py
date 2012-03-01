@@ -18,10 +18,10 @@ class OcciImage:
   a standard occi cloud infrastructure.
   Authentication is provided by an occi user/password attributes
   """
-  def __init__( self, bootImageName, hdcImageName ):
+  def __init__( self, bootImageName):
     self.log = gLogger.getSubLogger( "OII (boot,hdc): (%s,%s) " % ( bootImageName, hdcImageName ) )
     self.__bootImageName = bootImageName
-    self.__hdcImageName = hdcImageName
+    self.__hdcImageName = self.__getCSImageOption( "hdcImageName" )
 # __instances list not used now 
     self.__instances = []
     self.__errorStatus = ""
@@ -39,13 +39,13 @@ class OcciImage:
       return
     #Get OCCI user/password
     # user
-    self.__occiUser = self.__getCSFlavorOption( "occiUser" )
+    self.__occiUser = self.__getCSImageOption( "occiUser" )
     if not self.__occiUser:
       self.__errorStatus = "Can't find User for occi server %s" % self.__occiURI
       self.log.error( self.__errorStatus )
       return
     # password
-    self.__occiPasswd = self.__getCSFlavorOption( "occiPasswd" )
+    self.__occiPasswd = self.__getCSImageOption( "occiPasswd" )
     if not self.__occiPasswd:
       self.__errorStatus = "Can't find Passwd for occi server %s" % self.__occiURI
       self.log.error( self.__errorStatus )
@@ -76,33 +76,33 @@ class OcciImage:
       return
 
     # dns1
-    self.__occiDNS1 = self.__getCSFlavorOption( "DNS1" )
+    self.__occiDNS1 = self.__getCSImageOption( "DNS1" )
     if not self.__DNS1:
       self.__errorStatus = "Can't find DNS1 in Flavor %s" % self.__Flavor
       self.log.error( self.__errorStatus )
       return
 
     # dns2
-    self.__occiDNS2 = self.__getCSFlavorOption( "DNS2" )
+    self.__occiDNS2 = self.__getCSImageOption( "DNS2" )
     if not self.__DNS2:
       self.__errorStatus = "Can't find DNS2 in Flavor %s" % self.__Flavor
       self.log.error( self.__errorStatus )
       return
 
     # domain
-    self.__occiDomain = self.__getCSFlavorOption( "Domain" )
+    self.__occiDomain = self.__getCSImageOption( "Domain" )
     if not self.__Domain:
       self.__errorStatus = "Can't find Domain in Flavor %s" % self.__Flavor
       self.log.error( self.__errorStatus )
       return
 
     # URL context files:
-    self.__occiURLcontextfiles = self.__getCSFlavorOption( "URLcontextfiles" )
+    self.__occiURLcontextfiles = self.__getCSImageOption( "URLcontextfiles" )
     if not self.__URLcontextfiles:
     	self.__occiURLcontextfiles = "http://lhcweb.pic.es/vmendez/context/root.pub http://lhcweb.pic.es/vmendez/context/e2fsprogs-1.41.14.tar.gz http://lhcweb.pic.es/vmendez/context/expat-2.0.1.tar.gz http://lhcweb.pic.es/vmendez/context/gettext-0.18.1.1.tar.gz http://lhcweb.pic.es/vmendez/context/git-1.7.7.2.tar.gz"
 
     # Network id
-    self.__occiNetId = self.__getCSFlavorOption( "NetId" )
+    self.__occiNetId = self.__getCSImageOption( "NetId" )
     if not self.__NetId:
       self.__errorStatus = "Can't find NetId in Flavor %s" % self.__Flavor
       self.log.error( self.__errorStatus )

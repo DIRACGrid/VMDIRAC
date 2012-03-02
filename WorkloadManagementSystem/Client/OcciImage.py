@@ -8,7 +8,7 @@
 import time
 from DIRAC import gLogger, gConfig, S_OK, S_ERROR
 
-from VMDIRAC.WorkloadManagementSystem.Client.OcciInstance import OcciVMInstance
+from VMDIRAC.WorkloadManagementSystem.Client.OcciVMInstance import OcciVMInstance
 from VMDIRAC.WorkloadManagementSystem.Client.OcciClient import OcciClient
 
 class OcciImage:

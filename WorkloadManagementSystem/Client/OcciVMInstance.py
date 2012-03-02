@@ -13,7 +13,7 @@ class OcciVMInstance:
 
   def __init__( self, instanceId, URL, User, Passwd ):
     self.__errorStatus = ""
-    self.log = gLogger.getSubLogger( "OcciInstance id:%s" % instanceId )
+    self.log = gLogger.getSubLogger( "OcciVMInstance id:%s" % instanceId )
     self.__instanceId = instanceId
     self.__bootImageId = "unknown"
     self.__hdcImageId = "unknown"

@@ -19,9 +19,9 @@ class OcciImage:
   Authentication is provided by an occi user/password attributes
   """
   def __init__( self, bootImageName):
-    self.log = gLogger.getSubLogger( "OII (boot,hdc): (%s,%s) " % ( bootImageName, hdcImageName ) )
     self.__bootImageName = bootImageName
     self.__hdcImageName = self.__getCSImageOption( "hdcImageName" )
+    self.log = gLogger.getSubLogger( "OII (boot,hdc): (%s,%s) " % ( bootImageName, self.__hdcImageName ) )
 # __instances list not used now 
     self.__instances = []
     self.__errorStatus = ""

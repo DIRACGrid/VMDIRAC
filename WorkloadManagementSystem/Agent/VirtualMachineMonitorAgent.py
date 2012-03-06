@@ -28,7 +28,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
 
   def getOcciVMId( self ):
     try:
-      fd = open('/tmp/VMID','r')
+      fd = open(os.path.join(rootPath,'etc','VMID'),'r')
       id = fd.read().strip()
       fd.close()
       return S_OK( id )

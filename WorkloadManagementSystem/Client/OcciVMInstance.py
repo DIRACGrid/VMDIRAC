@@ -30,7 +30,7 @@ class OcciVMInstance:
 
     request = self.__cliocci.get_image_ids_of_instance( self.__instanceId )
    
-    if request.returncode != 0
+    if request.returncode != 0:
       self.__errorStatus = "Cannot find instance %s" % self.__instanceId
       self.log.error( self.__errorStatus )
       return
@@ -48,7 +48,7 @@ class OcciVMInstance:
 
   def getState( self ):
     request = self.__cliocci.get_status_VMinstance( self.__instanceId )
-    if request.returncode != 0
+    if request.returncode != 0:
       self.__errorStatus = "Cannot get state of instance %s/n%s" % (self.__instanceId, request.stdout)
       self.log.error( self.__errorStatus )
       return S_ERROR( self.__errorStatus)

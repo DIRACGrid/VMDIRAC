@@ -62,18 +62,20 @@ class OcciImage:
       self.log.info( "Available OCCI server  %s" % self.__occiURI )
 
     #Get the boot Occi Image Id (OII) from URI server
-    self.__bootOII = self.__cliocci.get_image_id( self.__bootImageName )
+    request = self.__cliocci.get_image_id( self.__bootImageName )
     if request.returncode != 0:
       self.__errorStatus = "Can't get the boot image id for %s from server %s/n%s" % (self.__bootImageName, self.__occiURI, request.stdout)
       self.log.error( self.__errorStatus )
       return
+    self.__bootOII = request.stdout
 
     #Get the hdc Occi Image Id (OII) from URI server
-    self.__hdcOII = self.__cliocci.get_image_id( self.__hdcImageName )
+    request = self.__cliocci.get_image_id( self.__hdcImageName )
     if request.returncode != 0:
       self.__errorStatus = "Can't get the contextual image id for %s from server %s/n%s" % (self.__hdcImageName, self.__occiURI, request.stdout)
       self.log.error( self.__errorStatus )
       return
+    self.__hdcOII = request.stdout
 
     # dns1
     self.__DNS1 = self.__getCSImageOption( "DNS1" )

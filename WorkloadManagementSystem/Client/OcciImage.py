@@ -78,21 +78,21 @@ class OcciImage:
     # dns1
     self.__occiDNS1 = self.__getCSImageOption( "DNS1" )
     if not self.__DNS1:
-      self.__errorStatus = "Can't find DNS1 in Flavor %s" % self.__Flavor
+      self.__errorStatus = "Can't find DNS1 options in CS %s" % self.__bootImageName
       self.log.error( self.__errorStatus )
       return
 
     # dns2
     self.__occiDNS2 = self.__getCSImageOption( "DNS2" )
     if not self.__DNS2:
-      self.__errorStatus = "Can't find DNS2 in Flavor %s" % self.__Flavor
+      self.__errorStatus = "Can't find DNS2 option in CS %s" % self.__bootImageName
       self.log.error( self.__errorStatus )
       return
 
     # domain
     self.__occiDomain = self.__getCSImageOption( "Domain" )
     if not self.__Domain:
-      self.__errorStatus = "Can't find Domain in Flavor %s" % self.__Flavor
+      self.__errorStatus = "Can't find Domain option in CS %s" % self.__bootImageName
       self.log.error( self.__errorStatus )
       return
 
@@ -104,7 +104,7 @@ class OcciImage:
     # Network id
     self.__occiNetId = self.__getCSImageOption( "NetId" )
     if not self.__NetId:
-      self.__errorStatus = "Can't find NetId in Flavor %s" % self.__Flavor
+      self.__errorStatus = "Can't find NetId option in CS %s" % self.__bootImageName
       self.log.error( self.__errorStatus )
       return
 

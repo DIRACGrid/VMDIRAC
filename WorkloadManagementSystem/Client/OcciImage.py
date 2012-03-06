@@ -90,19 +90,19 @@ class OcciImage:
       return
 
     # domain
-    self.__occiDomain = self.__getCSImageOption( "Domain" )
+    self.__Domain = self.__getCSImageOption( "Domain" )
     if not self.__Domain:
       self.__errorStatus = "Can't find Domain option in CS %s" % self.__bootImageName
       self.log.error( self.__errorStatus )
       return
 
     # URL context files:
-    self.__occiURLcontextfiles = self.__getCSImageOption( "URLcontextfiles" )
+    self.__URLcontextfiles = self.__getCSImageOption( "URLcontextfiles" )
     if not self.__URLcontextfiles:
-    	self.__occiURLcontextfiles = "http://lhcweb.pic.es/vmendez/context/root.pub http://lhcweb.pic.es/vmendez/context/e2fsprogs-1.41.14.tar.gz http://lhcweb.pic.es/vmendez/context/expat-2.0.1.tar.gz http://lhcweb.pic.es/vmendez/context/gettext-0.18.1.1.tar.gz http://lhcweb.pic.es/vmendez/context/git-1.7.7.2.tar.gz"
+    	self.__URLcontextfiles = "http://lhcweb.pic.es/vmendez/context/root.pub http://lhcweb.pic.es/vmendez/context/e2fsprogs-1.41.14.tar.gz http://lhcweb.pic.es/vmendez/context/expat-2.0.1.tar.gz http://lhcweb.pic.es/vmendez/context/gettext-0.18.1.1.tar.gz http://lhcweb.pic.es/vmendez/context/git-1.7.7.2.tar.gz"
 
     # Network id
-    self.__occiNetId = self.__getCSImageOption( "NetId" )
+    self.__NetId = self.__getCSImageOption( "NetId" )
     if not self.__NetId:
       self.__errorStatus = "Can't find NetId option in CS %s" % self.__bootImageName
       self.log.error( self.__errorStatus )
@@ -130,7 +130,7 @@ class OcciImage:
     if self.__errorStatus:
       return S_ERROR( self.__errorStatus )
     self.log.info( "Starting new instance for image (boot,hdc): %s" % ( self.__bootImageName, self.__hdcImageName ) )
-    request = self.__cliocci.create_VMInstance( self.__bootImageName, self.__hdcImageName, instanceType, self.__bootOII, self.__hdcOII, self.__DNS1, self.__DNS2, self.__Domain, self.__occiURLcontextfiles, self.__occiNetId)
+    request = self.__cliocci.create_VMInstance( self.__bootImageName, self.__hdcImageName, instanceType, self.__bootOII, self.__hdcOII, self.__DNS1, self.__DNS2, self.__Domain, self.__URLcontextfiles, self.__NetId)
     if request.returncode != 0:
       self.__errorStatus = "Can't create instance for boot image (boot,hdc): %s at server %s/n%s" % (self.__bootImageName, self.__hdcImageName, self.__occiURI, request.stdout)
       self.log.error( self.__errorStatus )

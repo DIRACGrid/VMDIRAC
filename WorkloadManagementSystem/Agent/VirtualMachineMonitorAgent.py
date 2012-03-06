@@ -142,7 +142,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
     elif flavor == 'occi':
       result = self.getOcciVMId()
     else:
-      return S_ERROR( "Unknown VM Flavor (%s)" % self.vmFlavor )
+      return S_ERROR( "Unknown VM Flavor (%s)" % self.flavor )
     if not result[ 'OK' ]:
       return S_ERROR( "Could not generate VM id: %s" % result[ 'Message' ] )
     self.vmId = result[ 'Value' ]

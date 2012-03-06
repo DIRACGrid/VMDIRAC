@@ -32,7 +32,7 @@ class OcciImage:
       self.log.error( self.__errorStatus )
       return
     #Get OCCI server URI
-    self.__occiURI = self.__getCSImageOption( "occiURI", 0.0 )
+    self.__occiURI = self.__getCSImageOption( "occiURI" )
     if not self.__occiURI:
       self.__errorStatus = "Can't find the server occiURI for image %s" % self.__bootImageName
       self.log.error( self.__errorStatus )

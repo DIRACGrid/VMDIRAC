@@ -76,14 +76,14 @@ class OcciImage:
       return
 
     # dns1
-    self.__occiDNS1 = self.__getCSImageOption( "DNS1" )
+    self.__DNS1 = self.__getCSImageOption( "DNS1" )
     if not self.__DNS1:
       self.__errorStatus = "Can't find DNS1 options in CS %s" % self.__bootImageName
       self.log.error( self.__errorStatus )
       return
 
     # dns2
-    self.__occiDNS2 = self.__getCSImageOption( "DNS2" )
+    self.__DNS2 = self.__getCSImageOption( "DNS2" )
     if not self.__DNS2:
       self.__errorStatus = "Can't find DNS2 option in CS %s" % self.__bootImageName
       self.log.error( self.__errorStatus )
@@ -130,7 +130,7 @@ class OcciImage:
     if self.__errorStatus:
       return S_ERROR( self.__errorStatus )
     self.log.info( "Starting new instance for image (boot,hdc): %s" % ( self.__bootImageName, self.__hdcImageName ) )
-    request = self.__cliocci.create_VMInstance( self.__bootImageName, self.__hdcImageName, instanceType, self.__bootOII, self.__hdcOII, self.__occiDNS1, self.__occiDNS2, self.__Domain, self.__occiURLcontextfiles, self.__occiNetId)
+    request = self.__cliocci.create_VMInstance( self.__bootImageName, self.__hdcImageName, instanceType, self.__bootOII, self.__hdcOII, self.__DNS1, self.__DNS2, self.__Domain, self.__occiURLcontextfiles, self.__occiNetId)
     if request.returncode != 0:
       self.__errorStatus = "Can't create instance for boot image (boot,hdc): %s at server %s/n%s" % (self.__bootImageName, self.__hdcImageName, self.__occiURI, request.stdout)
       self.log.error( self.__errorStatus )

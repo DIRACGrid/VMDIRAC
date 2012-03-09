@@ -28,7 +28,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
 
   def getOcciVMId( self ):
     try:
-      fd = open(os.path.join(rootPath,'etc','VMID'),'r')
+      fd = open(os.path.join('/etc','VMID'),'r')
       id = fd.read().strip()
       fd.close()
       return S_OK( id )
@@ -133,7 +133,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
     self.am_setOption( "MaxCycles", 0 )
     self.am_setOption( "PollingTime", 60 )
     #Discover id based on flavor
-    flavor = gConfig.getValue( "/LocalSite/VirtualMachineIDFlavor", "" ).lower()
+    flavor = gConfig.getValue( "/LocalSite/Flavor", "" ).lower()
     gLogger.info( "ID flavor is %s" % flavor )
     if flavor == 'generic':
       result = self.getGenericVMId()
@@ -142,7 +142,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
     elif flavor == 'occi':
       result = self.getOcciVMId()
     else:
-      return S_ERROR( "Unknown VM Flavor (%s)" % self.flavor )
+      return S_ERROR( "Unknown VM Flavor (%s)" % flavor )
     if not result[ 'OK' ]:
       return S_ERROR( "Could not generate VM id: %s" % result[ 'Message' ] )
     self.vmId = result[ 'Value' ]

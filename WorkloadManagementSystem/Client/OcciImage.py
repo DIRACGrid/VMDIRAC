@@ -145,7 +145,7 @@ class OcciImage:
   """
   def stopInstance( self, VMinstanceId ):
 
-    request = self.__clientocci.terminate_VMinstance( VMinstanceId )
+    request = self.__cliocci.terminate_VMinstance( VMinstanceId )
     if request.returncode != 0:
       self.__errorStatus = "Can't delete VM instance ide %s from server %s/n%s" % (VMinstanceId, self.__occiURI, request.stdout)
       self.log.error( self.__errorStatus )
@@ -159,7 +159,7 @@ class OcciImage:
   """
   def getAllInstances( self ):
     instances = []
-    request = self.__clientocci.get_all_VMinstances( self.__bootImageName )
+    request = self.__cliocci.get_all_VMinstances( self.__bootImageName )
     if request.returncode != 0:
       self.__errorStatus = "Error while get all instances of %s from server %s/n%s" % (self.__bootImage, self.__occiURI, request.stdout)
       self.log.error( self.__errorStatus )
@@ -174,7 +174,7 @@ class OcciImage:
   """
   def getAllRunningInstances( self ):
     instances = []
-    request = self.__clientocci.get_running_VMinstances( self.__bootImageName )
+    request = self.__cliocci.get_running_VMinstances( self.__bootImageName )
     if request.returncode != 0:
       self.__errorStatus = "Error while get the running instances of %s from server %s/n%s" % (self.__bootImage, self.__occiURI, request.stdout)
       self.log.error( self.__errorStatus )

@@ -332,18 +332,17 @@ class VirtualMachineDB( DB ):
     imgData = result[ 'Value' ]
     return DIRAC.S_OK( { 'Image' : imgData, 'Instance' : instData } )
 
-  def stopInstance( self, uniqueID ):
+  def stopInstance( self, vmId ):
     """
     After halted an occi VM should be stop using the occi interface to the occi server
-    uniqueId is here the VMID
     """
-    imageName = self.__getImageNameFromInstance( uniqueID )
+    imageName = self.__getImageNameFromInstance( vmId )
     if not imageName['OK']:
       return imageName
     imageName = imageName['Value']
 
     oima = OcciImage( imageName )
-    result = oima.stopInstance( uniqueID )
+    result = oima.stopInstance( vmId )
     if not result[ 'OK' ]:
       return result
 

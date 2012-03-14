@@ -283,8 +283,25 @@ class VirtualMachineMonitorAgent( AgentModule ):
       gLogger.error( "Could not send halting state", result[ 'Message' ] )
       if i < retries - 1 :
         gLogger.info( "Sleeping for %d seconds and retrying" % sleepTime )
-        time.sleep( 60 )
+        time.sleep( sleepTime )
 
     #HALT
+    # on flavor == occi will stopInstance from occi interface:
+    flavor = gConfig.getValue( "/LocalSite/Flavor", "" ).lower()
+    gLogger.info( "Going to stopInstance for ID flavor is %s" % flavor )
+    if flavor == 'occi':
+    retries = 3
+    sleepTime = 10
+    for i in range( retries ):
+      result = virtualMachineDB.stopInstance( self.vmId )
+      if result[ 'OK' ]:
+        gLogger.info( "stopInstance was launch by virtualMachineDB" )
+        break
+      gLogger.error( "Could not stopInstance", result[ 'Message' ] )
+      if i < retries - 1 :
+        gLogger.info( "Sleeping for %d seconds and retrying" % sleepTime )
+        time.sleep( sleepTime )
+      
+    # all flavors:
     gLogger.info( "Executing system halt..." )
     os.system( "halt" )

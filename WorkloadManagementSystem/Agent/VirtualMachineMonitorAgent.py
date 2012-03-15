@@ -286,18 +286,18 @@ class VirtualMachineMonitorAgent( AgentModule ):
         time.sleep( sleepTime )
 
     #HALT
-    # on flavor == occi will stopInstance from occi interface:
+    # on flavor == occi will stopHaltedInstance from occi interface:
     flavor = gConfig.getValue( "/LocalSite/Flavor", "" ).lower()
-    gLogger.info( "Going to stopInstance for ID flavor is %s" % flavor )
+    gLogger.info( "Going to stopHaltedInstance for ID flavor is %s" % flavor )
     if flavor == 'occi':
       retries = 3
       sleepTime = 10
       for i in range( retries ):
-        result = virtualMachineDB.stopInstance( self.vmId )
+        result = virtualMachineDB.stopHaltedInstance( self.vmId )
         if result[ 'OK' ]:
-          gLogger.info( "stopInstance was launch by virtualMachineDB" )
+          gLogger.info( "stopHaltedInstance was launch by virtualMachineDB" )
           break
-        gLogger.error( "Could not stopInstance", result[ 'Message' ] )
+        gLogger.error( "Could not stopHaltedInstance", result[ 'Message' ] )
         if i < retries - 1 :
           gLogger.info( "Sleeping for %d seconds and retrying" % sleepTime )
           time.sleep( sleepTime )

@@ -12,6 +12,7 @@
     - instanceIDHeartBeat
     - declareInstanceHalting
     - getInstancesByStatus
+    - stopInstance
 
 """
 
@@ -114,6 +115,14 @@ class VirtualMachineManagerHandler( RequestHandler ):
     It returns S_ERROR if the status is not OK
     """
     return gVirtualMachineDB.declareInstanceHalting( uniqueID, load )
+
+  ###########################################################################
+  types_stopHaltedInstance = [ IntType ]
+  def export_stopHaltedInstance( self, vmId ):
+    """
+    Occi instances need after halting to be stoped with the occi interface
+    """
+    return gVirtualMachineDB.stopHaltedInstance( vmId )
 
   ###########################################################################
   types_getInstancesByStatus = [ StringType ]

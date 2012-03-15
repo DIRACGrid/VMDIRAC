@@ -12,7 +12,7 @@
     - instanceIDHeartBeat
     - declareInstanceHalting
     - getInstancesByStatus
-    - stopInstance
+    - stopHaltedInstance
 
 """
 
@@ -117,7 +117,7 @@ class VirtualMachineManagerHandler( RequestHandler ):
     return gVirtualMachineDB.declareInstanceHalting( uniqueID, load )
 
   ###########################################################################
-  types_stopHaltedInstance = [ IntType ]
+  types_stopHaltedInstance = [ StringType ]
   def export_stopHaltedInstance( self, vmId ):
     """
     Occi instances need after halting to be stoped with the occi interface

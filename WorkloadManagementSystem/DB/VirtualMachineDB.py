@@ -546,12 +546,12 @@ class VirtualMachineDB( DB ):
     Using _getFields( self, tableName, outFields = None, inFields = None, inValues = None, limit = 0, conn = None )
     """
     ( tableName, validStates, idName ) = self.__getTypeTuple( 'Instance' )
-    imageName = self._getFields( tableName, 'Name', [ 'UniqueID' ], [ uniqueID ] )
+    imageName = self._getFields( tableName, 'Name', [ 'UniqueID' ], [ vmId ] )
     if not imageName['OK']:
       return imageName
 
     if not imageName['Value']:
-      return DIRAC.S_ERROR( 'Unknown %s = %s' % ( 'UniqueID', uniqueID ) )
+      return DIRAC.S_ERROR( 'Unknown %s = %s' % ( 'UniqueID', vmId ) )
 
     return DIRAC.S_OK( imageName['Value'][0][0] )
 

@@ -546,7 +546,7 @@ class VirtualMachineDB( DB ):
     Using _getFields( self, tableName, outFields = None, inFields = None, inValues = None, limit = 0, conn = None )
     """
     ( tableName, validStates, idName ) = self.__getTypeTuple( 'Instance' )
-    imageName = self._getFields( tableName, 'Name', [ 'UniqueID' ], [ vmId ] )
+    imageName = self._getFields( tableName, [ 'Name' ], [ 'UniqueID' ], [ vmId ] )
     if not imageName['OK']:
       return imageName
 

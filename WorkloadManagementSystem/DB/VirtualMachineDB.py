@@ -30,7 +30,7 @@ __RCSID__ = "$Id: VirtualMachineDB.py 16 2010-03-15 11:39:29Z ricardo.graciani@g
 
 import types
 from DIRAC.Core.Base.DB import DB
-from VMDIRAC.WorkloadManagementSystem.Client.OcciClient import OcciClient
+from VMDIRAC.WorkloadManagementSystem.Client.OcciImage import OcciImage
 import DIRAC
 
 class VirtualMachineDB( DB ):
@@ -347,7 +347,7 @@ class VirtualMachineDB( DB ):
       return result
 
     idInstance = result['Value']
-    return S_OK( idInstance )
+    return DIRAC.S_OK( idInstance )
 
 
   def __insertInstance( self, imageName, instanceName ):

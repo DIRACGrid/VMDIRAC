@@ -80,9 +80,14 @@ class VirtualMachineMonitorAgent( AgentModule ):
       setattr( self, varName, value )
     #Variables coming from the flavor
     flavorPath = "/Resources/VirtualMachines/Flavors/%s" % self.vmFlavor
-    for csOption, csDefault, varName in ( ( "HaltPeriod", 3600, "haltPeriod" ),
+    #for csOption, csDefault, varName in ( ( "HaltPeriod", 3600, "haltPeriod" ),
+    #                                      ( "HaltBeforeMargin", 300, "haltBeforeMargin" ),
+    #                                      ( "HeartBeatPeriod", 900, "heartBeatPeriod" ),
+    #                                    ):
+    # temporal patch for occi until CS Flavor implemented:
+    for csOption, csDefault, varName in ( ( "HaltPeriod", 300, "haltPeriod" ),
                                           ( "HaltBeforeMargin", 300, "haltBeforeMargin" ),
-                                          ( "HeartBeatPeriod", 900, "heartBeatPeriod" ),
+                                          ( "HeartBeatPeriod", 300, "heartBeatPeriod" ),
                                         ):
 
       path = "%s/%s" % ( flavorPath, csOption )

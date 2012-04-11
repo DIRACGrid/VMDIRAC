@@ -134,7 +134,7 @@ class OcciImage:
     self.log.info( "Starting new instance for image (boot,hdc): %s,%s" % ( self.__bootImageName, self.__hdcImageName ) )
     request = self.__cliocci.create_VMInstance( self.__bootImageName, self.__hdcImageName, instanceType, self.__bootOII, self.__hdcOII, self.__DNS1, self.__DNS2, self.__Domain, self.__URLcontextfiles, self.__NetId)
     if request.returncode != 0:
-      self.__errorStatus = "Can't create instance for boot image (boot,hdc): %s at server %s/n%s" % (self.__bootImageName, self.__hdcImageName, self.__occiURI, request.stdout)
+      self.__errorStatus = "Can't create instance for boot image (boot,hdc): %s/%s at server %s\n%s" % (self.__bootImageName, self.__hdcImageName, self.__occiURI, request.stdout)
       self.log.error( self.__errorStatus )
       return S_ERROR( self.__errorStatus )
 

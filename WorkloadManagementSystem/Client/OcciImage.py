@@ -54,7 +54,7 @@ class OcciImage:
     self.__cliocci = OcciClient(self.__occiURI, self.__occiUser, self.__occiPasswd)
     request = self.__cliocci.check_connection()
     if request.returncode != 0:
-      self.__errorStatus = "Can't connect to OCCI server %s/n%s" % (self.__occiURI, request.stdout)
+      self.__errorStatus = "Can't connect to OCCI server %s\n%s" % (self.__occiURI, request.stdout)
       self.log.error( self.__errorStatus )
       return
 
@@ -64,7 +64,7 @@ class OcciImage:
     #Get the boot Occi Image Id (OII) from URI server
     request = self.__cliocci.get_image_id( self.__bootImageName )
     if request.returncode != 0:
-      self.__errorStatus = "Can't get the boot image id for %s from server %s/n%s" % (self.__bootImageName, self.__occiURI, request.stdout)
+      self.__errorStatus = "Can't get the boot image id for %s from server %s\n%s" % (self.__bootImageName, self.__occiURI, request.stdout)
       self.log.error( self.__errorStatus )
       return
     self.__bootOII = request.stdout
@@ -72,7 +72,7 @@ class OcciImage:
     #Get the hdc Occi Image Id (OII) from URI server
     request = self.__cliocci.get_image_id( self.__hdcImageName )
     if request.returncode != 0:
-      self.__errorStatus = "Can't get the contextual image id for %s from server %s/n%s" % (self.__hdcImageName, self.__occiURI, request.stdout)
+      self.__errorStatus = "Can't get the contextual image id for %s from server %s\n%s" % (self.__hdcImageName, self.__occiURI, request.stdout)
       self.log.error( self.__errorStatus )
       return
     self.__hdcOII = request.stdout
@@ -147,7 +147,7 @@ class OcciImage:
 
     request = self.__cliocci.terminate_VMinstance( VMinstanceId )
     if request.returncode != 0:
-      self.__errorStatus = "Can't delete VM instance ide %s from server %s/n%s" % (VMinstanceId, self.__occiURI, request.stdout)
+      self.__errorStatus = "Can't delete VM instance ide %s from server %s\n%s" % (VMinstanceId, self.__occiURI, request.stdout)
       self.log.error( self.__errorStatus )
       return S_ERROR( self.__errorStatus )
 
@@ -161,7 +161,7 @@ class OcciImage:
     instances = []
     request = self.__cliocci.get_all_VMinstances( self.__bootImageName )
     if request.returncode != 0:
-      self.__errorStatus = "Error while get all instances of %s from server %s/n%s" % (self.__bootImage, self.__occiURI, request.stdout)
+      self.__errorStatus = "Error while get all instances of %s from server %s\n%s" % (self.__bootImage, self.__occiURI, request.stdout)
       self.log.error( self.__errorStatus )
       return S_ERROR( self.__errorStatus )
 
@@ -176,7 +176,7 @@ class OcciImage:
     instances = []
     request = self.__cliocci.get_running_VMinstances( self.__bootImageName )
     if request.returncode != 0:
-      self.__errorStatus = "Error while get the running instances of %s from server %s/n%s" % (self.__bootImage, self.__occiURI, request.stdout)
+      self.__errorStatus = "Error while get the running instances of %s from server %s\n%s" % (self.__bootImage, self.__occiURI, request.stdout)
       self.log.error( self.__errorStatus )
       return S_ERROR( self.__errorStatus )
 

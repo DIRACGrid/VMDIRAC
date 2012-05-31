@@ -24,7 +24,7 @@ class OcciVMInstance:
     #Try connection
     request = check_connection(self.__occiURI, self._occiUser, self.__occiPasswd)
     if request.returncode != 0:
-      self.__errorStatus = "Can't connect to OCCI server %s/n%s" % (self.__occiURI, request.stdout)
+      self.__errorStatus = "Can't connect to OCCI server %s\n%s" % (self.__occiURI, request.stdout)
       self.log.error( self.__errorStatus )
       return
 
@@ -49,7 +49,7 @@ class OcciVMInstance:
   def getState( self ):
     request = self.__cliocci.get_status_VMinstance( self.__instanceId )
     if request.returncode != 0:
-      self.__errorStatus = "Cannot get state of instance %s/n%s" % (self.__instanceId, request.stdout)
+      self.__errorStatus = "Cannot get state of instance %s\n%s" % (self.__instanceId, request.stdout)
       self.log.error( self.__errorStatus )
       return S_ERROR( self.__errorStatus)
     return S_OK( request.stdout )
@@ -57,7 +57,7 @@ class OcciVMInstance:
   def stopInstance( self ):
     request = self.__clientocci.terminate_VMinstance( self.__instanceId )
     if request.returncode != 0:
-      self.__errorStatus = "Can't delete VM instance ide %s from server %s/n%s" % (self.__instanceId, self.__occiURI, request.stdout)
+      self.__errorStatus = "Can't delete VM instance ide %s from server %s\n%s" % (self.__instanceId, self.__occiURI, request.stdout)
       self.log.error( self.__errorStatus )
       return S_ERROR( self.__errorStatus )
 

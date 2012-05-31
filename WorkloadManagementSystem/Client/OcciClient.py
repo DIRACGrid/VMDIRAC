@@ -91,13 +91,15 @@ class OcciClient:
     """
     def get_image_id(self, imageName):
       request = Request()
-      command = 'occi-storage' + ' -U ' + self.user + ' -P ' + self.passwd + ' -R ' + self.URI + ' list | grep "\'' + imageName + '\'"'
+      command = 'occi-storage' + ' -U ' + self.user + ' -P ' + self.passwd + ' -R ' + self.URI + ' list ' 
       request.exec_no_wait(command)
-      first = request.stdout.find("/storage/") 
+      first = request.stdout.find("name='"+imageName+"'") 
       if first < 0:
         request.returncode = 1
         return request
       request.returncode = 0
+      first = request.stdout.rfind("<STORAGE ",0,first) 
+      first = request.stdout.find("/storage/",first) 
       first = first + 9
       last = request.stdout.find("'",first) 
       request.stdout = request.stdout[first:last]
@@ -169,6 +171,7 @@ class OcciClient:
       tempXML.write('</COMPUTE>\n')
       
       tempXML.close()
+      #os.system("cat %s"%tempXMLname)
 
       # debuggin library
       # tempXML = open(tempXMLname, 'r') 
@@ -179,7 +182,7 @@ class OcciClient:
       request = Request()
       command = 'occi-compute' + ' -U ' + self.user + ' -P ' + self.passwd + ' -R ' + self.URI + ' create ' + tempXMLname
       request.exec_no_wait(command)
-      os.remove(tempXMLname)
+      #os.remove(tempXMLname)
       first = request.stdout.find("<ID>") 
       if first < 0:
         request.returncode = 1
@@ -211,25 +214,18 @@ class OcciClient:
     def get_all_VMinstances( self, bootImageName ):
       request = Request()
       pattern = "name=\\'" + bootImageName + "+"
-      command = 'occi-compute' + ' -U ' + self.user + ' -P ' + self.passwd + ' -R ' + self.URI + ' list | grep ' + pattern
+      command = 'occi-compute' + ' -U ' + self.user + ' -P ' + self.passwd + ' -R ' + self.URI + ' list '
       request.exec_no_wait(command)
-      if not request.stdout:
-        request.returncode = 0
-        return request
-      auxstart = 0
-      first = 0
-      auxstart = request.stdout.find("/compute/",first) 
-      if auxstart < 0:
-        request.returncode = 1
-        return request
-      auxstart = 0
+
+      auxstart = request.stdout.find(pattern) 
       while auxstart >= 0:
-        auxstart = request.stdout.find("/compute/",first) 
-        first = auxstart + 9
+        first = request.stdout.rfind("<COMPUTE ",0,auxstart) 
+        first = request.stdout.find("/compute/",first) 
+        first = first + 9
         last = request.stdout.find("'",first) 
-        if auxstart >= 0:
-          request.rlist.append( request.stdout[first:last])
-        first = last
+        request.rlist.append( request.stdout[first:last])
+	auxstart = auxstart + len(pattern)
+        auxstart = request.stdout.find(pattern,auxstart) 
 
       if request.rlist == []:
         request.returncode = 1
@@ -244,30 +240,26 @@ class OcciClient:
       request = Request()
       auxreq = Request()
       pattern = "name=\\'" + bootImageName + "+"
-      command = 'occi-compute' + ' -U ' + self.user + ' -P ' + self.passwd + ' -R ' + self.URI + ' list | grep ' + pattern
+      command = 'occi-compute' + ' -U ' + self.user + ' -P ' + self.passwd + ' -R ' + self.URI + ' list '
       request.exec_no_wait(command)
-      if not request.stdout:
-        request.returncode = 0
-        return request
-      auxstart = 0
-      first = 0
-      auxstart = request.stdout.find("/compute/",first) 
-      if auxstart < 0:
-        request.returncode = 1
-        return request
-      auxstart = 0
+      
+      auxstart = request.stdout.find(pattern) 
       while auxstart >= 0:
-        auxstart = request.stdout.find("/compute/",first) 
-        first = auxstart + 9
+        first = request.stdout.rfind("<COMPUTE ",0,auxstart) 
+        first = request.stdout.find("/compute/",first) 
+        first = first + 9
         last = request.stdout.find("'",first) 
-        if auxstart >= 0:
-          VMinstanceId = request.stdout[first:last]
-          auxreq = self.get_status_VMinstance( VMinstanceId )
-          if auxreq.stdout == "ACTIVE":
-            request.rlist.append( VMinstanceId )
-        first = last
+        VMinstanceId = request.stdout[first:last]
+        auxreq = self.get_status_VMinstance( VMinstanceId )
+        if auxreq.stdout == "ACTIVE":
+          request.rlist.append( VMinstanceId )
+	auxstart = auxstart + len(pattern)
+        auxstart = request.stdout.find(pattern,auxstart) 
 
-      request.returncode = 0
+      if request.rlist == []:
+        request.returncode = 1
+      else:
+        request.returncode = 0
       return request
 
     """

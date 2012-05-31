@@ -67,9 +67,15 @@ class VirtualMachineMonitorAgent( AgentModule ):
       return S_ERROR( "/LocalSite/VirtualMachineName is not defined" )
     #Variables coming from the vm 
     imgPath = "/Resources/VirtualMachines/Images/%s" % self.vmName
+    #for csOption, csDefault, varName in ( ( "Flavor", "", "vmFlavor" ),
+    #                                      ( "MinWorkingLoad", 0.01, "vmMinWorkingLoad" ),
+    #                                      ( "LoadAverageTimespan", 900, "vmLoadAvgTimespan" ),
+    #                                      ( "JobWrappersLocation", "/opt/dirac/pro/job/Wrapper/", "vmJobWrappersLocation" )
+    #                                    ):
+    # temporal patch for occi until CS Flavor implemented:
     for csOption, csDefault, varName in ( ( "Flavor", "", "vmFlavor" ),
                                           ( "MinWorkingLoad", 0.01, "vmMinWorkingLoad" ),
-                                          ( "LoadAverageTimespan", 900, "vmLoadAvgTimespan" ),
+                                          ( "LoadAverageTimespan", 60, "vmLoadAvgTimespan" ),
                                           ( "JobWrappersLocation", "/opt/dirac/pro/job/Wrapper/", "vmJobWrappersLocation" )
                                         ):
 

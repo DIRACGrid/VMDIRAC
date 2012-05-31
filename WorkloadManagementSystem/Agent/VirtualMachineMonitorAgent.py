@@ -91,9 +91,9 @@ class VirtualMachineMonitorAgent( AgentModule ):
     #                                      ( "HeartBeatPeriod", 900, "heartBeatPeriod" ),
     #                                    ):
     # temporal patch for occi until CS Flavor implemented:
-    for csOption, csDefault, varName in ( ( "HaltPeriod", 300, "haltPeriod" ),
+    for csOption, csDefault, varName in ( ( "HaltPeriod", 1200, "haltPeriod" ),
                                           ( "HaltBeforeMargin", 300, "haltBeforeMargin" ),
-                                          ( "HeartBeatPeriod", 300, "heartBeatPeriod" ),
+                                          ( "HeartBeatPeriod", 600, "heartBeatPeriod" ),
                                         ):
 
       path = "%s/%s" % ( flavorPath, csOption )

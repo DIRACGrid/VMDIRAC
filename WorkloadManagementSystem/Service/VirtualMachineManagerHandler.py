@@ -12,7 +12,6 @@
     - instanceIDHeartBeat
     - declareInstanceHalting
     - getInstancesByStatus
-    - stopHaltedInstance
 
 """
 
@@ -115,10 +114,9 @@ class VirtualMachineManagerHandler( RequestHandler ):
     Declares "Halted" the instance and the image 
     It returns S_ERROR if the status is not OK
     """
+    result = gvirtualMachineDB.declareInstanceHalting( uniqueID, load)
     if not flavor == 'occi':
-      return gVirtualMachineDB.declareInstanceHalting( uniqueID, load )
-
-    result = virtualMachineDB.declareInstanceHalting( uniqueID, load)
+      return result
     if not result[ 'OK' ]:
       return result
 

@@ -2,6 +2,7 @@
 # $HeadURL$
 # File :   VirtualMachineDB.py
 # Author : Ricardo Graciani
+# occi author : Victor Mendez
 ########################################################################
 """ VirtualMachineDB class is a front-end to the virtual machines DB
 
@@ -20,7 +21,7 @@
 
   New Instances can be launched by Director if VMImage is not in Error Status.
 
-  Instance UniqueID: depends on Flavor, for KVM it could be the MAC, for Amazon the returned InstanceID(i-5dec3236)
+  Instance UniqueID: depends on Flavor, for KVM it could be the MAC, for Amazon the returned InstanceID(i-5dec3236), for Occi returned the VMID
 
 
 """
@@ -94,6 +95,22 @@ class VirtualMachineDB( DB ):
                                             },
                                  'Indexes': { 'VMInstanceID': [ 'VMInstanceID' ] },
                                }
+
+
+  def getImageNameFromInstance( self, vmId ):
+    """
+    For a given vmId it returns the asociated Name in the instance table, thus the ImageName of such instance 
+    Using _getFields( self, tableName, outFields = None, inFields = None, inValues = None, limit = 0, conn = None )
+    """
+    ( tableName, validStates, idName ) = self.__getTypeTuple( 'Instance' )
+    imageName = self._getFields( tableName, [ 'Name' ], [ 'UniqueID' ], [ vmId ] )
+    if not imageName['OK']:
+      return imageName
+
+    if not imageName['Value']:
+      return DIRAC.S_ERROR( 'Unknown %s = %s' % ( 'UniqueID', vmId ) )
+
+    return DIRAC.S_OK( imageName['Value'][0][0] )
 
 
   def __init__( self, maxQueueSize = 10 ):
@@ -329,7 +346,6 @@ class VirtualMachineDB( DB ):
       return result
     imgData = result[ 'Value' ]
     return DIRAC.S_OK( { 'Image' : imgData, 'Instance' : instData } )
-
 
   def __insertInstance( self, imageName, instanceName ):
     """

@@ -21,6 +21,7 @@ from DIRAC.Core.DISET.RequestHandler import RequestHandler
 from DIRAC import S_OK, S_ERROR
 from DIRAC.Core.Utilities.ThreadScheduler              import gThreadScheduler
 from VMDIRAC.WorkloadManagementSystem.DB.VirtualMachineDB               import VirtualMachineDB
+from VMDIRAC.WorkloadManagementSystem.Client.OcciImage import OcciImage
 
 from types import *
 
@@ -106,14 +107,30 @@ class VirtualMachineManagerHandler( RequestHandler ):
                                                   transferredFiles, transferredBytes, uptime )
 
   ###########################################################################
-  types_declareInstanceHalting = [ StringType, FloatType ]
+  types_declareInstanceHalting = [ StringType, FloatType, StringType ]
   def export_declareInstanceHalting( self, uniqueID, load ):
     """
     Insert the heart beat info from a halting instance
     Declares "Halted" the instance and the image 
     It returns S_ERROR if the status is not OK
     """
-    return gVirtualMachineDB.declareInstanceHalting( uniqueID, load )
+    result = gvirtualMachineDB.declareInstanceHalting( uniqueID, load)
+    if not flavor == 'occi':
+      return result
+    if not result[ 'OK' ]:
+      return result
+
+    result = gVirtualMachineDB.getImageNameFromInstance( vmId )
+    if not result[ 'OK' ]:
+      return result
+    imageName = result[ 'Value' ]
+    oima = OcciImage( imageName )
+    result = oima.stopInstance( vmId )
+    if not result[ 'OK' ]:
+      return result
+
+    idInstance = result['Value']
+    return DIRAC.S_OK( idInstance )
 
   ###########################################################################
   types_getInstancesByStatus = [ StringType ]

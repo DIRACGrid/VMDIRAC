@@ -108,21 +108,20 @@ class VirtualMachineManagerHandler( RequestHandler ):
                                                   transferredFiles, transferredBytes, uptime )
 
   ###########################################################################
-  types_declareInstanceHalting = [ StringType, FloatType ]
+  types_declareInstanceHalting = [ StringType, FloatType, StringType ]
   def export_declareInstanceHalting( self, uniqueID, load ):
     """
     Insert the heart beat info from a halting instance
     Declares "Halted" the instance and the image 
     It returns S_ERROR if the status is not OK
     """
-    return gVirtualMachineDB.declareInstanceHalting( uniqueID, load )
+    if not flavor == 'occi':
+      return gVirtualMachineDB.declareInstanceHalting( uniqueID, load )
 
-  ###########################################################################
-  types_stopHaltedInstance = [ StringType, StringType ]
-  def export_stopHaltedInstance( self, vmId, vmName ):
-    """
-    Occi instances need after halting to be stoped with the occi interface
-    """
+    result = virtualMachineDB.declareInstanceHalting( uniqueID, load)
+    if not result[ 'OK' ]:
+      return result
+
     result = gVirtualMachineDB.getImageNameFromInstance( vmId )
     if not result[ 'OK' ]:
       return result

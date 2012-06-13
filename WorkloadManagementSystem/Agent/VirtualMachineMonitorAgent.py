@@ -306,7 +306,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
       for i in range( retries ):
         result = virtualMachineDB.stopHaltedInstance( self.vmId )
         if result[ 'OK' ]:
-          gLogger.info( "stopHaltedInstance was launch by virtualMachineDB" )
+          gLogger.info( "stopHaltedInstance was launch by VirtualMachineMonitor" )
           break
         gLogger.error( "Could not stopHaltedInstance", result[ 'Message' ] )
         if i < retries - 1 :

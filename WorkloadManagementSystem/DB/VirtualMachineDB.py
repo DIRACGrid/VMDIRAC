@@ -30,7 +30,6 @@ __RCSID__ = "$Id: VirtualMachineDB.py 16 2010-03-15 11:39:29Z ricardo.graciani@g
 
 import types
 from DIRAC.Core.Base.DB import DB
-from VMDIRAC.WorkloadManagementSystem.Client.OcciImage import OcciImage
 import DIRAC
 
 class VirtualMachineDB( DB ):
@@ -96,6 +95,22 @@ class VirtualMachineDB( DB ):
                                             },
                                  'Indexes': { 'VMInstanceID': [ 'VMInstanceID' ] },
                                }
+
+
+  def getImageNameFromInstance( self, vmId ):
+    """
+    For a given vmId it returns the asociated Name in the instance table, thus the ImageName of such instance 
+    Using _getFields( self, tableName, outFields = None, inFields = None, inValues = None, limit = 0, conn = None )
+    """
+    ( tableName, validStates, idName ) = self.__getTypeTuple( 'Instance' )
+    imageName = self._getFields( tableName, [ 'Name' ], [ 'UniqueID' ], [ vmId ] )
+    if not imageName['OK']:
+      return imageName
+
+    if not imageName['Value']:
+      return DIRAC.S_ERROR( 'Unknown %s = %s' % ( 'UniqueID', vmId ) )
+
+    return DIRAC.S_OK( imageName['Value'][0][0] )
 
 
   def __init__( self, maxQueueSize = 10 ):
@@ -332,24 +347,6 @@ class VirtualMachineDB( DB ):
     imgData = result[ 'Value' ]
     return DIRAC.S_OK( { 'Image' : imgData, 'Instance' : instData } )
 
-  def stopHaltedInstance( self, vmId ):
-    """
-    After halted an occi VM should be stop using the occi interface to the occi server
-    """
-    imageName = self.__getImageNameFromInstance( vmId )
-    if not imageName['OK']:
-      return imageName
-    imageName = imageName['Value']
-
-    oima = OcciImage( imageName )
-    result = oima.stopInstance( vmId )
-    if not result[ 'OK' ]:
-      return result
-
-    idInstance = result['Value']
-    return DIRAC.S_OK( idInstance )
-
-
   def __insertInstance( self, imageName, instanceName ):
     """
     Attempts to insert a new Instance for the given Image
@@ -539,21 +536,6 @@ class VirtualMachineDB( DB ):
       return DIRAC.S_ERROR( 'Unknown %s = %s' % ( 'UniqueID', uniqueID ) )
 
     return DIRAC.S_OK( instanceID['Value'][0][0] )
-
-  def __getImageNameFromInstance( self, vmId ):
-    """
-    For a given vmId it returns the asociated Name in the instance table, thus the ImageName of such instance 
-    Using _getFields( self, tableName, outFields = None, inFields = None, inValues = None, limit = 0, conn = None )
-    """
-    ( tableName, validStates, idName ) = self.__getTypeTuple( 'Instance' )
-    imageName = self._getFields( tableName, [ 'Name' ], [ 'UniqueID' ], [ vmId ] )
-    if not imageName['OK']:
-      return imageName
-
-    if not imageName['Value']:
-      return DIRAC.S_ERROR( 'Unknown %s = %s' % ( 'UniqueID', vmId ) )
-
-    return DIRAC.S_OK( imageName['Value'][0][0] )
 
   def __getImageID( self, imageName ):
     """

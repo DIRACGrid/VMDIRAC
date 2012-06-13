@@ -22,6 +22,7 @@ from DIRAC.Core.DISET.RequestHandler import RequestHandler
 from DIRAC import S_OK, S_ERROR
 from DIRAC.Core.Utilities.ThreadScheduler              import gThreadScheduler
 from VMDIRAC.WorkloadManagementSystem.DB.VirtualMachineDB               import VirtualMachineDB
+from VMDIRAC.WorkloadManagementSystem.Client.OcciImage import OcciImage
 
 from types import *
 
@@ -117,12 +118,22 @@ class VirtualMachineManagerHandler( RequestHandler ):
     return gVirtualMachineDB.declareInstanceHalting( uniqueID, load )
 
   ###########################################################################
-  types_stopHaltedInstance = [ StringType ]
-  def export_stopHaltedInstance( self, vmId ):
+  types_stopHaltedInstance = [ StringType, StringType ]
+  def export_stopHaltedInstance( self, vmId, vmName ):
     """
     Occi instances need after halting to be stoped with the occi interface
     """
-    return gVirtualMachineDB.stopHaltedInstance( vmId )
+    result = gVirtualMachineDB.getImageNameFromInstance( vmId )
+    if not result[ 'OK' ]:
+      return result
+    imageName = result[ 'Value' ]
+    oima = OcciImage( imageName )
+    result = oima.stopInstance( vmId )
+    if not result[ 'OK' ]:
+      return result
+
+    idInstance = result['Value']
+    return DIRAC.S_OK( idInstance )
 
   ###########################################################################
   types_getInstancesByStatus = [ StringType ]

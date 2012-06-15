@@ -8,7 +8,10 @@
 import time
 from DIRAC import gLogger, gConfig, S_OK, S_ERROR
 
-from VMDIRAC.WorkloadManagementSystem.Client.OcciVMInstance import OcciVMInstance
+#VMInstance operations is from VirtualMachineDB.Instances, instead of endpoint interfaced
+# no more OcciVMInstnaces
+#from VMDIRAC.WorkloadManagementSystem.Client.OcciVMInstance import OcciVMInstance
+#occiClient dynamically below, depending on the driver
 #from VMDIRAC.WorkloadManagementSystem.Client.OcciClient import OcciClient
 
 class OcciImage:
@@ -175,33 +178,35 @@ class OcciImage:
     return S_OK( request.stdout )
 
 
-  """
-  Get all instances for this image
-  """
-  def getAllInstances( self ):
-    instances = []
-    request = self.__cliocci.get_all_VMinstances( self.__bootImageName )
-    if request.returncode != 0:
-      self.__errorStatus = "Error while get all instances of %s from server %s\n%s" % (self.__bootImage, self.__occiURI, request.stdout)
-      self.log.error( self.__errorStatus )
-      return S_ERROR( self.__errorStatus )
+#VMInstance operations is from VirtualMachineDB.Instances, instead of endpoint interfaced
+# no more OcciVMInstances
+#  """
+#  Get all instances for this image
+#  """
+#  def getAllInstances( self ):
+#    instances = []
+#    request = self.__cliocci.get_all_VMinstances( self.__bootImageName )
+#    if request.returncode != 0:
+#      self.__errorStatus = "Error while get all instances of %s from server %s\n%s" % (self.__bootImage, self.__occiURI, request.stdout)
+#      self.log.error( self.__errorStatus )
+#      return S_ERROR( self.__errorStatus )
+#
+#    for instanceId in request.rlist:
+#      instances.append( OcciVMInstance ( instanceId, self.__occiURI, self.__occiUser, self.__occiPasswd ) ) 
+#    return instances
 
-    for instanceId in request.rlist:
-      instances.append( OcciVMInstance ( instanceId, self.__occiURI, self.__occiUser, self.__occiPasswd ) ) 
-    return instances
-
-  """
-  Get all running instances for this image
-  """
-  def getAllRunningInstances( self ):
-    instances = []
-    request = self.__cliocci.get_running_VMinstances( self.__bootImageName )
-    if request.returncode != 0:
-      self.__errorStatus = "Error while get the running instances of %s from server %s\n%s" % (self.__bootImage, self.__occiURI, request.stdout)
-      self.log.error( self.__errorStatus )
-      return S_ERROR( self.__errorStatus )
-
-    for instanceId in request.rlist:
-      instances.append( OcciVMInstance ( instanceId, self.__occiURI, self.__occiUser, self.__occiPasswd ) ) 
-    return instances
-
+#  """
+#  Get all running instances for this image
+#  """
+#  def getAllRunningInstances( self ):
+#    instances = []
+#    request = self.__cliocci.get_running_VMinstances( self.__bootImageName )
+#    if request.returncode != 0:
+#      self.__errorStatus = "Error while get the running instances of %s from server %s\n%s" % (self.__bootImage, self.__occiURI, request.stdout)
+#      self.log.error( self.__errorStatus )
+#      return S_ERROR( self.__errorStatus )
+#
+#    for instanceId in request.rlist:
+#      instances.append( OcciVMInstance ( instanceId, self.__occiURI, self.__occiUser, self.__occiPasswd ) ) 
+#    return instances
+#

@@ -70,6 +70,7 @@ class VirtualMachineDB( DB ):
 
   tablesDesc[ 'vm_Instances' ] = { 'Fields' : { 'VMInstanceID' : 'BIGINT UNSIGNED AUTO_INCREMENT NOT NULL',
                                                 'Name' : 'VARCHAR(255) NOT NULL',
+                                                'endpoint' : 'VARCHAR(32) NOT NULL',
                                                 'UniqueID' : 'VARCHAR(32) NOT NULL DEFAULT ""',
                                                 'VMImageID' : 'INTEGER UNSIGNED NOT NULL',
                                                 'Status' : 'VARCHAR(32) NOT NULL',
@@ -169,7 +170,7 @@ class VirtualMachineDB( DB ):
       return ret
     return self.__getStatus( 'Image', ret['Value'] )
 
-  def insertInstance( self, imageName, instanceName, cloudEndPoint ):
+  def insertInstance( self, imageName, instanceName, endpoint ):
     """ 
     Check Status of a given image
     Will insert a new Instance in the DB
@@ -181,7 +182,7 @@ class VirtualMachineDB( DB ):
     if not imageStatus['OK']:
       return imageStatus
 
-    return self.__insertInstance( imageName, instanceName, cloudEndPoint )
+    return self.__insertInstance( imageName, instanceName, endpoint )
 
   def setInstanceUniqueID( self, instanceID, uniqueID ):
     """
@@ -376,7 +377,7 @@ class VirtualMachineDB( DB ):
     imgData = result[ 'Value' ]
     return DIRAC.S_OK( { 'Image' : imgData, 'Instance' : instData } )
 
-  def __insertInstance( self, imageName, instanceName, cloudEndpoint ):
+  def __insertInstance( self, imageName, instanceName, endpoint ):
     """
     Attempts to insert a new Instance for the given Image in a given Endpoint
     """
@@ -387,8 +388,8 @@ class VirtualMachineDB( DB ):
 
     ( tableName, validStates, idName ) = self.__getTypeTuple( 'Instance' )
 
-    fields = ['Name', 'CloudEndPoint','VMImageID', 'Status', 'LastUpdate' ]
-    values = [instanceName, cloudEndpoint, imageID, validStates[0], DIRAC.Time.toString() ]
+    fields = ['Name', 'endpoint','VMImageID', 'Status', 'LastUpdate' ]
+    values = [instanceName, endpoint, imageID, validStates[0], DIRAC.Time.toString() ]
     result = getImageDict( imageName )
     if not result[ 'OK' ]:
       return result
@@ -603,7 +604,7 @@ class VirtualMachineDB( DB ):
         return DIRAC.S_OK( imageID )
 
     ret = self._insert( tableName, ['Name', 'CloudEndpoints', 'Requirements', 'Status', 'LastUpdate'],
-                                     [imageName, flavor, requirements, validStates[0], DIRAC.Time.toString()] )
+                                     [imageName, cloudendpoint, requirements, validStates[0], DIRAC.Time.toString()] )
     if ret['OK'] and 'lastRowId' in ret:
       id = ret['lastRowId']
       ret = self._getFields( tableName, [idName], ['Name', 'CloudEndpoints', 'Requirements'],
@@ -615,7 +616,7 @@ class VirtualMachineDB( DB ):
         if result['OK']:
           image = result[ 'Value' ]
           self.log.error( 'Trying to insert Name: "%s", CloudEndpoints: "%s", Requirements: "%s"' %
-                                            ( imageName, flavor, requirements ) )
+                                            ( imageName, cloudendpoint, requirements ) )
           self.log.error( 'But inserted     Name: "%s", CloudEndpoints: "%s", Requirements: "%s"' %
                                             ( image['Name'], image['CloudEndpoints'], image['Requirements'] ) )
         return self.__setError( 'Image', id, 'Failed to insert new Image' )

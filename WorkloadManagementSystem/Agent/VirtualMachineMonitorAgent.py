@@ -67,13 +67,13 @@ class VirtualMachineMonitorAgent( AgentModule ):
       return S_ERROR( "/LocalSite/VirtualMachineName is not defined" )
     #Variables coming from the vm 
     imgPath = "/Resources/VirtualMachines/Images/%s" % self.vmName
-    #for csOption, csDefault, varName in ( ( "Flavor", "", "vmFlavor" ),
+    #for csOption, csDefault, varName in ( ( "Endpoint", "", "vmEndpoint" ),
     #                                      ( "MinWorkingLoad", 0.01, "vmMinWorkingLoad" ),
     #                                      ( "LoadAverageTimespan", 900, "vmLoadAvgTimespan" ),
     #                                      ( "JobWrappersLocation", "/opt/dirac/pro/job/Wrapper/", "vmJobWrappersLocation" )
     #                                    ):
-    # temporal patch for occi until CS Flavor implemented:
-    for csOption, csDefault, varName in ( ( "Flavor", "", "vmFlavor" ),
+    # temporal patch for occi until CS Endpoint implemented:
+    for csOption, csDefault, varName in ( ( "Endpoint", "", "vmEndpoint" ),
                                           ( "MinWorkingLoad", 0.01, "vmMinWorkingLoad" ),
                                           ( "LoadAverageTimespan", 60, "vmLoadAvgTimespan" ),
                                           ( "JobWrappersLocation", "/opt/dirac/pro/job/Wrapper/", "vmJobWrappersLocation" )
@@ -84,19 +84,19 @@ class VirtualMachineMonitorAgent( AgentModule ):
       if not value:
         return S_ERROR( "%s is not defined" % path )
       setattr( self, varName, value )
-    #Variables coming from the flavor
-    flavorPath = "/Resources/VirtualMachines/Flavors/%s" % self.vmFlavor
+    #Variables coming from the endpoint
+    endpointPath = "/Resources/VirtualMachines/CloudEndpoints/%s" % self.vmEndpoint
     #for csOption, csDefault, varName in ( ( "HaltPeriod", 3600, "haltPeriod" ),
     #                                      ( "HaltBeforeMargin", 300, "haltBeforeMargin" ),
     #                                      ( "HeartBeatPeriod", 900, "heartBeatPeriod" ),
     #                                    ):
-    # temporal patch for occi until CS Flavor implemented:
+    # temporal patch for occi until CS Endpoint implemented:
     for csOption, csDefault, varName in ( ( "HaltPeriod", 1200, "haltPeriod" ),
                                           ( "HaltBeforeMargin", 300, "haltBeforeMargin" ),
                                           ( "HeartBeatPeriod", 600, "heartBeatPeriod" ),
                                         ):
 
-      path = "%s/%s" % ( flavorPath, csOption )
+      path = "%s/%s" % ( endpointPath, csOption )
       value = gConfig.getValue( path, csDefault )
       if not value:
         return S_ERROR( "%s is not defined" % path )
@@ -108,7 +108,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
 
     gLogger.info( "** VM Info **" )
     gLogger.info( "Name                  : %s" % self.vmName )
-    gLogger.info( "Flavor                : %s" % self.vmFlavor )
+    gLogger.info( "Endpoint                : %s" % self.vmEndpoint )
     gLogger.info( "Min Working Load      : %f" % self.vmMinWorkingLoad )
     gLogger.info( "Load Avg Timespan     : %d" % self.vmLoadAvgTimespan )
     gLogger.info( "Job wrappers location : %s" % self.vmJobWrappersLocation )
@@ -143,17 +143,17 @@ class VirtualMachineMonitorAgent( AgentModule ):
     self.vmId = ""
     self.am_setOption( "MaxCycles", 0 )
     self.am_setOption( "PollingTime", 60 )
-    #Discover id based on flavor
-    flavor = gConfig.getValue( "/LocalSite/Flavor", "" ).lower()
-    gLogger.info( "ID flavor is %s" % flavor )
-    if flavor == 'generic':
+    #Discover id based on endpoint
+    seldf.endpoint = gConfig.getValue( "/LocalSite/CloudEndpoint", "" ).lower()
+    gLogger.info( "ID endpoint is %s" % self.endpoint )
+    if self.endpoint == 'generic':
       result = self.getGenericVMId()
-    elif flavor == 'amazon':
+    elif endpoint == 'amazon':
       result = self.getAmazonVMId()
-    elif flavor == 'occi':
+    elif endpoint.sub([0,3]) == 'occi':
       result = self.getOcciVMId()
     else:
-      return S_ERROR( "Unknown VM Flavor (%s)" % flavor )
+      return S_ERROR( "Unknown VM Endpoint (%s)" % self.endpoint )
     if not result[ 'OK' ]:
       return S_ERROR( "Could not generate VM id: %s" % result[ 'Message' ] )
     self.vmId = result[ 'Value' ]
@@ -287,8 +287,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
     retries = 3
     sleepTime = 10
     for i in range( retries ):
-      flavor = gConfig.getValue( "/LocalSite/Flavor", "" ).lower()
-      result = virtualMachineDB.declareInstanceHalting( self.vmId, avgLoad, flavor )
+      result = virtualMachineDB.declareInstanceHalting( self.vmId, avgLoad )
       if result[ 'OK' ]:
         gLogger.info( "Declared instance halting" )
         break
@@ -299,6 +298,6 @@ class VirtualMachineMonitorAgent( AgentModule ):
 
     #time.sleep( sleepTime )
       
-    # all flavors:
+    # all endpoint:
     gLogger.info( "Executing system halt..." )
     os.system( "halt" )

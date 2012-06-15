@@ -108,7 +108,7 @@ class VirtualMachineManagerHandler( RequestHandler ):
 
   ###########################################################################
   types_declareInstanceHalting = [ StringType, FloatType, StringType ]
-  def export_declareInstanceHalting( self, uniqueID, load ):
+  def export_declareInstanceHalting( self, uniqueID, load, endpoint ):
     """
     Insert the heart beat info from a halting instance
     Declares "Halted" the instance and the image 
@@ -124,7 +124,7 @@ class VirtualMachineManagerHandler( RequestHandler ):
     if not result[ 'OK' ]:
       return result
     imageName = result[ 'Value' ]
-    oima = OcciImage( imageName )
+    oima = OcciImage( imageName, endpoint )
     result = oima.stopInstance( vmId )
     if not result[ 'OK' ]:
       return result

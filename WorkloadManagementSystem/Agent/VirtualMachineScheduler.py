@@ -78,14 +78,16 @@
 __RCSID__ = "$Id$"
 
 from DIRAC.Core.Base.AgentModule import AgentModule
+from DIRAC import gConfig
 
 
 from DIRAC.Resources.Computing.ComputingElement                 import getResourceDict
 
 from DIRAC.WorkloadManagementSystem.Client.ServerUtils          import taskQueueDB
 from VMDIRAC.WorkloadManagementSystem.Client.ServerUtils     import virtualMachineDB
-from VMDIRAC.WorkloadManagementSystem.private.AmazonDirector import AmazonDirector
-from VMDIRAC.WorkloadManagementSystem.private.OcciDirector import OcciDirector
+#from VMDIRAC.WorkloadManagementSystem.private.AmazonDirector import AmazonDirector
+#from VMDIRAC.WorkloadManagementSystem.private.OcciDirector import OcciDirector
+from VMDIRAC.WorkloadManagementSystem.private.CloudDirector import CloudDirector
 
 from VMDIRAC.WorkloadManagementSystem.private.KVMDirector    import KVMDirector
 
@@ -154,6 +156,20 @@ class VirtualMachineScheduler( AgentModule ):
           self.log.info( '%s >= %s Running instances of %s, skipping' % ( instances, maxInstances, imageName ) )
           continue
 
+        CloudEndpoints = imageDict['CloudEndpoints'] 
+        for endpoint in CloudEndpoints:
+          maxEndpointInstance = gConfig.getValue( "/Resources/VirtualMachines/Images/CloudEndpoints/%s/%s" % ( endpoint, 'MaxEndpointInstance' ), "" )         
+          endpointInstances = 0
+          result = virtualMachineDB.getInstancesByStatusAndEndpoit( 'Running',endpoint )
+          if result['OK'] and imageName in result['Value']:
+            endpointInstances += len( result['Value'][imageName] )
+          result = virtualMachineDB.getInstancesByStatusAndEndpoit( 'Submitted',endpoint )
+          if result['OK'] and imageName in result['Value']:
+            endpointInstances += len( result['Value'][imageName] )
+          if endpointInstances >= maxEndpointInstances:
+            self.log.info( '%s >= %s Running instances of %s, skipping, no endpoint with free slots found for image' % ( endpointInstances, maxEndpointInstances, imageName ) )
+            continue
+
         imageRequirementsDict = imageDict['RequirementsDict']
         result = taskQueueDB.getMatchingTaskQueues( imageRequirementsDict )
         if not result['OK']:
@@ -194,7 +210,7 @@ class VirtualMachineScheduler( AgentModule ):
           pool = self.pools[self.directors[directorName]['pool']]
 
           ret = pool.generateJobAndQueueIt( director.submitInstance,
-                                            args = ( imageName, self.workDir ),
+                                            args = ( imageName, self.workDirt, endpoint ),
                                             oCallback = self.callBack,
                                             oExceptionCallback = director.exceptionCallBack,
                                             blocking = False )
@@ -327,22 +343,27 @@ class VirtualMachineScheduler( AgentModule ):
     """
 
     self.log.info( 'Creating Director for SubmitPool:', submitPool )
+    # no hay Falvor en VirtualMachineScheduler
     # 1. check the Flavor
     # Comprobar esto
-    directorFlavor = self.am_getOption( submitPool + '/Flavor', '' )
-    if not directorFlavor:
-      self.log.error( 'No Director Flavor defined for SubmitPool:', submitPool )
-      return
+    #directorFlavor = self.am_getOption( submitPool + '/Flavor', '' )
+    #if not directorFlavor:
+    #  self.log.error( 'No Director Flavor defined for SubmitPool:', submitPool )
+    #  return
+    #
+    #directorName = '%sDirector' % directorFlavor
 
-    directorName = '%sDirector' % directorFlavor
+    directorName = '%sDirector' % sumbitPool
 
     self.log.info( 'Instantiating Director Object:', directorName )
     if directorName == "KVMDirector":
       director = KVMDirector( submitPool )
-    elif directorName == "AmazonDirector":
-      director = AmazonDirector( submitPool )
-    elif directorName == "OcciDirector":
-      director = OcciDirector( submitPool )
+#    elif directorName == "AmazonDirector":
+#      director = AmazonDirector( submitPool )
+#    elif directorName == "OcciDirector":
+#      director = OcciDirector( submitPool )
+    elif directorName == "CloudDirector":
+      director = CloudDirector( submitPool )
     else:
       return
 

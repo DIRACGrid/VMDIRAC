@@ -9,7 +9,7 @@ import time
 from DIRAC import gLogger, gConfig, S_OK, S_ERROR
 
 from VMDIRAC.WorkloadManagementSystem.Client.OcciVMInstance import OcciVMInstance
-from VMDIRAC.WorkloadManagementSystem.Client.OcciClient import OcciClient
+#from VMDIRAC.WorkloadManagementSystem.Client.OcciClient import OcciClient
 
 class OcciImage:
 
@@ -18,40 +18,61 @@ class OcciImage:
   a standard occi cloud infrastructure.
   Authentication is provided by an occi user/password attributes
   """
-  def __init__( self, bootImageName):
+  def __init__( self, bootImageName, endpoint):
     self.__bootImageName = bootImageName
     self.__hdcImageName = self.__getCSImageOption( "hdcImageName" )
     self.log = gLogger.getSubLogger( "OII (boot,hdc): (%s,%s) " % ( bootImageName, self.__hdcImageName ) )
 # __instances list not used now 
     self.__instances = []
     self.__errorStatus = ""
-    #Get CloudSite
-    self.__CloudSite = self.__getCSImageOption( "CloudSite" )
-    if not self.__CloudSite:
-      self.__errorStatus = "Can't find CloudSite for image %s" % self.__bootImageName
+    #Get CloudEndpoint free slot on submission time
+    self.__endpoint = endpoint
+    if not self.__endpoint:
+      self.__errorStatus = "Can't find endpoint for image %s" % self.__bootImageName
+      self.log.error( self.__errorStatus )
+      return
+    #Get URI endpoint
+    self.__occiURI = self.__getCSCloudEndpointOption( "occiURI" )
+    if not self.__occiURI:
+      self.__errorStatus = "Can't find the server occiURI for endpoint %s" % self.__endpoint
       self.log.error( self.__errorStatus )
       return
     #Get OCCI server URI
-    self.__occiURI = self.__getCSCloudSiteOption( "occiURI" )
+    self.__occiURI = self.__getCSCloudEndpointOption( "occiURI" )
     if not self.__occiURI:
-      self.__errorStatus = "Can't find the server occiURI for flavor %s" % self.__CloudSite
+      self.__errorStatus = "Can't find the server occiURI for endpoint %s" % self.__endpoint
       self.log.error( self.__errorStatus )
       return
     #Get OCCI user/password
     # user
-    self.__occiUser = self.__getCSCloudSiteOption( "occiUser" )
+    self.__occiUser = self.__getCSCloudEndpointOption( "occiUser" )
     if not self.__occiUser:
-      self.__errorStatus = "Can't find the occiUser for flavor %s" % self.__CloudSite
+      self.__errorStatus = "Can't find the occiUser for endpoint %s" % self.__endpoint
       self.log.error( self.__errorStatus )
       return
     # password
-    self.__occiPasswd = self.__getCSCloudSiteOption( "occiPasswd" )
+    self.__occiPasswd = self.__getCSCloudEndpointOption( "occiPasswd" )
     if not self.__occiPasswd:
-      self.__errorStatus = "Can't find the occiPasswd for flavor %s" % self.__CloudSite
+      self.__errorStatus = "Can't find the occiPasswd for endpoint %s" % self.__endpoint
       self.log.error( self.__errorStatus )
       return
-    #check connection
-    self.__cliocci = OcciClient(self.__occiURI, self.__occiUser, self.__occiPasswd)
+    # get the driver
+    self.__driver = self.__getCSCloudEndpointOption( "driver" )
+    if not self.__driver:
+      self.__errorStatus = "Can't find the driver for endpoint %s" % self.__endpoint
+      self.log.error( self.__errorStatus )
+      return
+    # check connection, depending on the driver
+    if self.__driver == "occi-0.8":
+      from VMDIRAC.WorkloadManagementSystem.Client.Occi08 import OcciClient
+      self.__cliocci = OcciClient(self.__occiURI, self.__occiUser, self.__occiPasswd)
+    if self.__driver == "occi-0.8":
+      from VMDIRAC.WorkloadManagementSystem.Client.Occi09 import OcciClient
+      self.__cliocci = OcciClient(self.__occiURI, self.__occiUser, self.__occiPasswd)
+    else:
+      self.__errorStatus = "Driver %s not supported" % self.__driver
+      self.log.error( self.__errorStatus )
+      return
     request = self.__cliocci.check_connection()
     if request.returncode != 0:
       self.__errorStatus = "Can't connect to OCCI server %s\n%s" % (self.__occiURI, request.stdout)
@@ -78,23 +99,23 @@ class OcciImage:
     self.__hdcOII = request.stdout
 
     # dns1
-    self.__DNS1 = self.__getCSCloudSiteOption( "DNS1" )
+    self.__DNS1 = self.__getCSCloudEndpointOption( "DNS1" )
     if not self.__DNS1:
-      self.__errorStatus = "Can't find the DNS1 for flavor %s" % self.__CloudSite
+      self.__errorStatus = "Can't find the DNS1 for endpoint %s" % self.__endpoint
       self.log.error( self.__errorStatus )
       return
 
     # dns2
-    self.__DNS2 = self.__getCSCloudSiteOption( "DNS2" )
+    self.__DNS2 = self.__getCSCloudEndpointOption( "DNS2" )
     if not self.__DNS2:
-      self.__errorStatus = "Can't find the DNS2 for flavor %s" % self.__CloudSite
+      self.__errorStatus = "Can't find the DNS2 for endpoint %s" % self.__endpoint
       self.log.error( self.__errorStatus )
       return
 
     # domain
-    self.__Domain = self.__getCSCloudSiteOption( "Domain" )
+    self.__Domain = self.__getCSCloudEndpointOption( "Domain" )
     if not self.__Domain:
-      self.__errorStatus = "Can't find the Domain for flavor %s" % self.__CloudSite
+      self.__errorStatus = "Can't find the Domain for endpoint %s" % self.__endpoint
       self.log.error( self.__errorStatus )
       return
 
@@ -104,9 +125,9 @@ class OcciImage:
     	self.__URLcontextfiles = "http://lhcweb.pic.es/vmendez/context/root.pub"
 
     # Network id
-    self.__NetId = self.__getCSCloudSiteOption( "NetId" )
+    self.__NetId = self.__getCSCloudEndpointOption( "NetId" )
     if not self.__NetId:
-      self.__errorStatus = "Can't find the NetId for flavor %s" % self.__CloudSite
+      self.__errorStatus = "Can't find the NetId for endpoint %s" % self.__endpoint
       self.log.error( self.__errorStatus )
       return
 
@@ -121,8 +142,8 @@ class OcciImage:
   One flavour can correspond to many images, get the usr, passwd, dns, domain
   URL to root.pub file, network_id and other occi server specific values
   """
-  def __getCSCloudSiteOption( self, option, defValue = "" ):
-    return gConfig.getValue( "/Resources/VirtualMachines/CloudSites/%s/%s" % ( self.__CloudSite, option ), defValue )
+  def __getCSCloudEndpointOption( self, option, defValue = "" ):
+    return gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( self.__endpoint, option ), defValue )
 
   """
   Prior to use, virtual machine images are uploaded to the OCCI cloud manager
@@ -131,7 +152,7 @@ class OcciImage:
   def startNewInstance( self, instanceType = "small"):
     if self.__errorStatus:
       return S_ERROR( self.__errorStatus )
-    self.log.info( "Starting new instance for image (boot,hdc): %s,%s" % ( self.__bootImageName, self.__hdcImageName ) )
+    self.log.info( "Starting new instance for image (boot,hdc): %s,%s; to endpoint %s, and driver %s" % ( self.__bootImageName, self.__hdcImageName, self.__endpoint, self.__driver ) )
     request = self.__cliocci.create_VMInstance( self.__bootImageName, self.__hdcImageName, instanceType, self.__bootOII, self.__hdcOII, self.__DNS1, self.__DNS2, self.__Domain, self.__URLcontextfiles, self.__NetId)
     if request.returncode != 0:
       self.__errorStatus = "Can't create instance for boot image (boot,hdc): %s/%s at server %s\n%s" % (self.__bootImageName, self.__hdcImageName, self.__occiURI, request.stdout)

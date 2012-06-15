@@ -1,6 +1,6 @@
 ########################################################################
 # $HeadURL$
-# File :   KVMDirector.py
+# File :   VMDirector.py
 # Author : Ricardo Graciani
 ########################################################################
 __RCSID__ = "$Id: VMDirector.py 16 2010-03-15 11:39:29Z ricardo.graciani@gmail.com $"
@@ -13,10 +13,13 @@ from VMDIRAC.WorkloadManagementSystem.Client.ServerUtils import virtualMachineDB
 class VMDirector:
   def __init__( self, submitPool ):
 
-    if submitPool == self.Flavor:
-      self.log = DIRAC.gLogger.getSubLogger( '%sDirector' % self.Flavor )
-    else:
-      self.log = DIRAC.gLogger.getSubLogger( '%sDirector/%s' % ( self.Flavor, submitPool ) )
+    # no hay Falvor
+    #if submitPool == self.Flavor:
+    #  self.log = DIRAC.gLogger.getSubLogger( '%sDirector' % self.Flavor )
+    #else:
+    #  self.log = DIRAC.gLogger.getSubLogger( '%sDirector/%s' % ( self.Flavor, submitPool ) )
+
+    self.log = DIRAC.gLogger.getSubLogger( '%sDirector' % submitPool )
 
     self.errorMailAddress = DIRAC.errorMail
     self.alarmMailAddress = DIRAC.alarmMail
@@ -25,11 +28,12 @@ class VMDirector:
 
   def configure( self, csSection, submitPool ):
     """
-     Here goes common configuration for Amazon Director
+     Here goes common configuration for Cloud Director
     """
     self.images = {}
 
     self.configureFromSection( csSection )
+    # to get the Images of a Director:
     self.reloadConfiguration( csSection, submitPool )
 
     self.log.info( '===============================================' )
@@ -42,13 +46,15 @@ class VMDirector:
       self.log.info( ' None' )
 
   def reloadConfiguration( self, csSection, submitPool ):
+#    """
+#     Common Configuration can be overwriten for each Image
+#    """
+#    mySection = '/Resources/VirtualMachines/Flavors/' + self.Flavor
+#    self.configureFromSection( mySection )
+#    no hay Flavor
+#    lo que hacemos es poner un campo CloudEndpoint a cada sumbitInstance
     """
-     Common Configuration can be overwriten for each Flavor
-    """
-    mySection = '/Resources/VirtualMachines/Flavors/' + self.Flavor
-    self.configureFromSection( mySection )
-    """
-     And Again for each SubmitPool
+     For the SubmitPool
     """
     mySection = csSection + '/' + submitPool
     self.configureFromSection( mySection )
@@ -74,9 +80,10 @@ class VMDirector:
       if not imageDict['OK']:
         return imageDict
       imageDict = imageDict[ 'Value' ]
-      if self.Flavor <> imageDict['Flavor']:
-        continue
-      for option in ['MaxInstances', 'CPUPerInstance', 'Priority']:
+#      if self.Flavor <> imageDict['Flavor']:
+#        continue
+#      for option in ['MaxInstances', 'CPUPerInstance', 'Priority']:
+      for option in ['MaxInstances', 'CPUPerInstance', 'Priority','CloudEndpoints']:
         if option not in imageDict.keys():
           self.log.error( 'Missing option in "%s" image definition:' % imageName, option )
           continue
@@ -85,8 +92,9 @@ class VMDirector:
       self.images[imageName]['MaxInstances'] = int( imageDict['MaxInstances'] )
       self.images[imageName]['CPUPerInstance'] = int( imageDict['CPUPerInstance'] )
       self.images[imageName]['Priority'] = int( imageDict['Priority'] )
+      self.images[imageName]['CloudEndpoints'] = imageDict['CloudEndpoints'] 
 
-  def submitInstance( self, imageName, workDir ):
+  def submitInstance( self, imageName, workDir, endpoint = "" ):
     """
     """
     self.log.info( 'Submitting', imageName )
@@ -96,7 +104,7 @@ class VMDirector:
     if not retDict['OK']:
       return retDict
     instanceID = retDict['Value']
-    retDict = self._submitInstance( imageName, workDir )
+    retDict = self._submitInstance( imageName, workDir, endpoint )
     if not retDict['OK']:
       return retDict
     uniqueID = retDict[ 'Value' ]

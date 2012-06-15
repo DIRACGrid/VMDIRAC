@@ -8,14 +8,14 @@ from DIRAC import S_OK, S_ERROR
 from VMDIRAC.WorkloadManagementSystem.private.VMDirector import VMDirector
 from VMDIRAC.WorkloadManagementSystem.Client.OcciImage import OcciImage
 
-class OcciDirector( VMDirector ):
+class CloudDirector( VMDirector ):
   def __init__( self, submitPool ):
-    self.Flavor = 'Occi'
+    #self.CloudEndpoint = 'Occi'
     VMDirector.__init__( self, submitPool )
 
   def configure( self, csSection, submitPool ):
     """
-     Here goes common configuration for Occi Director
+     Here goes common configuration for Cloud Director
     """
 
     VMDirector.configure( self, csSection, submitPool )
@@ -31,6 +31,10 @@ class OcciDirector( VMDirector ):
     """
       Real backend method to submit a new Instance of a given Image
     """
+
+    #ami = AmazonImage( imageName )
+    #result = ami.startNewInstances()
+
     oima = OcciImage( imageName )
     result = oima.startNewInstance()
     if not result[ 'OK' ]:

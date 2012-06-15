@@ -7,7 +7,7 @@
 """ VirtualMachineDB class is a front-end to the virtual machines DB
 
   Life cycle of VMs Images in DB
-  - New:       Inserted by Director (Name - Flavor - Requirements - Status = New ) if not existing when launching a new instance
+  - New:       Inserted by Director (Name - Requirements - Status = New ) if not existing when launching a new instance
   - Validated: Declared by VMMonitoring Server when an Instance reports back correctly
   - Error:     Declared by VMMonitoring Server when an Instance reports back wrong requirements
 
@@ -21,7 +21,7 @@
 
   New Instances can be launched by Director if VMImage is not in Error Status.
 
-  Instance UniqueID: depends on Flavor, for KVM it could be the MAC, for Amazon the returned InstanceID(i-5dec3236), for Occi returned the VMID
+  Instance UniqueID: for KVM it could be the MAC, for Amazon the returned InstanceID(i-5dec3236), for Occi returned the VMID
 
 
 """
@@ -57,14 +57,14 @@ class VirtualMachineDB( DB ):
 
   tablesDesc[ 'vm_Images' ] = { 'Fields' : { 'VMImageID' : 'BIGINT UNSIGNED AUTO_INCREMENT NOT NULL',
                                              'Name' : 'VARCHAR(255) NOT NULL',
-                                             'Flavor' : 'VARCHAR(32) NOT NULL',
+                                             'CloudEndpoints' : 'VARCHAR(1024) NOT NULL',
                                              'Requirements' : 'VARCHAR(1024) NOT NULL',
                                              'Status' : 'VARCHAR(16) NOT NULL',
                                              'LastUpdate' : 'DATETIME',
                                              'ErrorMessage' : 'VARCHAR(255) NOT NULL DEFAULT ""',
                                            },
                                'PrimaryKey' : 'VMImageID',
-                               'Indexes': { 'Image': [ 'Name', 'Flavor' ]
+                               'Indexes': { 'Image': [ 'Name', 'CloudEndpoints' ]
                                           }
                              }
 
@@ -169,7 +169,7 @@ class VirtualMachineDB( DB ):
       return ret
     return self.__getStatus( 'Image', ret['Value'] )
 
-  def insertInstance( self, imageName, instanceName ):
+  def insertInstance( self, imageName, instanceName, cloudEndPoint ):
     """ 
     Check Status of a given image
     Will insert a new Instance in the DB
@@ -181,7 +181,7 @@ class VirtualMachineDB( DB ):
     if not imageStatus['OK']:
       return imageStatus
 
-    return self.__insertInstance( imageName, instanceName )
+    return self.__insertInstance( imageName, instanceName, cloudEndPoint )
 
   def setInstanceUniqueID( self, instanceID, uniqueID ):
     """
@@ -329,6 +329,35 @@ class VirtualMachineDB( DB ):
 
     return DIRAC.S_OK( instancesDict )
 
+  def getInstancesByStatusAndEndpoint( self, status, endpoint  ):
+    """
+    Get dictionary of Image Names with InstanceIDs in given status 
+    """
+    if status not in self.validInstanceStates:
+      return DIRAC.S_ERROR( 'Status %s is not known' % status )
+
+    ( tableName, validStates, idName ) = self.__getTypeTuple( 'Instance' )
+
+    runningInstances = self._getFields( tableName, [ 'VMImageID', 'UniqueID'], ['Status', 'Endpoint'], [status, endpoint] )
+    if not runningInstances['OK']:
+      return runningInstances
+    runningInstances = runningInstances['Value']
+    instancesDict = {}
+    imagesDict = {}
+    for imageID, uniqueID in runningInstances:
+      if not imageID in imagesDict:
+        ( tableName, validStates, idName ) = self.__getTypeTuple( 'Image' )
+        imageName = self._getFields( tableName, ['Name'], [idName], [imageID] )
+        if not imageName['OK']:
+          continue
+        imagesDict[imageID] = imageName['Value'][0][0]
+      if not imagesDict[imageID] in instancesDict:
+        instancesDict[imagesDict[imageID]] = []
+      instancesDict[imagesDict[imageID]].append( uniqueID )
+
+    return DIRAC.S_OK( instancesDict )
+
+
   def getAllInfoForUniqueID( self, uniqueID ):
     """
     Get all fields for a uniqueID
@@ -347,9 +376,9 @@ class VirtualMachineDB( DB ):
     imgData = result[ 'Value' ]
     return DIRAC.S_OK( { 'Image' : imgData, 'Instance' : instData } )
 
-  def __insertInstance( self, imageName, instanceName ):
+  def __insertInstance( self, imageName, instanceName, cloudEndpoint ):
     """
-    Attempts to insert a new Instance for the given Image
+    Attempts to insert a new Instance for the given Image in a given Endpoint
     """
     image = self.__getImageID( imageName )
     if not image['OK']:
@@ -358,8 +387,8 @@ class VirtualMachineDB( DB ):
 
     ( tableName, validStates, idName ) = self.__getTypeTuple( 'Instance' )
 
-    fields = ['Name', 'VMImageID', 'Status', 'LastUpdate' ]
-    values = [instanceName, imageID, validStates[0], DIRAC.Time.toString() ]
+    fields = ['Name', 'CloudEndPoint','VMImageID', 'Status', 'LastUpdate' ]
+    values = [instanceName, cloudEndpoint, imageID, validStates[0], DIRAC.Time.toString() ]
     result = getImageDict( imageName )
     if not result[ 'OK' ]:
       return result
@@ -560,12 +589,12 @@ class VirtualMachineDB( DB ):
     if not result['OK']:
       return result
     imageDict = result[ 'Value' ]
-    flavor = imageDict['Flavor']
+    cloudendpoints = imageDict['CloudEndpoints']
     requirements = DIRAC.DEncode.encode( imageDict['Requirements'] )
 
     if imageID:
-      ret = self._getFields( tableName, [idName], ['Name', 'Flavor', 'Requirements'],
-                                                  [imageName, flavor, requirements] )
+      ret = self._getFields( tableName, [idName], ['Name', 'CloudEndpoints', 'Requirements'],
+                                                  [imageName, cloudendpoints, requirements] )
       if not ret['OK']:
         return ret
       if not ret['Value']:
@@ -573,22 +602,22 @@ class VirtualMachineDB( DB ):
       else:
         return DIRAC.S_OK( imageID )
 
-    ret = self._insert( tableName, ['Name', 'Flavor', 'Requirements', 'Status', 'LastUpdate'],
+    ret = self._insert( tableName, ['Name', 'CloudEndpoints', 'Requirements', 'Status', 'LastUpdate'],
                                      [imageName, flavor, requirements, validStates[0], DIRAC.Time.toString()] )
     if ret['OK'] and 'lastRowId' in ret:
       id = ret['lastRowId']
-      ret = self._getFields( tableName, [idName], ['Name', 'Flavor', 'Requirements'],
-                                                  [imageName, flavor, requirements] )
+      ret = self._getFields( tableName, [idName], ['Name', 'CloudEndpoints', 'Requirements'],
+                                                  [imageName, cloudendpoints, requirements] )
       if not ret['OK']:
         return ret
       if not ret['Value'] or id <> ret['Value'][0][0]:
         result = self.__getInfo( 'Image', id )
         if result['OK']:
           image = result[ 'Value' ]
-          self.log.error( 'Trying to insert Name: "%s", Flavor: "%s", Requirements: "%s"' %
+          self.log.error( 'Trying to insert Name: "%s", CloudEndpoints: "%s", Requirements: "%s"' %
                                             ( imageName, flavor, requirements ) )
-          self.log.error( 'But inserted     Name: "%s", Flavor: "%s", Requirements: "%s"' %
-                                            ( image['Name'], image['Flavor'], image['Requirements'] ) )
+          self.log.error( 'But inserted     Name: "%s", CloudEndpoints: "%s", Requirements: "%s"' %
+                                            ( image['Name'], image['CloudEndpoints'], image['Requirements'] ) )
         return self.__setError( 'Image', id, 'Failed to insert new Image' )
       return DIRAC.S_OK( id )
     return DIRAC.S_ERROR( 'Failed to insert new Image' )
@@ -707,7 +736,7 @@ class VirtualMachineDB( DB ):
     """
     #Main fields
     tables = ( "`vm_Images` AS img", "`vm_Instances` AS inst" )
-    imageFields = ( 'VMImageID', 'Name', 'Flavor' )
+    imageFields = ( 'VMImageID', 'Name', 'CloudEndpoints' )
     instanceFields = ( 'VMInstanceID', 'Name', 'UniqueID', 'VMImageID',
                        'Status', 'PublicIP', 'Status', 'ErrorMessage', 'LastUpdate', 'Load', 'Uptime' )
 
@@ -957,9 +986,13 @@ def getImageDict( imageName ):
   imageCSPath = '%s/%s' % ( imagesCSPath, imageName )
 
   imageDict = {}
-  flavor = DIRAC.gConfig.getValue( '%s/Flavor' % imageCSPath , '' )
-  if not flavor:
-    return DIRAC.S_ERROR( 'Missing Flavor for image "%s"' % imageName )
+# no more flavor
+#  flavor = DIRAC.gConfig.getValue( '%s/Flavor' % imageCSPath , '' )
+#  if not flavor:
+#    return DIRAC.S_ERROR( 'Missing Flavor for image "%s"' % imageName )
+  CloudEndpoints = DIRAC.gConfig.getValue( '%s/CloudEndpoints' % imageCSPath , '' )
+  if not CloudEndpoints:
+    return DIRAC.S_ERROR( 'Missing CloudEndpoints for image "%s"' % imageName )
   for option, value in DIRAC.gConfig.getOptionsDict( imageCSPath )['Value'].items():
     imageDict[option] = value
   imageRequirementsDict = DIRAC.gConfig.getOptionsDict( '%s/Requirements' % imageCSPath )

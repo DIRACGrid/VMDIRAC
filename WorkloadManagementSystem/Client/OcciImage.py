@@ -16,22 +16,23 @@ from DIRAC import gLogger, gConfig, S_OK, S_ERROR
 
 class OcciImage:
 
-  """
-  The OCCI Image Interface (OII) provides the functionality required to use
-  a standard occi cloud infrastructure.
-  Authentication is provided by an occi user/password attributes
-  """
-  def __init__( self, bootImageName, endpoint):
-    self.__bootImageName = bootImageName
+  def __init__( self, DIRACImageName, endpoint):
+    """
+    The OCCI Image Interface (OII) provides the functionality required to use
+    a standard occi cloud infrastructure.
+    Authentication is provided by an occi user/password attributes
+    """
+    self.__DIRACImageName = DIRACImageName
+    self.__bootImageName = self.__getCSImageOption( "bootImageName" ) 
     self.__hdcImageName = self.__getCSImageOption( "hdcImageName" )
-    self.log = gLogger.getSubLogger( "OII (boot,hdc): (%s,%s) " % ( bootImageName, self.__hdcImageName ) )
+    self.log = gLogger.getSubLogger( "OII %s(boot,hdc): (%s,%s) " % ( DIRACImageName, self.__bootImageName, self.__hdcImageName ) )
 # __instances list not used now 
     self.__instances = []
     self.__errorStatus = ""
     #Get CloudEndpoint free slot on submission time
     self.__endpoint = endpoint
     if not self.__endpoint:
-      self.__errorStatus = "Can't find endpoint for image %s" % self.__bootImageName
+      self.__errorStatus = "Can't find endpoint for image %s" % self.__DIRACImageName
       self.log.error( self.__errorStatus )
       return
     #Get URI endpoint
@@ -134,25 +135,25 @@ class OcciImage:
       self.log.error( self.__errorStatus )
       return
 
-  """
-  Following we can see that every CSImageOption are related with the booting
-  image, the contextualized hdc image has no asociated options
-  """
   def __getCSImageOption( self, option, defValue = "" ):
-    return gConfig.getValue( "/Resources/VirtualMachines/Images/%s/%s" % ( self.__bootImageName, option ), defValue )
+    """
+    Following we can see that every CSImageOption are related with the booting
+    image, the contextualized hdc image has no asociated options
+    """
+    return gConfig.getValue( "/Resources/VirtualMachines/Images/%s/%s" % ( self.__DIRACImageName, option ), defValue )
 
-  """
-  One flavour can correspond to many images, get the usr, passwd, dns, domain
-  URL to root.pub file, network_id and other occi server specific values
-  """
   def __getCSCloudEndpointOption( self, option, defValue = "" ):
+    """
+    One flavour can correspond to many images, get the usr, passwd, dns, domain
+    URL to root.pub file, network_id and other occi server specific values
+    """
     return gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( self.__endpoint, option ), defValue )
 
-  """
-  Prior to use, virtual machine images are uploaded to the OCCI cloud manager
-  assigned an id (OII in a URI). 
-  """
   def startNewInstance( self, instanceType = "small"):
+    """
+    Prior to use, virtual machine images are uploaded to the OCCI cloud manager
+    assigned an id (OII in a URI). 
+    """
     if self.__errorStatus:
       return S_ERROR( self.__errorStatus )
     self.log.info( "Starting new instance for image (boot,hdc): %s,%s; to endpoint %s, and driver %s" % ( self.__bootImageName, self.__hdcImageName, self.__endpoint, self.__driver ) )
@@ -164,10 +165,10 @@ class OcciImage:
 
     return S_OK( request.stdout )
 
-  """
-  Simple call to terminate a VM based on its id
-  """
   def stopInstance( self, VMinstanceId ):
+    """
+    Simple call to terminate a VM based on its id
+    """
 
     request = self.__cliocci.terminate_VMinstance( VMinstanceId )
     if request.returncode != 0:
@@ -180,10 +181,10 @@ class OcciImage:
 
 #VMInstance operations is from VirtualMachineDB.Instances, instead of endpoint interfaced
 # no more OcciVMInstances
-#  """
-#  Get all instances for this image
-#  """
 #  def getAllInstances( self ):
+#    """
+#    Get all instances for this image
+#    """
 #    instances = []
 #    request = self.__cliocci.get_all_VMinstances( self.__bootImageName )
 #    if request.returncode != 0:
@@ -195,10 +196,10 @@ class OcciImage:
 #      instances.append( OcciVMInstance ( instanceId, self.__occiURI, self.__occiUser, self.__occiPasswd ) ) 
 #    return instances
 
-#  """
-#  Get all running instances for this image
-#  """
 #  def getAllRunningInstances( self ):
+#    """
+#    Get all running instances for this image
+#    """
 #    instances = []
 #    request = self.__cliocci.get_running_VMinstances( self.__bootImageName )
 #    if request.returncode != 0:

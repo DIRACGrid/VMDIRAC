@@ -69,7 +69,7 @@ class OcciImage:
     if self.__driver == "occi-0.8":
       from VMDIRAC.WorkloadManagementSystem.Client.Occi08 import OcciClient
       self.__cliocci = OcciClient(self.__occiURI, self.__occiUser, self.__occiPasswd)
-    if self.__driver == "occi-0.8":
+    if self.__driver == "occi-0.9":
       from VMDIRAC.WorkloadManagementSystem.Client.Occi09 import OcciClient
       self.__cliocci = OcciClient(self.__occiURI, self.__occiUser, self.__occiPasswd)
     else:

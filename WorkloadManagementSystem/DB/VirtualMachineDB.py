@@ -2,7 +2,7 @@
 # $HeadURL$
 # File :   VirtualMachineDB.py
 # Author : Ricardo Graciani
-# occi author : Victor Mendez
+# occi and multi endpoint author : Victor Mendez
 ########################################################################
 """ VirtualMachineDB class is a front-end to the virtual machines DB
 
@@ -70,7 +70,7 @@ class VirtualMachineDB( DB ):
 
   tablesDesc[ 'vm_Instances' ] = { 'Fields' : { 'VMInstanceID' : 'BIGINT UNSIGNED AUTO_INCREMENT NOT NULL',
                                                 'Name' : 'VARCHAR(255) NOT NULL',
-                                                'endpoint' : 'VARCHAR(32) NOT NULL',
+                                                'Endpoint' : 'VARCHAR(32) NOT NULL',
                                                 'UniqueID' : 'VARCHAR(32) NOT NULL DEFAULT ""',
                                                 'VMImageID' : 'INTEGER UNSIGNED NOT NULL',
                                                 'Status' : 'VARCHAR(32) NOT NULL',
@@ -98,6 +98,21 @@ class VirtualMachineDB( DB ):
                                }
 
 
+  def getEndpointFromInstance( self, vmId ):
+    """
+    For a given instance vmId it returns the asociated Endpoint in the instance table, thus the ImageName of such instance 
+    Using _getFields( self, tableName, outFields = None, inFields = None, inValues = None, limit = 0, conn = None )
+    """
+    ( tableName, validStates, idName ) = self.__getTypeTuple( 'Instance' )
+    endpoint = self._getFields( tableName, [ 'Endpoint' ], [ 'UniqueID' ], [ vmId ] )
+    if not endpoint['OK']:
+      return endpoint
+
+    if not endpoint['Value']:
+      return DIRAC.S_ERROR( 'Unknown %s = %s' % ( 'UniqueID', vmId ) )
+
+    return DIRAC.S_OK( endpoint['Value'][0][0] )
+
   def getImageNameFromInstance( self, vmId ):
     """
     For a given vmId it returns the asociated Name in the instance table, thus the ImageName of such instance 
@@ -112,7 +127,6 @@ class VirtualMachineDB( DB ):
       return DIRAC.S_ERROR( 'Unknown %s = %s' % ( 'UniqueID', vmId ) )
 
     return DIRAC.S_OK( imageName['Value'][0][0] )
-
 
   def __init__( self, maxQueueSize = 10 ):
     DB.__init__( self, 'VirtualMachineDB', 'WorkloadManagement/VirtualMachineDB', maxQueueSize )
@@ -157,7 +171,7 @@ class VirtualMachineDB( DB ):
 
     return ( tableName, validStates, idName )
 
-  def checkImageStatus( self, imageName ):
+  def checkImageStatus( self, imageName, runningPodName="" ):
     """ 
     Check Status of a given image
     Will insert a new Image in the DB if it does not exits
@@ -165,12 +179,12 @@ class VirtualMachineDB( DB ):
       S_OK(Status) if Status is valid and not Error 
       S_ERROR(ErrorMessage) otherwise
     """
-    ret = self.__getImageID( imageName )
+    ret = self.__getImageID( imageName, runningPodName )
     if not ret['OK']:
       return ret
     return self.__getStatus( 'Image', ret['Value'] )
 
-  def insertInstance( self, imageName, instanceName, endpoint ):
+  def insertInstance( self, imageName, instanceName, endpoint, runningPodName ):
     """ 
     Check Status of a given image
     Will insert a new Instance in the DB
@@ -178,11 +192,11 @@ class VirtualMachineDB( DB ):
       S_OK( InstanceID ) if new Instance is properly inserted 
       S_ERROR(ErrorMessage) otherwise
     """
-    imageStatus = self.checkImageStatus( imageName )
+    imageStatus = self.checkImageStatus( imageName, runningPodName )
     if not imageStatus['OK']:
       return imageStatus
 
-    return self.__insertInstance( imageName, instanceName, endpoint )
+    return self.__insertInstance( imageName, instanceName, endpoint, runningPodName )
 
   def setInstanceUniqueID( self, instanceID, uniqueID ):
     """
@@ -377,26 +391,26 @@ class VirtualMachineDB( DB ):
     imgData = result[ 'Value' ]
     return DIRAC.S_OK( { 'Image' : imgData, 'Instance' : instData } )
 
-  def __insertInstance( self, imageName, instanceName, endpoint ):
+  def __insertInstance( self, imageName, instanceName, endpoint, runningPodName ):
     """
-    Attempts to insert a new Instance for the given Image in a given Endpoint
+    Attempts to insert a new Instance for the given Image in a given Endpoint of a runningPodName
     """
-    image = self.__getImageID( imageName )
+    image = self.__getImageID( imageName, runningPodName )
     if not image['OK']:
       return image
     imageID = image['Value']
 
     ( tableName, validStates, idName ) = self.__getTypeTuple( 'Instance' )
 
-    fields = ['Name', 'endpoint','VMImageID', 'Status', 'LastUpdate' ]
+    fields = ['Name', 'Endpoint','VMImageID', 'Status', 'LastUpdate' ]
     values = [instanceName, endpoint, imageID, validStates[0], DIRAC.Time.toString() ]
-    result = getImageDict( imageName )
+    result = getRunningPodDict( runningPodName )
     if not result[ 'OK' ]:
       return result
-    imgDict = result[ 'Value' ]
-    if 'MaxAllowedPrice' in imgDict:
+    runningPodDict = result[ 'Value' ]
+    if 'MaxAllowedPrice' in runningPodDict:
       fields.append( 'MaxAllowedPrice' )
-      values.append( imgDict[ 'MaxAllowedPrice' ] )
+      values.append( runningPodDict[ 'MaxAllowedPrice' ] )
 
     instance = self._insert( tableName , fields, values )
 
@@ -567,7 +581,7 @@ class VirtualMachineDB( DB ):
 
     return DIRAC.S_OK( instanceID['Value'][0][0] )
 
-  def __getImageID( self, imageName ):
+  def __getImageID( self, imageName, runningPodName ):
     """
     For a given imageName return corresponding ID
     Will insert the image in New Status if it does not exits
@@ -586,12 +600,12 @@ class VirtualMachineDB( DB ):
       # The image exits in DB, has to match
       imageID = imageID['Value'][0][0]
 
-    result = getImageDict( imageName )
+    result = getRunningPodDict( runningPodName )
     if not result['OK']:
       return result
-    imageDict = result[ 'Value' ]
-    cloudendpoints = imageDict['CloudEndpoints']
-    requirements = DIRAC.DEncode.encode( imageDict['Requirements'] )
+    runningPodDict = result[ 'Value' ]
+    cloudendpoints = runningPodDict['CloudEndpoints']
+    requirements = DIRAC.DEncode.encode( runningPodDict['Requirements'] )
 
     if imageID:
       ret = self._getFields( tableName, [idName], ['Name', 'CloudEndpoints', 'Requirements'],
@@ -972,36 +986,33 @@ class VirtualMachineDB( DB ):
     sqlQuery += " GROUP BY %s ORDER BY `Update` ASC" % groupby
     return self._query( sqlQuery )
 
-def getImageDict( imageName ):
+  def getRunningPodDict ( runningPodName ):
   """
-  Return from CS a Dictionary with Image definition
+  Return from CS a Dictionary with RunningPod definition
   """
-  imagesCSPath = '/Resources/VirtualMachines/Images'
-  definedImages = DIRAC.gConfig.getSections( imagesCSPath )
-  if not definedImages['OK']:
-    return definedImages
+    runningPodsCSPath = '/Resources/VirtualMachines/RunningPods'
+    definedRunningPods = DIRAC.gConfig.getSections( runningPodsCSPath )
+    if not definedImages['OK']:
+      return definedImages
 
-  if imageName not in definedImages['Value']:
-    return DIRAC.S_ERROR( 'Image "%s" not defined' % imageName )
+    if runningPodName not in definedRunningPods['Value']:
+      return DIRAC.S_ERROR( 'RunningPod "%s" not defined' % runningPodName )
+  
+    runningPodCSPath = '%s/%s' % ( runningPodsCSPath, runningPodName )
 
-  imageCSPath = '%s/%s' % ( imagesCSPath, imageName )
+    runningPodDict = {}
 
-  imageDict = {}
-# no more flavor
-#  flavor = DIRAC.gConfig.getValue( '%s/Flavor' % imageCSPath , '' )
-#  if not flavor:
-#    return DIRAC.S_ERROR( 'Missing Flavor for image "%s"' % imageName )
-  CloudEndpoints = DIRAC.gConfig.getValue( '%s/CloudEndpoints' % imageCSPath , '' )
-  if not CloudEndpoints:
-    return DIRAC.S_ERROR( 'Missing CloudEndpoints for image "%s"' % imageName )
-  for option, value in DIRAC.gConfig.getOptionsDict( imageCSPath )['Value'].items():
-    imageDict[option] = value
-  imageRequirementsDict = DIRAC.gConfig.getOptionsDict( '%s/Requirements' % imageCSPath )
-  if not imageRequirementsDict['OK']:
-    return DIRAC.S_ERROR( 'Missing Requirements for image "%s"' % imageName )
-  if 'CPUTime' in imageRequirementsDict['Value']:
-    imageRequirementsDict['Value']['CPUTime'] = int( imageRequirementsDict['Value']['CPUTime'] )
-  imageDict['Requirements'] = imageRequirementsDict['Value']
-
-  return DIRAC.S_OK( imageDict )
+    cloudEndpoints = DIRAC.gConfig.getValue( '%s/CloudEndpoints' % runingPodCSPath , '' )
+    if not cloudEndpoints:
+      return DIRAC.S_ERROR( 'Missing CloudEndpoints for RunnningPod "%s"' % runningPodName )
+    for option, value in DIRAC.gConfig.getOptionsDict( runningPodCSPath )['Value'].items():
+      runningPodDict[option] = value
+    runningPodRequirementsDict = DIRAC.gConfig.getOptionsDict( '%s/Requirements' % runningPodCSPath )
+    if not runningPodRequirementsDict['OK']:
+      return DIRAC.S_ERROR( 'Missing Requirements for RunningPod "%s"' % runningPodName )
+    if 'CPUTime' in runningPodRequirementsDict['Value']:
+      runningPodRequirementsDict['Value']['CPUTime'] = int( runningPodRequirementsDict['Value']['CPUTime'] )
+    runningPodDict['Requirements'] = runningPodRequirementsDict['Value']
+  
+    return DIRAC.S_OK( runningPodDict )
 

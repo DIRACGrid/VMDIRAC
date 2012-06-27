@@ -1,7 +1,8 @@
 ########################################################################
 # $HeadURL$
 # File :   VirtualMachineScheduler.py
-# Author : Ricardo Graciani (small Occi support by Victor Mendez)
+# Author : Ricardo Graciani, for single site suport
+# Author : Victor Mendez, for multiple endpoints, HEPIX, running pod, occi, etc
 ########################################################################
 
 """  The Virtual Machine Scheduler controls the submission of VM via the
@@ -36,11 +37,16 @@
        - a full Cloud provider (AmazonEC2, Occi) 
        - a locally accessible Xen or KVM server
 
-     For every SubmitPool category (Amazon, Occi, Xen, KVM) and there must be a corresponding Section with the
-     necessary parameters:
+     For every Cloud SubmitPool there must be a corresponding Section with the necessary parameters:
 
        - Pool: if a dedicated Threadpool is desired for this SubmitPool
+       - RunningPods: a list with the pods between DIRAC images and cloud endpoints for a run
 
+     The DIRAC VM is configured based in three statements with their options
+
+       - RunningPods: relates a single DIRAC VM with their VM scheduler options and the cloud ends for a run
+       - Images: bootstrap image, context image and URL context files, the HEPIX of a DIRAC VM
+       - CloudEndpoints: With the driver and the on-the-fly context image      
 
       The VM submission logic is as follows:
 
@@ -77,6 +83,7 @@
 """
 __RCSID__ = "$Id$"
 
+from random import shuffle
 from DIRAC.Core.Base.AgentModule import AgentModule
 from DIRAC import gConfig
 
@@ -141,8 +148,9 @@ class VirtualMachineScheduler( AgentModule ):
 
     for directorName, directorDict in self.directors.items():
       self.log.verbose( 'Checking Director:', directorName )
-      for imageName in directorDict['director'].images:
-        imageDict = directorDict['director'].images[imageName]
+      for runningPodName in directorDict['director'].runningPods:
+        runningPodDict = directorDict['director'].runningPods[runningPodName]
+        imageName = runningPodDict['Image']
         instances = 0
         result = virtualMachineDB.getInstancesByStatus( 'Running' )
         if result['OK'] and imageName in result['Value']:
@@ -151,14 +159,17 @@ class VirtualMachineScheduler( AgentModule ):
         if result['OK'] and imageName in result['Value']:
           instances += len( result['Value'][imageName] )
         self.log.verbose( 'Checking Image %s:' % imageName, instances )
-        maxInstances = imageDict['MaxInstances']
+        maxInstances = runningPodDict['MaxInstances']
         if instances >= maxInstances:
           self.log.info( '%s >= %s Running instances of %s, skipping' % ( instances, maxInstances, imageName ) )
           continue
 
-        CloudEndpoints = imageDict['CloudEndpoints'] 
-        for endpoint in CloudEndpoints:
-          maxEndpointInstance = gConfig.getValue( "/Resources/VirtualMachines/Images/CloudEndpoints/%s/%s" % ( endpoint, 'MaxEndpointInstance' ), "" )         
+        endpointFound = False
+        cloudEndpoints = runningPodDict['CloudEndpoints'] 
+        # random selection of the endpoint:
+        shuffle(cloudEndpoints)
+        for endpoint in cloudEndpoints:
+          maxEndpointInstance = gConfig.getValue( "/Resources/VirtualMachines/Images/CloudEndpoints/%s/%s" % ( endpoint, 'MaxEndpointInstances' ), "" )         
           endpointInstances = 0
           result = virtualMachineDB.getInstancesByStatusAndEndpoit( 'Running',endpoint )
           if result['OK'] and imageName in result['Value']:
@@ -166,11 +177,15 @@ class VirtualMachineScheduler( AgentModule ):
           result = virtualMachineDB.getInstancesByStatusAndEndpoit( 'Submitted',endpoint )
           if result['OK'] and imageName in result['Value']:
             endpointInstances += len( result['Value'][imageName] )
-          if endpointInstances >= maxEndpointInstances:
-            self.log.info( '%s >= %s Running instances of %s, skipping, no endpoint with free slots found for image' % ( endpointInstances, maxEndpointInstances, imageName ) )
+          if endpointInstances < maxEndpointInstances:
+            endpointFound = True
+            break
+
+        if not endpointFound:
+            self.log.info( 'Skipping, from list %s; there is no endpoint with free slots found for image %s' % ( runningPodDict['CloudEndpoints'], imageName ) )
             continue
 
-        imageRequirementsDict = imageDict['RequirementsDict']
+        imageRequirementsDict = runningPodDict['RequirementsDict']
         result = taskQueueDB.getMatchingTaskQueues( imageRequirementsDict )
         if not result['OK']:
           self.log.error( 'Could not retrieve TaskQueues from TaskQueueDB', result['Message'] )
@@ -188,8 +203,8 @@ class VirtualMachineScheduler( AgentModule ):
           self.log.info( 'No matching jobs for %s found, skipping' % imageName )
           continue
 
-        if instances and ( cpu / instances ) < imageDict['CPUPerInstance']:
-          self.log.info( 'Waiting CPU per Running instance %s < %s, skipping' % ( cpu / instances, imageDict['CPUPerInstance'] ) )
+        if instances and ( cpu / instances ) < runningPodDict['CPUPerInstance']:
+          self.log.info( 'Waiting CPU per Running instance %s < %s, skipping' % ( cpu / instances, runningPodDict['CPUPerInstance'] ) )
           continue
 
         if directorName not in imagesToSubmit:
@@ -199,18 +214,23 @@ class VirtualMachineScheduler( AgentModule ):
         imagesToSubmit[directorName][imageName] = { 'Jobs': jobs,
                                                     'TQPriority': priority,
                                                     'CPUTime': cpu,
-                                                    'VMPriority': imageDict['Priority'] }
+                                                    'CloudEndpoint': endpoint, 
+                                                    'RunningPodName': runningPodName, 
+                                                    'VMPriority': runningPodDict['Priority'] }
 
-    for directorName, imageDict in imagesToSubmit.items():
-      for imageName, jobsDict in imageDict.items():
+    for directorName, imageOfJobsToSubmitDict in imagesToSubmit.items():
+      for imageName, jobsToSubmitDict in imageOfJobsToSubmitDict.items():
         if self.directors[directorName]['isEnabled']:
           self.log.info( 'Requesting submission of %s to %s' % ( imageName, directorName ) )
 
           director = self.directors[directorName]['director']
           pool = self.pools[self.directors[directorName]['pool']]
 
+          endpoint = jobsToSubmitDict['CloudEndpoint']
+          runningPodName = jobsToSubmitDict['RunningPodName']
+
           ret = pool.generateJobAndQueueIt( director.submitInstance,
-                                            args = ( imageName, self.workDirt, endpoint ),
+                                            args = ( imageName, self.workDirt, endpoint, runningPodName ),
                                             oCallback = self.callBack,
                                             oExceptionCallback = director.exceptionCallBack,
                                             blocking = False )
@@ -343,29 +363,9 @@ class VirtualMachineScheduler( AgentModule ):
     """
 
     self.log.info( 'Creating Director for SubmitPool:', submitPool )
-    # no hay Falvor en VirtualMachineScheduler
-    # 1. check the Flavor
-    # Comprobar esto
-    #directorFlavor = self.am_getOption( submitPool + '/Flavor', '' )
-    #if not directorFlavor:
-    #  self.log.error( 'No Director Flavor defined for SubmitPool:', submitPool )
-    #  return
-    #
-    #directorName = '%sDirector' % directorFlavor
+    # 1. get the CloudDirector
 
-    directorName = '%sDirector' % sumbitPool
-
-    self.log.info( 'Instantiating Director Object:', directorName )
-    if directorName == "KVMDirector":
-      director = KVMDirector( submitPool )
-#    elif directorName == "AmazonDirector":
-#      director = AmazonDirector( submitPool )
-#    elif directorName == "OcciDirector":
-#      director = OcciDirector( submitPool )
-    elif directorName == "CloudDirector":
-      director = CloudDirector( submitPool )
-    else:
-      return
+    director = CloudDirector( submitPool )
 
     self.log.info( 'Director Object instantiated:', directorName )
 

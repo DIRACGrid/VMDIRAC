@@ -986,14 +986,14 @@ class VirtualMachineDB( DB ):
     sqlQuery += " GROUP BY %s ORDER BY `Update` ASC" % groupby
     return self._query( sqlQuery )
 
-  def getRunningPodDict ( runningPodName ):
-  """
-  Return from CS a Dictionary with RunningPod definition
-  """
+  def getRunningPodDict( runningPodName ):
+    """
+    Return from CS a Dictionary with RunningPod definition
+    """
     runningPodsCSPath = '/Resources/VirtualMachines/RunningPods'
     definedRunningPods = DIRAC.gConfig.getSections( runningPodsCSPath )
-    if not definedImages['OK']:
-      return definedImages
+    if not definedRunningPods['OK']:
+      return definedRunningPods
 
     if runningPodName not in definedRunningPods['Value']:
       return DIRAC.S_ERROR( 'RunningPod "%s" not defined' % runningPodName )

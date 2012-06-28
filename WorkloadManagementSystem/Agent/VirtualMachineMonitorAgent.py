@@ -26,6 +26,15 @@ class VirtualMachineMonitorAgent( AgentModule ):
     except Exception, e:
       return S_ERROR( "Could not retrieve amazon instance id: %s" % str( e ) )
 
+  def getOcciVMId( self ):
+    try:
+      fd = open(os.path.join('/etc','VMID'),'r')
+      id = fd.read().strip()
+      fd.close()
+      return S_OK( id )
+    except Exception, e:
+      return S_ERROR( "Could not retrieve occi instance id: %s" % str( e ) )
+
   def getUptime( self ):
     fd = open( "/proc/uptime" )
     uptime = float( List.fromChar( fd.read().strip(), " " )[0] )
@@ -58,9 +67,15 @@ class VirtualMachineMonitorAgent( AgentModule ):
       return S_ERROR( "/LocalSite/VirtualMachineName is not defined" )
     #Variables coming from the vm 
     imgPath = "/Resources/VirtualMachines/Images/%s" % self.vmName
+    #for csOption, csDefault, varName in ( ( "Flavor", "", "vmFlavor" ),
+    #                                      ( "MinWorkingLoad", 0.01, "vmMinWorkingLoad" ),
+    #                                      ( "LoadAverageTimespan", 900, "vmLoadAvgTimespan" ),
+    #                                      ( "JobWrappersLocation", "/opt/dirac/pro/job/Wrapper/", "vmJobWrappersLocation" )
+    #                                    ):
+    # temporal patch for occi until CS Flavor implemented:
     for csOption, csDefault, varName in ( ( "Flavor", "", "vmFlavor" ),
                                           ( "MinWorkingLoad", 0.01, "vmMinWorkingLoad" ),
-                                          ( "LoadAverageTimespan", 900, "vmLoadAvgTimespan" ),
+                                          ( "LoadAverageTimespan", 60, "vmLoadAvgTimespan" ),
                                           ( "JobWrappersLocation", "/opt/dirac/pro/job/Wrapper/", "vmJobWrappersLocation" )
                                         ):
 
@@ -71,9 +86,14 @@ class VirtualMachineMonitorAgent( AgentModule ):
       setattr( self, varName, value )
     #Variables coming from the flavor
     flavorPath = "/Resources/VirtualMachines/Flavors/%s" % self.vmFlavor
-    for csOption, csDefault, varName in ( ( "HaltPeriod", 3600, "haltPeriod" ),
+    #for csOption, csDefault, varName in ( ( "HaltPeriod", 3600, "haltPeriod" ),
+    #                                      ( "HaltBeforeMargin", 300, "haltBeforeMargin" ),
+    #                                      ( "HeartBeatPeriod", 900, "heartBeatPeriod" ),
+    #                                    ):
+    # temporal patch for occi until CS Flavor implemented:
+    for csOption, csDefault, varName in ( ( "HaltPeriod", 1200, "haltPeriod" ),
                                           ( "HaltBeforeMargin", 300, "haltBeforeMargin" ),
-                                          ( "HeartBeatPeriod", 900, "heartBeatPeriod" ),
+                                          ( "HeartBeatPeriod", 600, "heartBeatPeriod" ),
                                         ):
 
       path = "%s/%s" % ( flavorPath, csOption )
@@ -124,14 +144,16 @@ class VirtualMachineMonitorAgent( AgentModule ):
     self.am_setOption( "MaxCycles", 0 )
     self.am_setOption( "PollingTime", 60 )
     #Discover id based on flavor
-    flavor = gConfig.getValue( "/LocalSite/VirtualMachineIDFlavor", "" ).lower()
+    flavor = gConfig.getValue( "/LocalSite/Flavor", "" ).lower()
     gLogger.info( "ID flavor is %s" % flavor )
     if flavor == 'generic':
       result = self.getGenericVMId()
     elif flavor == 'amazon':
       result = self.getAmazonVMId()
+    elif flavor == 'occi':
+      result = self.getOcciVMId()
     else:
-      return S_ERROR( "Unknown VM Flavor (%s)" % self.vmFlavor )
+      return S_ERROR( "Unknown VM Flavor (%s)" % flavor )
     if not result[ 'OK' ]:
       return S_ERROR( "Could not generate VM id: %s" % result[ 'Message' ] )
     self.vmId = result[ 'Value' ]
@@ -265,15 +287,18 @@ class VirtualMachineMonitorAgent( AgentModule ):
     retries = 3
     sleepTime = 10
     for i in range( retries ):
-      result = virtualMachineDB.declareInstanceHalting( self.vmId, avgLoad )
+      flavor = gConfig.getValue( "/LocalSite/Flavor", "" ).lower()
+      result = virtualMachineDB.declareInstanceHalting( self.vmId, avgLoad, flavor )
       if result[ 'OK' ]:
         gLogger.info( "Declared instance halting" )
         break
       gLogger.error( "Could not send halting state", result[ 'Message' ] )
       if i < retries - 1 :
         gLogger.info( "Sleeping for %d seconds and retrying" % sleepTime )
-        time.sleep( 60 )
+        time.sleep( sleepTime )
 
-    #HALT
+    #time.sleep( sleepTime )
+      
+    # all flavors:
     gLogger.info( "Executing system halt..." )
     os.system( "halt" )

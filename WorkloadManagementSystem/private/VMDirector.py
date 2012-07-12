@@ -53,7 +53,6 @@ class VMDirector:
     """
       reload from CS
     """
-    from VMDIRAC.WorkloadManagementSystem.DB.VirtualMachineDB               import getRunningPodDict
     self.log.debug( 'Configuring from %s' % mySection )
     self.errorMailAddress = DIRAC.gConfig.getValue( mySection + '/ErrorMailAddress'     , self.errorMailAddress )
     self.alarmMailAddress = DIRAC.gConfig.getValue( mySection + '/AlarmMailAddress'     , self.alarmMailAddress )
@@ -67,7 +66,7 @@ class VMDirector:
       self.log.verbose( 'Trying to configure RunningPod:', runningPodName )
       if runningPodName in self.runningPods:
         continue
-      runningPodDict = getRunningPodDict( runingPodName )
+      runningPodDict = virtualMachineDB.getRunningPodDict( runingPodName )
       if not runningPodName['OK']:
         return runningPodDict
       runningPodDict = runningPodDict[ 'Value' ]

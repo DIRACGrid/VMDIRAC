@@ -67,8 +67,9 @@ class VMDirector:
       if runningPodName in self.runningPods:
         continue
       runningPodDict = virtualMachineDB.getRunningPodDict( runningPodName )
-      if not runningPodName['OK']:
+      if not runningPodDict['OK']:
         return runningPodDict
+      self.log.verbose( 'Trying to configure RunningPodDict:', runningPodDict )
       runningPodDict = runningPodDict[ 'Value' ]
       for option in ['Image','MaxInstances', 'CPUPerInstance', 'Priority','CloudEndpoints']:
         if option not in runningPodDict.keys():

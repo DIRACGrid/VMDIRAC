@@ -366,6 +366,7 @@ class VirtualMachineScheduler( AgentModule ):
     # 1. get the CloudDirector
 
     director = CloudDirector( submitPool )
+    directorName = '%sDirector' % submitPool
 
     self.log.info( 'Director Object instantiated:', directorName )
 

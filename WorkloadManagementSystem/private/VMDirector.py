@@ -66,7 +66,7 @@ class VMDirector:
       self.log.verbose( 'Trying to configure RunningPod:', runningPodName )
       if runningPodName in self.runningPods:
         continue
-      runningPodDict = virtualMachineDB.getRunningPodDict( runingPodName )
+      runningPodDict = virtualMachineDB.getRunningPodDict( runningPodName )
       if not runningPodName['OK']:
         return runningPodDict
       runningPodDict = runningPodDict[ 'Value' ]

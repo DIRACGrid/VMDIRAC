@@ -404,7 +404,7 @@ class VirtualMachineDB( DB ):
 
     fields = ['Name', 'Endpoint','VMImageID', 'Status', 'LastUpdate' ]
     values = [instanceName, endpoint, imageID, validStates[0], DIRAC.Time.toString() ]
-    result = getRunningPodDict( runningPodName )
+    result = __getRunningPodDict( runningPodName )
     if not result[ 'OK' ]:
       return result
     runningPodDict = result[ 'Value' ]
@@ -600,7 +600,7 @@ class VirtualMachineDB( DB ):
       # The image exits in DB, has to match
       imageID = imageID['Value'][0][0]
 
-    result = getRunningPodDict( runningPodName )
+    result = __getRunningPodDict( runningPodName )
     if not result['OK']:
       return result
     runningPodDict = result[ 'Value' ]
@@ -986,7 +986,14 @@ class VirtualMachineDB( DB ):
     sqlQuery += " GROUP BY %s ORDER BY `Update` ASC" % groupby
     return self._query( sqlQuery )
 
-  def getRunningPodDict( runningPodName ):
+  def getRunningPodDict( self, runningPodName ):
+    """
+    Wraper to private function
+    """
+    return __getRunningPodDict ( runningPodName )
+   
+
+  def __getRunningPodDict( runningPodName ):
     """
     Return from CS a Dictionary with RunningPod definition
     """

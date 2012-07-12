@@ -61,6 +61,7 @@ class VMDirector:
 
     # following will do something only when call from reload including SubmitPool as mySection
     requestedRunningPods = DIRAC.gConfig.getValue( mySection + '/RunningPods', self.runningPods.keys() )
+    self.log.verbose( 'Requested RunningPods:', requestedRunningPods )
 
     for runningPodName in requestedRunningPods:
       self.log.verbose( 'Trying to configure RunningPod:', runningPodName )

@@ -2,7 +2,7 @@
 # $HeadURL$
 # File :   VMDirector.py
 # Author : Ricardo Graciani
-# Author : Victor Méndez, multisite
+# Author : Victor Mendez, multisite
 ########################################################################
 __RCSID__ = "$Id: VMDirector.py 16 2010-03-15 11:39:29Z ricardo.graciani@gmail.com $"
 

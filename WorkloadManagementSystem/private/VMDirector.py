@@ -28,7 +28,7 @@ class VMDirector:
 
     self.runningPods = {}
 
-    # csSection is call from the VirtualMachineScheduler
+    # csSection comming from VirtualMachineScheduler call
     self.configureFromSection( csSection )
     # reload will add SubmitPool to csSection to get the RunningPods and Images of a Director
     self.reloadConfiguration( csSection, submitPool )

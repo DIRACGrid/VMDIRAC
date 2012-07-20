@@ -132,11 +132,8 @@ class VirtualMachineManagerHandler( RequestHandler ):
 
     oima = OcciImage( imageName, endpoint )
     result = oima.stopInstance( vmId )
-    if not result[ 'OK' ]:
-      return result
 
-    idInstance = result['Value']
-    return DIRAC.S_OK( idInstance )
+    return result
 
   ###########################################################################
   types_getInstancesByStatus = [ StringType ]

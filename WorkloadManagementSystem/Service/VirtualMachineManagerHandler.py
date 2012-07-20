@@ -119,7 +119,7 @@ class VirtualMachineManagerHandler( RequestHandler ):
       return result
     endpoint = result[ 'Value' ]
 
-    result = gvirtualMachineDB.declareInstanceHalting( vmId, load)
+    result = gVirtualMachineDB.declareInstanceHalting( vmId, load)
     if not contextualization =='occi':
       return result
     if not result[ 'OK' ]:

@@ -51,13 +51,13 @@ class VirtualMachineManagerHandler( RequestHandler ):
 
 
   ###########################################################################
-  types_insertInstance = [ StringType, ( StringType, UnicodeType ) ]
-  def export_insertInstance( self, imageName, instanceName ):
+  types_insertInstance = [ StringType, ( StringType, UnicodeType ), ]
+  def export_insertInstance( self, imageName, instanceName, endpoint, runningPodName ):
     """
     Check Status of a given image
     Will insert a new Instance in the DB
     """
-    return gVirtualMachineDB.insertInstance( imageName, instanceName )
+    return gVirtualMachineDB.insertInstance( imageName, instanceName, endpoint, runningPodName)
 
   ###########################################################################
   types_setInstanceUniqueID = [ LongType, ( StringType, UnicodeType ) ]
@@ -107,15 +107,20 @@ class VirtualMachineManagerHandler( RequestHandler ):
                                                   transferredFiles, transferredBytes, uptime )
 
   ###########################################################################
-  types_declareInstanceHalting = [ StringType, FloatType, StringType ]
-  def export_declareInstanceHalting( self, uniqueID, load ):
+  types_declareInstanceHalting = [ StringType, FloatType ]
+  def export_declareInstanceHalting( self, vmId, load, contextualization ):
     """
     Insert the heart beat info from a halting instance
     Declares "Halted" the instance and the image 
     It returns S_ERROR if the status is not OK
     """
-    result = gvirtualMachineDB.declareInstanceHalting( uniqueID, load)
-    if not flavor == 'occi':
+    result = gVirtualMachineDB.getEndpointFromInstance( vmId )
+    if not result[ 'OK' ]:
+      return result
+    endpoint = result[ 'Value' ]
+
+    result = gVirtualMachineDB.declareInstanceHalting( vmId, load)
+    if not contextualization =='occi':
       return result
     if not result[ 'OK' ]:
       return result
@@ -124,13 +129,11 @@ class VirtualMachineManagerHandler( RequestHandler ):
     if not result[ 'OK' ]:
       return result
     imageName = result[ 'Value' ]
-    oima = OcciImage( imageName )
-    result = oima.stopInstance( vmId )
-    if not result[ 'OK' ]:
-      return result
 
-    idInstance = result['Value']
-    return DIRAC.S_OK( idInstance )
+    oima = OcciImage( imageName, endpoint )
+    result = oima.stopInstance( vmId )
+
+    return result
 
   ###########################################################################
   types_getInstancesByStatus = [ StringType ]

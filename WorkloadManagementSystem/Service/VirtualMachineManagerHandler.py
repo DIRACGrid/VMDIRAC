@@ -108,7 +108,7 @@ class VirtualMachineManagerHandler( RequestHandler ):
 
   ###########################################################################
   types_declareInstanceHalting = [ StringType, FloatType ]
-  def export_declareInstanceHalting( self, uniqueID, load, contextualization ):
+  def export_declareInstanceHalting( self, vmId, load, contextualization ):
     """
     Insert the heart beat info from a halting instance
     Declares "Halted" the instance and the image 
@@ -119,7 +119,7 @@ class VirtualMachineManagerHandler( RequestHandler ):
       return result
     endpoint = result[ 'Value' ]
 
-    result = gvirtualMachineDB.declareInstanceHalting( uniqueID, load)
+    result = gvirtualMachineDB.declareInstanceHalting( vmId, load)
     if not contextualization =='occi':
       return result
     if not result[ 'OK' ]:

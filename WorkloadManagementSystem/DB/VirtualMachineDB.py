@@ -195,7 +195,7 @@ class VirtualMachineDB( DB ):
     imageStatus = self.checkImageStatus( imageName, runningPodName )
     if not imageStatus['OK']:
       return imageStatus
-
+    
     return self.__insertInstance( imageName, instanceName, endpoint, runningPodName )
 
   def setInstanceUniqueID( self, instanceID, uniqueID ):
@@ -618,7 +618,7 @@ class VirtualMachineDB( DB ):
         return DIRAC.S_OK( imageID )
 
     ret = self._insert( tableName, ['Name', 'CloudEndpoints', 'Requirements', 'Status', 'LastUpdate'],
-                                     [imageName, cloudendpoint, requirements, validStates[0], DIRAC.Time.toString()] )
+                                     [imageName, cloudendpoints, requirements, validStates[0], DIRAC.Time.toString()] )
     if ret['OK'] and 'lastRowId' in ret:
       id = ret['lastRowId']
       ret = self._getFields( tableName, [idName], ['Name', 'CloudEndpoints', 'Requirements'],
@@ -630,7 +630,7 @@ class VirtualMachineDB( DB ):
         if result['OK']:
           image = result[ 'Value' ]
           self.log.error( 'Trying to insert Name: "%s", CloudEndpoints: "%s", Requirements: "%s"' %
-                                            ( imageName, cloudendpoint, requirements ) )
+                                            ( imageName, cloudendpoints, requirements ) )
           self.log.error( 'But inserted     Name: "%s", CloudEndpoints: "%s", Requirements: "%s"' %
                                             ( image['Name'], image['CloudEndpoints'], image['Requirements'] ) )
         return self.__setError( 'Image', id, 'Failed to insert new Image' )
@@ -1002,7 +1002,7 @@ class VirtualMachineDB( DB ):
 
     runningPodDict = {}
 
-    cloudEndpoints = DIRAC.gConfig.getValue( '%s/CloudEndpoints' % runingPodCSPath , '' )
+    cloudEndpoints = DIRAC.gConfig.getValue( '%s/CloudEndpoints' % runningPodCSPath , '' )
     if not cloudEndpoints:
       return DIRAC.S_ERROR( 'Missing CloudEndpoints for RunnningPod "%s"' % runningPodName )
     for option, value in DIRAC.gConfig.getOptionsDict( runningPodCSPath )['Value'].items():

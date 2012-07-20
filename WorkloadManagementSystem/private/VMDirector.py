@@ -86,9 +86,11 @@ class VMDirector:
   def submitInstance( self, imageName, workDir, endpoint, runningPodName  ):
     """
     """
-    self.log.info( 'Submitting %s to endpoint %s of runningPod % s', ( imageName, endpoint, runningPodName) )
-    if imageName not in self.images:
-      return DIRAC.S_ERROR( 'Unknown Image: %s' % imageName )
+    self.log.info( '*** Preparint to submitting image: ', imageName )
+    self.log.info( '******* of running pod: ', runningPodName )
+    self.log.info( '******* destination: ', endpoint )
+    if runningPodName not in self.runningPods:
+      return DIRAC.S_ERROR( 'Unknown Running Pod: %s' % runningPodName )
     retDict = virtualMachineDB.insertInstance( imageName, imageName, endpoint, runningPodName  )
     if not retDict['OK']:
       return retDict

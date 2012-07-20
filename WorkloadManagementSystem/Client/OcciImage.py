@@ -25,7 +25,7 @@ class OcciImage:
     self.__DIRACImageName = DIRACImageName
     self.__bootImageName = self.__getCSImageOption( "bootImageName" ) 
     self.__hdcImageName = self.__getCSImageOption( "hdcImageName" )
-    self.log = gLogger.getSubLogger( "OII %s(boot,hdc): (%s,%s) " % ( DIRACImageName, self.__bootImageName, self.__hdcImageName ) )
+    self.log = gLogger.getSubLogger( "OII %s(%s,%s): " % ( DIRACImageName, self.__bootImageName, self.__hdcImageName ) )
 # __instances list not used now 
     self.__instances = []
     self.__errorStatus = ""
@@ -123,6 +123,13 @@ class OcciImage:
       self.log.error( self.__errorStatus )
       return
 
+    # cvmfs http proxy:
+    self.__CVMFS_HTTP_PROXY = self.__getCSCloudEndpointOption( "CVMFS_HTTP_PROXY" )
+    if not self.__CVMFS_HTTP_PROXY:
+      self.__errorStatus = "Can't find the CVMFS_HTTP_PROXY for endpoint %s" % self.__endpoint
+      self.log.error( self.__errorStatus )
+      return
+
     # URL context files:
     self.__URLcontextfiles = self.__getCSImageOption( "URLcontextfiles" )
     if not self.__URLcontextfiles:
@@ -149,7 +156,7 @@ class OcciImage:
     """
     return gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( self.__endpoint, option ), defValue )
 
-  def startNewInstance( self, instanceType = "small"):
+  def startNewInstance( self, instanceType = "small", imageDriver = "default" ):
     """
     Prior to use, virtual machine images are uploaded to the OCCI cloud manager
     assigned an id (OII in a URI). 
@@ -157,7 +164,7 @@ class OcciImage:
     if self.__errorStatus:
       return S_ERROR( self.__errorStatus )
     self.log.info( "Starting new instance for image (boot,hdc): %s,%s; to endpoint %s, and driver %s" % ( self.__bootImageName, self.__hdcImageName, self.__endpoint, self.__driver ) )
-    request = self.__cliocci.create_VMInstance( self.__bootImageName, self.__hdcImageName, instanceType, self.__bootOII, self.__hdcOII, self.__DNS1, self.__DNS2, self.__Domain, self.__URLcontextfiles, self.__NetId)
+    request = self.__cliocci.create_VMInstance( self.__bootImageName, self.__hdcImageName, instanceType, imageDriver, self.__bootOII, self.__hdcOII, self.__DNS1, self.__DNS2, self.__Domain, self.__CVMFS_HTTP_PROXY, self.__URLcontextfiles, self.__NetId)
     if request.returncode != 0:
       self.__errorStatus = "Can't create instance for boot image (boot,hdc): %s/%s at server %s\n%s" % (self.__bootImageName, self.__hdcImageName, self.__occiURI, request.stdout)
       self.log.error( self.__errorStatus )

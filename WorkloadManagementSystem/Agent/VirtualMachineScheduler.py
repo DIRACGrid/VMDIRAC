@@ -165,16 +165,23 @@ class VirtualMachineScheduler( AgentModule ):
           continue
 
         endpointFound = False
-        cloudEndpoints = runningPodDict['CloudEndpoints'] 
-        # random selection of the endpoint:
+        cloudEndpointsStr = runningPodDict['CloudEndpoints'] 
+	# random 
+        cloudEndpoints = [element for element in cloudEndpointsStr.split(',')]       
         shuffle(cloudEndpoints)
+        self.log.info( 'cloudEndpoints random failover: %s' % cloudEndpoints )
         for endpoint in cloudEndpoints:
-          maxEndpointInstance = gConfig.getValue( "/Resources/VirtualMachines/Images/CloudEndpoints/%s/%s" % ( endpoint, 'MaxEndpointInstances' ), "" )         
+          self.log.info( 'Checking to submit to: %s' % endpoint )
+          maxEndpointInstances = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, 'MaxEndpointInstances' ), "" )         
+          if not maxEndpointInstances:
+            self.log.info( 'CloudEndpoint %s has no define MaxEndpointInstance option' % endpoint )
+            continue
+
           endpointInstances = 0
-          result = virtualMachineDB.getInstancesByStatusAndEndpoit( 'Running',endpoint )
+          result = virtualMachineDB.getInstancesByStatusAndEndpoint( 'Running',endpoint )
           if result['OK'] and imageName in result['Value']:
             endpointInstances += len( result['Value'][imageName] )
-          result = virtualMachineDB.getInstancesByStatusAndEndpoit( 'Submitted',endpoint )
+          result = virtualMachineDB.getInstancesByStatusAndEndpoint( 'Submitted',endpoint )
           if result['OK'] and imageName in result['Value']:
             endpointInstances += len( result['Value'][imageName] )
           if endpointInstances < maxEndpointInstances:
@@ -186,11 +193,13 @@ class VirtualMachineScheduler( AgentModule ):
             continue
 
         imageRequirementsDict = runningPodDict['RequirementsDict']
+        #self.log.info( 'Image Requirements Dict: ', imageRequirementsDict )
         result = taskQueueDB.getMatchingTaskQueues( imageRequirementsDict )
         if not result['OK']:
           self.log.error( 'Could not retrieve TaskQueues from TaskQueueDB', result['Message'] )
           return result
         taskQueueDict = result['Value']
+        #self.log.info( 'Task Queues Dict: ', taskQueueDict )
         jobs = 0
         priority = 0
         cpu = 0
@@ -230,7 +239,7 @@ class VirtualMachineScheduler( AgentModule ):
           runningPodName = jobsToSubmitDict['RunningPodName']
 
           ret = pool.generateJobAndQueueIt( director.submitInstance,
-                                            args = ( imageName, self.workDirt, endpoint, runningPodName ),
+                                            args = ( imageName, self.workDir, endpoint, runningPodName ),
                                             oCallback = self.callBack,
                                             oExceptionCallback = director.exceptionCallBack,
                                             blocking = False )

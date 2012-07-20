@@ -70,7 +70,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
     # temporal patch for occi until CS Endpoint implemented:
     for csOption, csDefault, varName in ( ( "MinWorkingLoad", 0.01, "vmMinWorkingLoad" ),
                                           ( "LoadAverageTimespan", 60, "vmLoadAvgTimespan" ),
-                                          ( "JobWrappersLocation", "/opt/dirac/pro/job/Wrapper/", "vmJobWrappersLocation" )
+                                          ( "JobWrappersLocation", "/opt/dirac/pro/job/Wrapper/", "vmJobWrappersLocation" ),
                                           ( "HaltPeriod", 1200, "haltPeriod" ),
                                           ( "HaltBeforeMargin", 300, "haltBeforeMargin" ),
                                           ( "HeartBeatPeriod", 600, "heartBeatPeriod" ),
@@ -129,9 +129,9 @@ class VirtualMachineMonitorAgent( AgentModule ):
     gLogger.info( "ID contextualization is %s" % self.contextualization )
     if self.contextualization == 'generic':
       result = self.getGenericVMId()
-    elif contextualization == 'amazon':
+    elif self.contextualization == 'amazon':
       result = self.getAmazonVMId()
-    elif contextualization == 'occi':
+    elif self.contextualization == 'occi':
       result = self.getOcciVMId()
     else:
       return S_ERROR( "Unknown VM CloudEndpoint (%s)" % self.contextualization )

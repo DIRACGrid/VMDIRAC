@@ -1,3 +1,7 @@
+[v0r4]
+
+FIX: Added missing occi and cloud director files
+
 [v0r3]
 
 NEW: Redesign of VMDirector to allow for more Cloud provider drivers without modifications to the VM core components.

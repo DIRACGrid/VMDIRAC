@@ -1,3 +1,10 @@
+[v0r3]
+
+NEW: Redesign of VMDirector to allow for more Cloud provider drivers without modifications to the VM core components.
+NEW: An image is componed of a bootstrap image and context files. Optionally a context image can be included also.
+CHANGE: A CS Cloud Endpoint has all the contextualization and configuration parameters for a specific endpoint
+CHANGE: A running Pod contains a DIRAC image, a list of endpoings and the necessary parameters and requirements.
+
 [v0r2]
 
 Initial version of VMDIRAC. It includes support for Occi and Amazon clouds.

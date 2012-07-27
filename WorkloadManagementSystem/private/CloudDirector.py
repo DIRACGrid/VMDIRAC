@@ -40,7 +40,7 @@ class CloudDirector( VMDirector ):
     driver = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, 'driver' ), "" )   
 
     if driver == 'Amazon':
-      ami = AmazonImage( imageName )
+      ami = AmazonImage( imageName, endpoint )
       result = ami.startNewInstances()
       if not result[ 'OK' ]:
         return result

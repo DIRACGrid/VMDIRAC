@@ -150,10 +150,6 @@ class OcciImage:
     return gConfig.getValue( "/Resources/VirtualMachines/Images/%s/%s" % ( self.__DIRACImageName, option ), defValue )
 
   def __getCSCloudEndpointOption( self, option, defValue = "" ):
-    """
-    One flavour can correspond to many images, get the usr, passwd, dns, domain
-    URL to root.pub file, network_id and other occi server specific values
-    """
     return gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( self.__endpoint, option ), defValue )
 
   def startNewInstance( self, instanceType = "small", imageDriver = "default" ):

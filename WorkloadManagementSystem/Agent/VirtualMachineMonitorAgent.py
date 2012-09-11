@@ -28,12 +28,20 @@ class VirtualMachineMonitorAgent( AgentModule ):
 
   def getOcciVMId( self ):
     try:
-      fd = open(os.path.join('/etc','VMID'),'r')
+      fd = open( os.path.join( '/etc', 'VMID' ), 'r' )
       id = fd.read().strip()
       fd.close()
       return S_OK( id )
     except Exception, e:
       return S_ERROR( "Could not retrieve occi instance id: %s" % str( e ) )
+
+  def getCloudStackVMId( self ):
+    try:
+      id = commands.getstatusoutput( '/bin/hostname' )
+      str = id[1].split( '-' )
+      return S_OK( str[2] )
+    except Exception, e:
+      return S_ERROR( "Could not retrieve CloudStack instance id: %s" % str( e ) )
 
   def getUptime( self ):
     fd = open( "/proc/uptime" )
@@ -133,6 +141,8 @@ class VirtualMachineMonitorAgent( AgentModule ):
       result = self.getAmazonVMId()
     elif self.contextualization == 'occi':
       result = self.getOcciVMId()
+    elif self.contextualization == 'cloudstack':
+      result = self.getCloudStackVMId()
     else:
       return S_ERROR( "Unknown VM CloudEndpoint (%s)" % self.contextualization )
     if not result[ 'OK' ]:
@@ -278,7 +288,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
         time.sleep( sleepTime )
 
     #time.sleep( sleepTime )
-      
+
     # all endpoint:
     gLogger.info( "Executing system halt..." )
     os.system( "halt" )

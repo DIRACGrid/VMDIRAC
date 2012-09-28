@@ -2,7 +2,7 @@ __RCSID__ = "$Id$"
 
 import time
 import urllib2
-import os
+import os, commands
 from DIRAC.Core.Base.AgentModule import AgentModule
 
 from DIRAC import gLogger, S_OK, S_ERROR, gConfig, rootPath

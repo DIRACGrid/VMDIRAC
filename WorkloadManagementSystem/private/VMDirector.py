@@ -68,6 +68,7 @@ class VMDirector:
         continue
       runningPodDict = virtualMachineDB.getRunningPodDict( runningPodName )
       if not runningPodDict['OK']:
+        self.log.error('Error in RunningPodDict: %s' % runningPodDict['Message'])
         return runningPodDict
       self.log.verbose( 'Trying to configure RunningPodDict:', runningPodDict )
       runningPodDict = runningPodDict[ 'Value' ]

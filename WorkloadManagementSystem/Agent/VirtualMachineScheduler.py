@@ -174,7 +174,7 @@ class VirtualMachineScheduler( AgentModule ):
           self.log.info( 'Checking to submit to: %s' % endpoint )
           maxEndpointInstances = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, 'MaxEndpointInstances' ), "" )         
           if not maxEndpointInstances:
-            self.log.info( 'CloudEndpoint %s has no define MaxEndpointInstance option' % endpoint )
+            self.log.info( 'CloudEndpoint %s has no define MaxEndpointInstances option' % endpoint )
             continue
 
           endpointInstances = 0

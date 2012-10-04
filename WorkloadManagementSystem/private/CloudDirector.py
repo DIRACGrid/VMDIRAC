@@ -44,7 +44,7 @@ class CloudDirector( VMDirector ):
       result = ami.startNewInstances()
       if not result[ 'OK' ]:
         return result
-      idInstance = result['Value']
+      idInstance = result['Value'][0]
       return S_OK( idInstance )
 
     # driver is occi like

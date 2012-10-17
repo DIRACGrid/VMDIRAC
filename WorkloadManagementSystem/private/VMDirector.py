@@ -3,6 +3,7 @@
 # File :   VMDirector.py
 # Author : Ricardo Graciani
 # Author : Victor Mendez, multisite
+# Author : Victor Fernandez, CloudStack submit implementation
 ########################################################################
 __RCSID__ = "$Id: VMDirector.py 16 2010-03-15 11:39:29Z ricardo.graciani@gmail.com $"
 
@@ -71,7 +72,7 @@ class VMDirector:
         return runningPodDict
       self.log.verbose( 'Trying to configure RunningPodDict:', runningPodDict )
       runningPodDict = runningPodDict[ 'Value' ]
-      for option in ['Image','MaxInstances', 'CPUPerInstance', 'Priority','CloudEndpoints']:
+      for option in ['Image', 'MaxInstances', 'CPUPerInstance', 'Priority', 'CloudEndpoints']:
         if option not in runningPodDict.keys():
           self.log.error( 'Missing option in "%s" RunningPod definition:' % runningPodName, option )
           continue
@@ -81,9 +82,9 @@ class VMDirector:
       self.runningPods[runningPodName]['MaxInstances'] = int( runningPodDict['MaxInstances'] )
       self.runningPods[runningPodName]['CPUPerInstance'] = int( runningPodDict['CPUPerInstance'] )
       self.runningPods[runningPodName]['Priority'] = int( runningPodDict['Priority'] )
-      self.runningPods[runningPodName]['CloudEndpoints'] = runningPodDict['CloudEndpoints'] 
+      self.runningPods[runningPodName]['CloudEndpoints'] = runningPodDict['CloudEndpoints']
 
-  def submitInstance( self, imageName, workDir, endpoint, runningPodName  ):
+  def submitInstance( self, imageName, workDir, endpoint, runningPodName ):
     """
     """
     self.log.info( '*** Preparint to submitting image: ', imageName )
@@ -91,7 +92,13 @@ class VMDirector:
     self.log.info( '******* destination: ', endpoint )
     if runningPodName not in self.runningPods:
       return DIRAC.S_ERROR( 'Unknown Running Pod: %s' % runningPodName )
-    retDict = virtualMachineDB.insertInstance( imageName, imageName, endpoint, runningPodName  )
+    retDict = virtualMachineDB.insertInstance( imageName, imageName, endpoint, runningPodName )
+
+    #########Comprobar que sea CloudStack el gestor Cloud
+    driver = DIRAC.gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, "driver" ) )
+    if ( driver == "CloudStack" ):
+      retDict2 = virtualMachineDB.insertInstance( imageName, imageName, endpoint, runningPodName )
+
     if not retDict['OK']:
       return retDict
     instanceID = retDict['Value']
@@ -100,9 +107,19 @@ class VMDirector:
       return retDict
     uniqueID = retDict[ 'Value' ]
     retDict = virtualMachineDB.setInstanceUniqueID( instanceID, uniqueID )
+
+    #########Comprobar que sea CloudStack el gestor Cloud
+    if ( driver == "CloudStack" ):
+      retDict2 = virtualMachineDB.setInstanceUniqueID( str( int( instanceID ) + 1 ), str( int( uniqueID ) - 1 ) )
+
     if not retDict['OK']:
       return retDict
     retDict = virtualMachineDB.declareInstanceSubmitted( uniqueID )
+
+    #########Comprobar que sea CloudStack el gestor Cloud
+    if ( driver == "CloudStack" ):
+      retDict2 = virtualMachineDB.declareInstanceSubmitted( str( int( uniqueID ) - 1 ) )
+
     if not retDict['OK']:
       return retDict
     return DIRAC.S_OK( imageName )

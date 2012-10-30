@@ -3,6 +3,7 @@
 # File :   VirtualMachineScheduler.py
 # Author : Ricardo Graciani, for single site suport
 # Author : Victor Mendez, for multiple endpoints, HEPIX, running pod, occi, etc
+# Author : Victor Fernandez, for cloudstack support
 ########################################################################
 
 """  The Virtual Machine Scheduler controls the submission of VM via the
@@ -34,7 +35,7 @@
        - SubmitPools (see above)
 
      SubmitPools may refer to:
-       - a full Cloud provider (AmazonEC2, Occi) 
+       - a full Cloud provider (AmazonEC2, Occi, CloudStack) 
        - a locally accessible Xen or KVM server
 
      For every Cloud SubmitPool there must be a corresponding Section with the necessary parameters:
@@ -165,23 +166,23 @@ class VirtualMachineScheduler( AgentModule ):
           continue
 
         endpointFound = False
-        cloudEndpointsStr = runningPodDict['CloudEndpoints'] 
+        cloudEndpointsStr = runningPodDict['CloudEndpoints']
 	# random 
-        cloudEndpoints = [element for element in cloudEndpointsStr.split(',')]       
-        shuffle(cloudEndpoints)
+        cloudEndpoints = [element for element in cloudEndpointsStr.split( ',' )]
+        shuffle( cloudEndpoints )
         self.log.info( 'cloudEndpoints random failover: %s' % cloudEndpoints )
         for endpoint in cloudEndpoints:
           self.log.info( 'Checking to submit to: %s' % endpoint )
-          maxEndpointInstances = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, 'MaxEndpointInstances' ), "" )         
+          maxEndpointInstances = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, 'MaxEndpointInstances' ), "" )
           if not maxEndpointInstances:
             self.log.info( 'CloudEndpoint %s has no define MaxEndpointInstance option' % endpoint )
             continue
 
           endpointInstances = 0
-          result = virtualMachineDB.getInstancesByStatusAndEndpoint( 'Running',endpoint )
+          result = virtualMachineDB.getInstancesByStatusAndEndpoint( 'Running', endpoint )
           if result['OK'] and imageName in result['Value']:
             endpointInstances += len( result['Value'][imageName] )
-          result = virtualMachineDB.getInstancesByStatusAndEndpoint( 'Submitted',endpoint )
+          result = virtualMachineDB.getInstancesByStatusAndEndpoint( 'Submitted', endpoint )
           if result['OK'] and imageName in result['Value']:
             endpointInstances += len( result['Value'][imageName] )
           if endpointInstances < maxEndpointInstances:
@@ -223,8 +224,8 @@ class VirtualMachineScheduler( AgentModule ):
         imagesToSubmit[directorName][imageName] = { 'Jobs': jobs,
                                                     'TQPriority': priority,
                                                     'CPUTime': cpu,
-                                                    'CloudEndpoint': endpoint, 
-                                                    'RunningPodName': runningPodName, 
+                                                    'CloudEndpoint': endpoint,
+                                                    'RunningPodName': runningPodName,
                                                     'VMPriority': runningPodDict['Priority'] }
 
     for directorName, imageOfJobsToSubmitDict in imagesToSubmit.items():

@@ -1,6 +1,6 @@
 ########################################################################
 # $HeadURL$
-# File : OcciClient.py
+# File : Occi08.py
 # Author : Victor Mendez ( vmendez.tic@gmail.com )
 ########################################################################
 # subset occi API based in the OpenNebula client command line implemention

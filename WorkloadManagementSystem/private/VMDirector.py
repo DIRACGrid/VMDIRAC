@@ -94,7 +94,9 @@ class VMDirector:
       return DIRAC.S_ERROR( 'Unknown Running Pod: %s' % runningPodName )
     retDict = virtualMachineDB.insertInstance( imageName, imageName, endpoint, runningPodName )
 
-    #########Comprobar que sea CloudStack el gestor Cloud
+    #########CloudStack2 adn CloudStack3 drivers have the bug of a single VM creation produces two VMs
+    #########To deal with this CloudStack preaty feature we first startNewInstance inside VMDIRECTOR._submitInstance, and second we declare two VMs (retDict and retDict2)
+    #########CloudStack check to preaty feature
     driver = DIRAC.gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, "driver" ) )
     if ( driver == "CloudStack" ):
       retDict2 = virtualMachineDB.insertInstance( imageName, imageName, endpoint, runningPodName )
@@ -108,7 +110,7 @@ class VMDirector:
     uniqueID = retDict[ 'Value' ]
     retDict = virtualMachineDB.setInstanceUniqueID( instanceID, uniqueID )
 
-    #########Comprobar que sea CloudStack el gestor Cloud
+    #########CloudStack check to preaty feature
     if ( driver == "CloudStack" ):
       retDict2 = virtualMachineDB.setInstanceUniqueID( str( int( instanceID ) + 1 ), str( int( uniqueID ) - 1 ) )
 
@@ -116,7 +118,7 @@ class VMDirector:
       return retDict
     retDict = virtualMachineDB.declareInstanceSubmitted( uniqueID )
 
-    #########Comprobar que sea CloudStack el gestor Cloud
+    #########CloudStack check to preaty feature
     if ( driver == "CloudStack" ):
       retDict2 = virtualMachineDB.declareInstanceSubmitted( str( int( uniqueID ) - 1 ) )
 

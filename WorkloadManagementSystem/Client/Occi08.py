@@ -130,7 +130,7 @@ class OcciClient:
 
       return request
 
-    def create_VMInstance( self, bootImageName, hdcImageName, instanceType, imageDriver, bootOII, hdcOII, occiDNS1, occiDNS2, Domain, CVMFS_HTTP_PROXY, occiURLcontextfiles, occiNetId):
+    def create_VMInstance( self, bootImageName, hdcImageName, instanceType, imageDriver, bootOII, hdcOII, iface, occiDNS1, occiDNS2, Domain, CVMFS_HTTP_PROXY, occiURLcontextfiles, occiNetId):
       """
       This creates a VM instance for the given boot image and hdc image, and
       also de OCCI context on-the-fly image, taken the given parameters.

@@ -157,17 +157,18 @@ class OcciClient:
           else:
               tempXML.write('                <DRIVER>' + imageDriver + '</DRIVER>\n')
       tempXML.write('        </DISK>\n')
-      tempXML.write('        <DISK id="1">\n')
-      tempXML.write('                <STORAGE href="' + self.URI + '/storage/' + hdcOII + '"/>\n')
-      tempXML.write('                <TYPE>CDROM</TYPE>\n')
-      if not imageDriver == 'default':
-          if imageDriver == 'qcow2-one-3.2.1':
-              tempXML.write('                <DRIVER>qcow2</DRIVER>\n')
-#          elif imageDriver == 'qcow2-one-3.2.0':
-#              tempXML.write('                <DRIVER type="qcow2"/>\n')
-          else:
-              tempXML.write('                <DRIVER>' + imageDriver + '</DRIVER>\n')
-      tempXML.write('        </DISK>\n')
+      if not hdcOII == 'NO_CONTEXT':
+          tempXML.write('        <DISK id="1">\n')
+          tempXML.write('                <STORAGE href="' + self.URI + '/storage/' + hdcOII + '"/>\n')
+          tempXML.write('                <TYPE>CDROM</TYPE>\n')
+          if not imageDriver == 'default':
+              if imageDriver == 'qcow2-one-3.2.1':
+                  tempXML.write('                <DRIVER>qcow2</DRIVER>\n')
+    #          elif imageDriver == 'qcow2-one-3.2.0':
+    #              tempXML.write('                <DRIVER type="qcow2"/>\n')
+              else:
+                  tempXML.write('                <DRIVER>' + imageDriver + '</DRIVER>\n')
+          tempXML.write('        </DISK>\n')
       tempXML.write('        <NIC>\n')
       tempXML.write('                <NETWORK href="' + self.URI + '/network/' + occiNetId + '"/>\n')
       tempXML.write('        </NIC>\n')

@@ -8,6 +8,7 @@ from DIRAC import gLogger, S_OK, S_ERROR, gConfig, rootPath
 from VMDIRAC.WorkloadManagementSystem.private.VMDirector import VMDirector
 from VMDIRAC.WorkloadManagementSystem.Client.OcciImage import OcciImage
 from VMDIRAC.WorkloadManagementSystem.Client.AmazonImage import AmazonImage
+from VMDIRAC.WorkloadManagementSystem.Client.CloudStackImage import CloudStackImage
 # aqui conf automatica de modulos (adri)
 
 class CloudDirector( VMDirector ):
@@ -37,22 +38,31 @@ class CloudDirector( VMDirector ):
       It checks wether are free slots by requesting status of sended VM to a cloud endpoint
     """
 
-    driver = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, 'driver' ), "" )   
+    driver = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, 'driver' ), "" )
 
     if driver == 'Amazon':
-      ami = AmazonImage( imageName )
+      ami = AmazonImage( imageName, endpoint )
       result = ami.startNewInstances()
       if not result[ 'OK' ]:
         return result
       idInstance = result['Value']
       return S_OK( idInstance )
 
+    if driver == 'CloudStack':
+      csi = CloudStackImage( imageName , endpoint )
+      result = csi.startNewInstance()
+      if not result[ 'OK' ]:
+        return result
+      idInstance = result['Value']
+      return S_OK( idInstance )
+
     # driver is occi like
-    instanceType = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, 'instanceType' ), "" )   
-    imageDriver = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, 'imageDriver' ), "" )   
+    instanceType = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, 'instanceType' ), "" )
+    imageDriver = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, 'imageDriver' ), "" )
     oima = OcciImage( imageName, endpoint )
     result = oima.startNewInstance( instanceType, imageDriver )
     if not result[ 'OK' ]:
       return result
     idInstance = result['Value']
     return S_OK( idInstance )
+

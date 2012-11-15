@@ -102,26 +102,35 @@ class OcciImage:
       return
     self.__hdcOII = request.stdout
 
-    # dns1
-    self.__DNS1 = self.__getCSCloudEndpointOption( "DNS1" )
-    if not self.__DNS1:
-      self.__errorStatus = "Can't find the DNS1 for endpoint %s" % self.__endpoint
+    # iface manual or auto (DHCP image)
+    self.__iface = self.__getCSCloudEndpointOption( "iface" )
+    if not self.__iface:
+      self.__errorStatus = "Can't find the iface (manual/auto) for endpoint %s" % self.__endpoint
       self.log.error( self.__errorStatus )
       return
 
-    # dns2
-    self.__DNS2 = self.__getCSCloudEndpointOption( "DNS2" )
-    if not self.__DNS2:
-      self.__errorStatus = "Can't find the DNS2 for endpoint %s" % self.__endpoint
-      self.log.error( self.__errorStatus )
-      return
+    if iface == 'static': 
 
-    # domain
-    self.__Domain = self.__getCSCloudEndpointOption( "Domain" )
-    if not self.__Domain:
-      self.__errorStatus = "Can't find the Domain for endpoint %s" % self.__endpoint
-      self.log.error( self.__errorStatus )
-      return
+        # dns1
+        self.__DNS1 = self.__getCSCloudEndpointOption( "DNS1" )
+        if not self.__DNS1:
+          self.__errorStatus = "Can't find the DNS1 for endpoint %s" % self.__endpoint
+          self.log.error( self.__errorStatus )
+          return
+
+        # dns2
+        self.__DNS2 = self.__getCSCloudEndpointOption( "DNS2" )
+        if not self.__DNS2:
+          self.__errorStatus = "Can't find the DNS2 for endpoint %s" % self.__endpoint
+          self.log.error( self.__errorStatus )
+          return
+
+        # domain
+        self.__Domain = self.__getCSCloudEndpointOption( "Domain" )
+        if not self.__Domain:
+          self.__errorStatus = "Can't find the Domain for endpoint %s" % self.__endpoint
+          self.log.error( self.__errorStatus )
+          return
 
     # cvmfs http proxy:
     self.__CVMFS_HTTP_PROXY = self.__getCSCloudEndpointOption( "CVMFS_HTTP_PROXY" )
@@ -150,10 +159,6 @@ class OcciImage:
     return gConfig.getValue( "/Resources/VirtualMachines/Images/%s/%s" % ( self.__DIRACImageName, option ), defValue )
 
   def __getCSCloudEndpointOption( self, option, defValue = "" ):
-    """
-    One flavour can correspond to many images, get the usr, passwd, dns, domain
-    URL to root.pub file, network_id and other occi server specific values
-    """
     return gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( self.__endpoint, option ), defValue )
 
   def startNewInstance( self, instanceType = "small", imageDriver = "default" ):
@@ -164,7 +169,7 @@ class OcciImage:
     if self.__errorStatus:
       return S_ERROR( self.__errorStatus )
     self.log.info( "Starting new instance for image (boot,hdc): %s,%s; to endpoint %s, and driver %s" % ( self.__bootImageName, self.__hdcImageName, self.__endpoint, self.__driver ) )
-    request = self.__cliocci.create_VMInstance( self.__bootImageName, self.__hdcImageName, instanceType, imageDriver, self.__bootOII, self.__hdcOII, self.__DNS1, self.__DNS2, self.__Domain, self.__CVMFS_HTTP_PROXY, self.__URLcontextfiles, self.__NetId)
+    request = self.__cliocci.create_VMInstance( self.__bootImageName, self.__hdcImageName, instanceType, imageDriver, self.__bootOII, self.__hdcOII, self.__iface, self.__DNS1, self.__DNS2, self.__Domain, self.__CVMFS_HTTP_PROXY, self.__URLcontextfiles, self.__NetId)
     if request.returncode != 0:
       self.__errorStatus = "Can't create instance for boot image (boot,hdc): %s/%s at server %s\n%s" % (self.__bootImageName, self.__hdcImageName, self.__occiURI, request.stdout)
       self.log.error( self.__errorStatus )

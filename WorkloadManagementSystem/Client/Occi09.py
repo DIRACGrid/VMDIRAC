@@ -163,8 +163,8 @@ class OcciClient:
       if not imageDriver == 'default':
           if imageDriver == 'qcow2-one-3.2.1':
               tempXML.write('                <DRIVER>qcow2</DRIVER>\n')
-          elif imageDriver == 'qcow2-one-3.2.0':
-              tempXML.write('                <DRIVER type="qcow2"/>\n')
+#          elif imageDriver == 'qcow2-one-3.2.0':
+#              tempXML.write('                <DRIVER type="qcow2"/>\n')
           else:
               tempXML.write('                <DRIVER>' + imageDriver + '</DRIVER>\n')
       tempXML.write('        </DISK>\n')

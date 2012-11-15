@@ -42,7 +42,7 @@ class Request:
         return urllib2.quote( base64.encodestring( digest )[:-1], "" )
 
     def callHttpCloudServer( self, cloudserver, signature, options ):
-        url = 'http://' + cloudserver + ':1111/client/api?apikey=' + self.apiKey + options + '&signature=' + signature
+        url = 'http://' + cloudserver + ':8080/client/api?apikey=' + self.apiKey + options + '&signature=' + signature
         gLogger.info( "Request:", url )
         req = urllib2.Request( url )
         xmldoc = ""
@@ -54,7 +54,7 @@ class Request:
         return xmldoc
 
     def callHttpCloudServerAllRequest( self, cloudserver, URLpart ):
-        url = 'http://' + cloudserver + ':1111/client/' + URLpart
+        url = 'http://' + cloudserver + ':8080/client/' + URLpart
         gLogger.info( "Request:", url )
         req = urllib2.Request( url )
         try:

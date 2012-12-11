@@ -150,9 +150,9 @@ class AmazonImage:
       while openSIRs:
         sir = openSIRs.pop()
         self.log.verbose( "SIR %s is in state %s" % ( sir.id, sir.state ) )
-        if sir.state == u'active' and 'instanceId' in dir( sir ):
-          self.log.verbose( "SIR %s has instance %s" % ( sir.id, sir.instanceId ) )
-          idList.append( sir.instanceId )
+        if sir.state == u'active' and 'instance_id' in dir( sir ):
+          self.log.verbose( "SIR %s has instance %s" % ( sir.id, sir.instance_id ) )
+          idList.append( sir.instance_id )
         elif sir.state == u'closed':
           invalidSIRs.append( sir.id )
         else:

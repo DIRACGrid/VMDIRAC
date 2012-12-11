@@ -13,16 +13,16 @@ class AmazonImage:
   Authentication is provided by a public-private keypair (access_key, secret_key) which is
   labelled by key_name and associated with a given Amazon Web Services account
   """
-  def __init__( self, vmName ):
+  def __init__( self, vmName, endpoint ):
     self.log = gLogger.getSubLogger( "AMI:%s" % vmName )
     self.__vmName = vmName
     self.__vmImage = False
     self.__instances = []
     self.__errorStatus = ""
-    #Get Flavor
-    self.__vmFlavor = self.__getCSImageOption( "Flavor" )
-    if not self.__vmFlavor:
-      self.__errorStatus = "Can't find Flavor for image %s" % self.__vmName
+    #Get CloudEndpoint free slot on submission time
+    self.__endpoint = endpoint
+    if not self.__endpoint:
+      self.__errorStatus = "Can't find endpoint for image %s" % self.__DIRACImageName
       self.log.error( self.__errorStatus )
       return
     #Get AMI Id
@@ -35,15 +35,15 @@ class AmazonImage:
     self.__vmMaxAllowedPrice = self.__getCSImageOption( "MaxAllowedPrice", 0.0 )
     #Get Amazon credentials
     # Access key
-    self.__amAccessKey = self.__getCSFlavorOption( "AccessKey" )
+    self.__amAccessKey = self.__getCSCloudEndpointOption( "AccessKey" )
     if not self.__amAccessKey:
-      self.__errorStatus = "Can't find AccessKey for Flavor %s" % self.__vmFlavor
+      self.__errorStatus = "Can't find AccessKey for Endpoint %s" % self.__endpoint
       self.log.error( self.__errorStatus )
       return
     # Secret key
-    self.__amSecretKey = self.__getCSFlavorOption( "SecretKey" )
+    self.__amSecretKey = self.__getCSCloudEndpointOption( "SecretKey" )
     if not self.__amSecretKey:
-      self.__errorStatus = "Can't find SecretKey for Flavor %s" % self.__vmFlavor
+      self.__errorStatus = "Can't find SecretKey for Endpoint %s" % self.__endpoint
       self.log.error( self.__errorStatus )
       return
     #Try connection
@@ -60,8 +60,8 @@ class AmazonImage:
   def __getCSImageOption( self, option, defValue = "" ):
     return gConfig.getValue( "/Resources/VirtualMachines/Images/%s/%s" % ( self.__vmName, option ), defValue )
 
-  def __getCSFlavorOption( self, option, defValue = "" ):
-    return gConfig.getValue( "/Resources/VirtualMachines/Flavors/%s/%s" % ( self.__vmFlavor, option ), defValue )
+  def __getCSCloudEndpointOption( self, option, defValue = "" ):
+    return gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( self.__endpoint, option ), defValue )
 
   """
   Prior to use, virtual machine images are uploaded to Amazon's Simple Storage Soltion and

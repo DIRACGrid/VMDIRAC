@@ -1,6 +1,6 @@
 ########################################################################
 # $HeadURL$
-# File :   OcciClient.py
+# File :   Occi09.py
 # Author : Victor Mendez ( vmendez.tic@gmail.com )
 ########################################################################
 # subset occi API based in the OpenNebula client command line implemention
@@ -138,7 +138,7 @@ class OcciClient:
     Before the VM instance creation is doing a XML composition
     Successful creation returns instance id  and the IP
     """
-    def create_VMInstance( self, bootImageName, hdcImageName, instanceType, imageDriver, bootOII, hdcOII, occiDNS1, occiDNS2, Domain, CVMFS_HTTP_PROXY, occiURLcontextfiles, occiNetId):
+    def create_VMInstance( self, bootImageName, hdcImageName, instanceType, imageDriver, bootOII, hdcOII, iface, occiDNS1, occiDNS2, Domain, CVMFS_HTTP_PROXY, occiURLcontextfiles, occiNetId):
       tempXMLname = '/tmp/computeOCCI.%s.xml' % os.getpid()
       tempXML = open(tempXMLname, 'w') 
       
@@ -150,14 +150,25 @@ class OcciClient:
       tempXML.write('                <TYPE>OS</TYPE>\n')
       tempXML.write('                <TARGET>hda</TARGET>\n')
       if not imageDriver == 'default':
-          tempXML.write('                <DRIVER type="' + imageDriver + '"/>\n')
+          if imageDriver == 'qcow2-one-3.2.1':
+              tempXML.write('                <DRIVER>qcow2</DRIVER>\n')
+          elif imageDriver == 'qcow2-one-3.2.0':
+              tempXML.write('                <DRIVER type="qcow2"/>\n')
+          else:
+              tempXML.write('                <DRIVER>' + imageDriver + '</DRIVER>\n')
       tempXML.write('        </DISK>\n')
-      tempXML.write('        <DISK id="1">\n')
-      tempXML.write('                <STORAGE href="' + self.URI + '/storage/' + hdcOII + '"/>\n')
-      tempXML.write('                <TYPE>CDROM</TYPE>\n')
-      if not imageDriver == 'default':
-          tempXML.write('                <DRIVER type="' + imageDriver + '"/>\n')
-      tempXML.write('        </DISK>\n')
+      if not hdcOII == 'NO_CONTEXT':
+          tempXML.write('        <DISK id="1">\n')
+          tempXML.write('                <STORAGE href="' + self.URI + '/storage/' + hdcOII + '"/>\n')
+          tempXML.write('                <TYPE>CDROM</TYPE>\n')
+          if not imageDriver == 'default':
+              if imageDriver == 'qcow2-one-3.2.1':
+                  tempXML.write('                <DRIVER>qcow2</DRIVER>\n')
+    #          elif imageDriver == 'qcow2-one-3.2.0':
+    #              tempXML.write('                <DRIVER type="qcow2"/>\n')
+              else:
+                  tempXML.write('                <DRIVER>' + imageDriver + '</DRIVER>\n')
+          tempXML.write('        </DISK>\n')
       tempXML.write('        <NIC>\n')
       tempXML.write('                <NETWORK href="' + self.URI + '/network/' + occiNetId + '"/>\n')
       tempXML.write('        </NIC>\n')
@@ -165,9 +176,11 @@ class OcciClient:
       tempXML.write('                <VMID>$VMID</VMID>\n')
       tempXML.write('                <IP>$NIC[IP]</IP>\n')
       tempXML.write('                <MAC_ETH0>$NIC[MAC]</MAC_ETH0>\n')
-      tempXML.write('                <DOMAIN>' + Domain + '</DOMAIN>\n')
-      tempXML.write('                <DNS1>' + occiDNS1 + '</DNS1>\n')
-      tempXML.write('                <DNS2>' + occiDNS2 + '</DNS2>\n')
+      tempXML.write('                <IFACE>' + iface + '</IFACE>\n')
+      if iface == 'static':
+          tempXML.write('                <DOMAIN>' + Domain + '</DOMAIN>\n')
+          tempXML.write('                <DNS1>' + occiDNS1 + '</DNS1>\n')
+          tempXML.write('                <DNS2>' + occiDNS2 + '</DNS2>\n')
       tempXML.write('                <CVMFS_HTTP_PROXY>' + CVMFS_HTTP_PROXY + '</CVMFS_HTTP_PROXY>\n')
       tempXML.write('                <FILES>' + occiURLcontextfiles + '</FILES>\n')
       tempXML.write('        </CONTEXT>\n')

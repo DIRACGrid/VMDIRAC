@@ -162,3 +162,28 @@ class VirtualmachinesController( BaseController ):
         rL = [ eTime, int( record[1] ) ]
       data.append( rL )
     return S_OK( data )
+
+
+  @jsonify
+  def getRunningInstancesBEPHistory( self ):
+    try:
+      bucketSize = int( request.params[ 'bucketSize' ] )
+    except:
+      bucketSize = 900
+    try:
+      timespan = int( request.params[ 'timespan' ] )
+    except:
+      timespan = 86400
+    rpcClient = getRPCClient( "WorkloadManagement/VirtualMachineManager" )
+    result = rpcClient.getRunningInstancesBEPHistory( timespan, bucketSize )
+    if not result[ 'OK' ]:
+      return S_ERROR( result[ 'Message' ] )
+    svcData = result[ 'Value' ]
+    data = []
+    olderThan = Time.toEpoch() - 400
+    for record in svcData:
+      eTime = Time.toEpoch( record[0] )
+      if eTime < olderThan:
+        rL = [ eTime, record[1], int( record[2] ) ]
+      data.append( rL )
+    return S_OK( data )

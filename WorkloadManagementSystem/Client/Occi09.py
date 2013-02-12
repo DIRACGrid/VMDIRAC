@@ -157,7 +157,7 @@ class OcciClient:
           else:
               tempXML.write('                <DRIVER>' + imageDriver + '</DRIVER>\n')
       tempXML.write('        </DISK>\n')
-      if not hdcOII == 'NO_CONTEXT':
+      if not hdcImageName == 'NO_CONTEXT':
           tempXML.write('        <DISK id="1">\n')
           tempXML.write('                <STORAGE href="' + self.URI + '/storage/' + hdcOII + '"/>\n')
           tempXML.write('                <TYPE>CDROM</TYPE>\n')

@@ -57,7 +57,7 @@ class VirtualMachineManagerHandler( RequestHandler ):
     Check Status of a given image
     Will insert a new Instance in the DB
     """
-    return gVirtualMachineDB.insertInstance( imageName, instanceName, endpoint, runningPodName)
+    return gVirtualMachineDB.insertInstance( imageName, instanceName, endpoint, runningPodName )
 
   ###########################################################################
   types_setInstanceUniqueID = [ LongType, ( StringType, UnicodeType ) ]
@@ -119,19 +119,32 @@ class VirtualMachineManagerHandler( RequestHandler ):
       return result
     endpoint = result[ 'Value' ]
 
-    result = gVirtualMachineDB.declareInstanceHalting( vmId, load)
-    if not contextualization =='occi':
-      return result
+    result = gVirtualMachineDB.declareInstanceHalting( vmId, load )
     if not result[ 'OK' ]:
       return result
+    
+    if contextualization == 'occi':
+      result = gVirtualMachineDB.getImageNameFromInstance( vmId )
+      if not result[ 'OK' ]:
+        return result
+      imageName = result[ 'Value' ]
 
-    result = gVirtualMachineDB.getImageNameFromInstance( vmId )
-    if not result[ 'OK' ]:
-      return result
-    imageName = result[ 'Value' ]
+      oima = OcciImage( imageName, endpoint )
+      result = oima.stopInstance( vmId )
 
-    oima = OcciImage( imageName, endpoint )
-    result = oima.stopInstance( vmId )
+    if contextualization == 'nova':
+      result = gVirtualMachineDB.getImageNameFromInstance( vmId )
+      if not result[ 'OK' ]:
+        return result
+      imageName = result[ 'Value' ]
+
+      nima = NovaImage( imageName, endpoint )
+      result = gVirtualMachineDB.getPublicIpFromInstance ( vmId )
+      if not result[ 'OK' ]:
+        return result
+
+      public_ip = result[ 'Value' ]
+      result = nima.stopInstance( vmId, public_ip )
 
     return result
 
@@ -191,3 +204,11 @@ class VirtualMachineManagerHandler( RequestHandler ):
     Retrieve number of running instances in each bucket
     """
     return gVirtualMachineDB.getRunningInstancesHistory( timespan, bucketSize )
+
+  ###########################################################################
+  types_getRunningInstancesBEPHistory = [ IntType, IntType ]
+  def export_getRunningInstancesBEPHistory( self, timespan, bucketSize ):
+    """
+    Retrieve number of running instances in each bucket
+    """
+    return gVirtualMachineDB.getRunningInstancesBEPHistory( timespan, bucketSize )

@@ -126,7 +126,7 @@ class VMDirector:
       retDict = virtualMachineDB.declareInstanceSubmitted( uniqueID )
       if not retDict['OK']:
         return retDict
-    else
+    else:
       # if nova driver then check contextMethod and update status if need ssh contextualization:
       contextMethod = DIRAC.gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, "contextMethod" ) )
       if self.__contextMethod == 'ssh':

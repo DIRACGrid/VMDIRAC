@@ -93,8 +93,6 @@ from DIRAC.Resources.Computing.ComputingElement                 import getResour
 
 from DIRAC.WorkloadManagementSystem.Client.ServerUtils          import taskQueueDB
 from VMDIRAC.WorkloadManagementSystem.Client.ServerUtils     import virtualMachineDB
-#from VMDIRAC.WorkloadManagementSystem.private.AmazonDirector import AmazonDirector
-#from VMDIRAC.WorkloadManagementSystem.private.OcciDirector import OcciDirector
 from VMDIRAC.WorkloadManagementSystem.private.CloudDirector import CloudDirector
 
 from VMDIRAC.WorkloadManagementSystem.private.KVMDirector    import KVMDirector

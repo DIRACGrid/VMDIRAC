@@ -57,7 +57,7 @@ class CloudDirector( VMDirector ):
       idInstance = result['Value']
       return S_OK( idInstance )
 
-    if driver == 'Occi':
+    if ( driver == 'occi-0.9' or driver == occi-0.8'):
       instanceType = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, 'instanceType' ), "" )
       imageDriver = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, 'imageDriver' ), "" )
       oima = OcciImage( imageName, endpoint )
@@ -67,7 +67,7 @@ class CloudDirector( VMDirector ):
       idInstance = result['Value']
       return S_OK( idInstance )
 
-    if driver == 'Nova':
+    if driver == 'nova-1.1':
       instanceType = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, 'instanceType' ), "" )
       nima = NovaImage( imageName, endpoint )
       result = nima.startNewInstance( instanceType )

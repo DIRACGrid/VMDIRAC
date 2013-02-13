@@ -159,7 +159,7 @@ class VirtualMachineDB( DB ):
       return ret
     return self.__getStatus( 'Image', ret['Value'] )
 
-  def isertInstance( self, imageName, instanceName, endpoint, runningPodName ):
+  def insertInstance( self, imageName, instanceName, endpoint, runningPodName ):
     """ 
     Check Status of a given image
     Will insert a new Instance in the DB

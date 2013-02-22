@@ -118,17 +118,6 @@ class NovaClient:
       if contextMethod == 'ssh': 
         # the contextualization using ssh needs the VM to be ACTIVE, so VirtualMachineContextualization check status and launch contextualize_VMInstance
 
-        # from specif template write the cmvfs http proxy on a temporal script to submit to the VMs with the specific cvmfs config
-        f = open(cvmfsContextPath,'r')   
-        chain = f.read()  
-        chain = chain.replace("TEMPLATE_VALUE",cvmfs_http_proxy)  
-        f.close()   
- 
-        tempSpecificContextName = '/tmp/nova-specific-context.%s.bash' % os.getpid()
-        tempContext = open(tempContextName, 'w') 
-        tempContext.write(chain)
-        tempContext.close()  
-
         # 1) copy the necesary files
 
         # prepare paramiko sftp client
@@ -140,17 +129,6 @@ class NovaClient:
             sftp = paramiko.SFTPClient.from_transport(transport)
         except Exception, errmsg:
             request.stderr = "Can't open sftp conection to %s: %s" % (public_ip,errmsg)
-            request.returncode = -1
-	    return request
-
-        # scp DIRAC run conf files to be used with runsvdir
-        try:
-            sftp.put('/root/run.job-agent',vmRunJobAgent)
-            sftp.put('/root/run.vm-monitor-agent',vmRunVmMonitorAgent)
-            sftp.put('/root/run.log.job-agent',vmRunLogJobAgent)
-            sftp.put('/root/run.log.vm-monitor-agent',vmRunLogVmMonitorAgent)
-        except Exception, errmsg:
-            request.stderr = errmsg
             request.returncode = -1
 	    return request
 
@@ -178,37 +156,10 @@ class NovaClient:
             request.returncode = -1
 	    return request
 
-        try:
-            f = open(cvmfsContextPath,'r')
-            chain = f.read()
-        except Exception, errmsg:
-            request.stderr = "Can't read from file %s: %s" % (cvmfsContextPath,errmsg)
-            request.returncode = -1
-	    return request
-
-        f.close()
+        #3) Run the DIRAC contextualization orchestator script:    
 
         try:
-            stdin, stdout, stderr = sshclient.exec_command(chain)
-        except Exception, errmsg:
-            request.stderr = "Can't run remote ssh to %s: %s" % (public_ip,errmsg)
-            request.returncode = -1
-	    return request
-      
-        #3) Run the general DIRAC contextualization script:    
-
-        try:
-            f = open(diracContextPath,'r')
-            chain = f.read()
-        except Exception, errmsg:
-            request.stderr = "Can't read from file %s: %s" % (diracContextPath,errmsg)
-            request.returncode = -1
-	    return request
-
-        f.close()
-
-        try:
-            stdin, stdout, stderr = sshclient.exec_command(chain)
+            stdin, stdout, stderr = sshclient.exec_command("wget )
         except Exception, errmsg:
             request.stderr = "Can't run remote ssh to %s: %s" % (public_ip,errmsg)
             request.returncode = -1

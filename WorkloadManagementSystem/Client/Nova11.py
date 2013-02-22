@@ -112,7 +112,7 @@ class NovaClient:
     Conextualize an active instance
     This is necesary because the libcloud deploy_node, including key/cert copy and ssh run, based on amiconfig, are sychronous operations which can not scale
     """
-    def contextualize_VMInstance( public_ip, vmCertPath, vmKeyPath, vmRunJobAgent, vmRunVmMonitorAgent, vmRunLogJobAgent, vmRunLogVmMonitorAgent, cvmfsContextPath, diracContextPath, cvmfs_http_proxy ):
+    def contextualize_VMInstance( public_ip, vmCertPath, vmKeyPath, vmRunJobAgent, vmRunVmMonitorAgent, vmRunLogJobAgent, vmRunLogVmMonitorAgent, cvmfsContextPath, diracContextPath, cvmfs_http_proxy, siteName="testingSiteName" ):
       request = Request()
 
       if contextMethod == 'ssh': 
@@ -134,6 +134,7 @@ class NovaClient:
 
         # scp VM cert/key
         try:
+            print "POR AQUI"
             sftp.put('/root/vmservicecert.pem',vmCertPath)
             sftp.put('/root/vmservicekey.pem',vmKeyPath)
         except Exception, errmsg:
@@ -148,6 +149,7 @@ class NovaClient:
 
         # prepare paramiko ssh client
         try:
+            print "POR AQUI 2"
             sshclient = paramiko.SSHClient()
             sshclient.load_system_host_keys()
             sshclient.connect(public_ip)
@@ -159,7 +161,10 @@ class NovaClient:
         #3) Run the DIRAC contextualization orchestator script:    
 
         try:
-            stdin, stdout, stderr = sshclient.exec_command("wget )
+            print "POR AQUI 3"
+            stdin, stdout, stderr = sshclient.exec_command("wget --no-check-certificate -O contextualize-script 'https://github.com/vmendez/VMDIRAC/blob/multi-endpoint/WorkloadManagementSystem/private/bootstrap/contextualize-script.py'")
+            print "POR AQUI 4"
+            stdin, stdout, stderr = sshclient.exec_command("python contextualize-scprit -c %s -k %s -j %s -m %s -l %s -L %s -v %s -d %s -p %s -s %s" %(vmCertPath, vmKeyPath, vmRunJobAgent, vmRunVmMonitorAgent, vmRunLogJobAgent, vmRunLogVmMonitorAgent, cvmfsContextPath, diracContextPath, cvmfs_http_proxy, siteName) )
         except Exception, errmsg:
             request.stderr = "Can't run remote ssh to %s: %s" % (public_ip,errmsg)
             request.returncode = -1

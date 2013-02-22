@@ -36,7 +36,7 @@ def main(argv):
 
     for opt, arg in opts:
       if opt == '-h':
-        print 'python contextualize-script  -c <certfile> -k <keyfile> -j <runjobagent> -m <runvmmonitoragent> -l <runlogagent> -v <cvmfscontextscript> -d <diraccontextscript> -p <cvmfshttpproxy> -s <sitename>'
+        print 'python contextualize-script  -c <certfile> -k <keyfile> -j <runjobagent> -m <runvmmonitoragent> -l <runlogjobagent> -L <runlogvmmonitoragent> -v <cvmfscontextscript> -d <diraccontextscript> -p <cvmfshttpproxy> -s <sitename>'
         sys.exit()
       elif opt in ("-c", "--certfile"):
         vmCertPath = arg
@@ -46,8 +46,9 @@ def main(argv):
         vmRunJobAgent = arg
       elif opt in ("-m", "--runvmmonitoragent"):
         vmRunVmMonitorAgent = arg
-      elif opt in ("-l", "--runlogagent"):
+      elif opt in ("-l", "--runlogjobagent"):
         vmRunLogJobAgent = arg
+      elif opt in ("-L", "--runlogvmmonitoragent"):
         vmRunLogVmMonitorAgent = arg
       elif opt in ("-v", "--cvmfscontextscript"):
         cvmfsContextPath = arg

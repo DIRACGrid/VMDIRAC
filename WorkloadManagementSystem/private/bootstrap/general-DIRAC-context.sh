@@ -6,23 +6,37 @@
 
         echo "Starting general-context-script.sh" > /var/log/general-context-script.log 2>&1
 
+if [ $# -ne 4 ]
+    echo "ERROR: 7 Parameters are necesary to this scprit" > /var/log/general-context-script.log 2>&1
+    exit 1
+fi
+
+siteName = $1
+vmCertPath = $2
+vmKeyPath = $3
+localVmRunJobAgent = $4
+localVmRunVmMonitorAgent = $5
+localVmRunLogJobAgent = $6
+localVmRunLogVmMonitorAgent = $7
+
+
 # dirac user:
         /usr/sbin/useradd -d /opt/dirac dirac
 
-# servercert/serverkey previouslly copy to /root from the VMDIRAC server
+# servercert/serverkey previouslly to this scprit copied 
 #
 	cd /opt/dirac
 	su dirac -c'mkdir -p etc/grid-security' >> /var/log/general-context-script.log 2>&1
 	chmod -R 755 etc >> /var/log/general-context-script.log 2>&1
-	cp /root/vmservicecert.pem etc/grid-security/servercert.pem >> /var/log/general-context-script.log 2>&1
+	mv ${vmCertPAth} etc/grid-security/servercert.pem >> /var/log/general-context-script.log 2>&1
 	chmod 444 /root/servercert.pem >> /var/log/general-context-script.log 2>&1
-	cp /root/vmservicekey.pem etc/grid-security/serverkey.pem >> /var/log/general-context-script.log 2>&1
+	mv ${vmKeyPath} etc/grid-security/serverkey.pem >> /var/log/general-context-script.log 2>&1
 	chmod 400 /root/serverkey.pem >> /var/log/general-context-script.log 2>&1
 	chown dirac:dirac etc >> /var/log/general-context-script.log 2>&1
 	
 #
-# FOR DEBUGGIN PURPOSES installing debuggin github version instead of cvmfs repository released DIRAC:
 # Installing DIRAC
+# FOR DEBUGGIN PURPOSES installing debuggin github version instead of cvmfs repository released DIRAC:
 #
 	cd /opt/dirac
 	wget --no-check-certificate -O dirac-install 'https://github.com/DIRACGrid/DIRAC/raw/integration/Core/scripts/dirac-install.py' >> /var/log/general-context-script.log 2>&1
@@ -54,7 +68,7 @@
         for retry in 0 1 2 3 4 5 6 7 8 9
         do
                 # multi-endpoint:
-		su dirac -c'dirac-configure -UHdd -S VMDIRAC-Production -o /LocalSite/CPUTime=1800 -o /LocalSite/SubmitPool=Cloud -o /LocalSite/Contextualization=nova-open-stack -o /LocalSite/Site=VMDIRAC.develop-pic.es -o /LocalSite/CE=CE-nouse defaults-VMDIRAC.cfg ' >> /var/log/general-context-script.log 2>&1
+		su dirac -c'dirac-configure -UHdd -S VMDIRAC-Production -o /LocalSite/CPUTime=1800 -o /LocalSite/SubmitPool=Cloud -o /LocalSite/Contextualization=nova-open-stack -o /LocalSite/Site=${siteName} -o /LocalSite/CE=CE-nouse defaults-VMDIRAC.cfg ' >> /var/log/general-context-script.log 2>&1
 		# options H: SkipCAChecks, dd: debug level 2, U: UseServerCertificate 
 		# options only for debuging D: SkipCADownload
 		# after UseServerCertificate = yes for the configuration with CS
@@ -84,10 +98,10 @@
 	cd /opt/dirac
 	mkdir -p startup/WorkloadManagement_JobAgent/log >> /var/log/general-context-script.log 2>&1
 	mkdir -p startup/WorkloadManagement_VirtualMachineMonitorAgent/log >> /var/log/general-context-script.log 2>&1
-	cp /root/run.job-agent startup/WorkloadManagement_JobAgent/run >> /var/log/general-context-script.log 2>&1
-	cp /root/run.log.job-agent startup/WorkloadManagement_JobAgent/log/run >> /var/log/general-context-script.log 2>&1
-	cp /root/run.vm-monitor-agent startup/WorkloadManagement_VirtualMachineMonitorAgent/run >> /var/log/general-context-script.log 2>&1
-	cp /root/run.log.vm-monitor-agent startup/WorkloadManagement_VirtualMachineMonitorAgent/log/run >> /var/log/general-context-script.log 2>&1
+	mv ${localVmRunJobAgent} startup/WorkloadManagement_JobAgent/run >> /var/log/general-context-script.log 2>&1
+	mv ${localVmRunLogJobAgent} startup/WorkloadManagement_JobAgent/log/run >> /var/log/general-context-script.log 2>&1
+	mv ${localVmRunVmMonitorAgent} startup/WorkloadManagement_VirtualMachineMonitorAgent/run >> /var/log/general-context-script.log 2>&1
+	mv ${localVmRunLogVmMonitorAgent} startup/WorkloadManagement_VirtualMachineMonitorAgent/log/run >> /var/log/general-context-script.log 2>&1
 
 	chmod 755 startup/WorkloadManagement_JobAgent/log/run 
 	chmod 755 startup/WorkloadManagement_JobAgent/run 

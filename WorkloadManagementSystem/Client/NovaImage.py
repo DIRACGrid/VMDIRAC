@@ -28,7 +28,7 @@ class NovaImage:
       self.log.error( self.__errorStatus )
       return
     # Get the contextualization method (adhoc/ssh) of the endpoint
-    self.__contextMethod = self.__getCSCloudEndpointOption( "contextMethod" ) 
+    self.__contextMethod = self.__getCSImageOption( "contextMethod" ) 
     if not ( self.__contextMethod == 'ssh' or self.__contextMethod == 'adhoc' ): 
       self.__errorStatus = "endpoint %s contextMethod %s not available, use adhoc or ssh" % (self.__endpoint, self.__contextMethod)
       self.log.error( self.__errorStatus )
@@ -91,69 +91,69 @@ class NovaImage:
 
     if self.__contextMethod == 'ssh': 
       # the virtualmachine cert/key to be copy on the VM of a specific endpoint
-      self.__vmCertPath = self.__getCSCloudEndpointOption( "vmCertPath" )
+      self.__vmCertPath = self.__getCSImageOption( "vmCertPath" )
       if not self.__vmCertPath:
         self.__errorStatus = "Can't find the vmCertPath for endpoint %s" % self.__endpoint
         self.log.error( self.__errorStatus )
         return
 
-      self.__vmKeyPath = self.__getCSCloudEndpointOption( "vmKeyPath" )
+      self.__vmKeyPath = self.__getCSImageOption( "vmKeyPath" )
       if not self.__vmKeyPath:
         self.__errorStatus = "Can't find the vmKeyPath for endpoint %s" % self.__endpoint
         self.log.error( self.__errorStatus )
         return
 
-      # the specific context path
-      self.__vmSpecificContextPath = self.__getCSCloudEndpointOption( "vmSpecificContextPath" )
-      if not self.__vmSpecificContextPath:
-        self.__errorStatus = "Can't find the vmSpecificContextPath for endpoint %s" % self.__endpoint
+      # the cvmfs context path
+      self.__vmCvmfsContextPath = self.__getCSImageOption( "vmCvmfsContextPath" )
+      if not self.__vmCvmfsContextPath:
+        self.__errorStatus = "Can't find the vmCvmfsContextPath for endpoint %s" % self.__endpoint
         self.log.error( self.__errorStatus )
         return
 
       # the specific context path
-      self.__vmGeneralContextPath = self.__getCSCloudEndpointOption( "vmGeneralContextPath" )
-      if not self.__vmGeneralContextPath:
-        self.__errorStatus = "Can't find the vmGeneralContextPath for endpoint %s" % self.__endpoint
+      self.__vmDiracContextPath = self.__getCSImageOption( "vmDiracContextPath" )
+      if not self.__vmDiracContextPath:
+        self.__errorStatus = "Can't find the vmDiracContextPath for endpoint %s" % self.__endpoint
         self.log.error( self.__errorStatus )
         return
 
       # the runsvdir run file forjobAgent 
-      self.__vmRunJobAgent = self.__getCSCloudEndpointOption( "vmRunJobAgent" )
+      self.__vmRunJobAgent = self.__getCSImageOption( "vmRunJobAgent" )
       if not self.__vmRunJobAgent:
         self.__errorStatus = "Can't find the vmRunJobAgent for endpoint %s" % self.__endpoint
         self.log.error( self.__errorStatus )
         return
 
       # the runsvdir run file vmMonitorAgent 
-      self.__vmRunVmMonitorAgent = self.__getCSCloudEndpointOption( "vmRunVmMonitorAgent" )
+      self.__vmRunVmMonitorAgent = self.__getCSImageOption( "vmRunVmMonitorAgent" )
       if not self.__vmRunVmMonitorAgent:
         self.__errorStatus = "Can't find the vmRunVmMonitorAgent for endpoint %s" % self.__endpoint
         self.log.error( self.__errorStatus )
         return
 
       # the runsvdir run.log file forjobAgent 
-      self.__vmRunLogJobAgent = self.__getCSCloudEndpointOption( "vmRunLogJobAgent" )
+      self.__vmRunLogJobAgent = self.__getCSImageOption( "vmRunLogJobAgent" )
       if not self.__vmRunLogJobAgent:
         self.__errorStatus = "Can't find the vmRunLogJobAgent for endpoint %s" % self.__endpoint
         self.log.error( self.__errorStatus )
         return
 
       # the runsvdir run.log file vmMonitorAgent 
-      self.__vmRunLogVmMonitorAgent = self.__getCSCloudEndpointOption( "vmRunLogVmMonitorAgent" )
+      self.__vmRunLogVmMonitorAgent = self.__getCSImageOption( "vmRunLogVmMonitorAgent" )
       if not self.__vmRunLogVmMonitorAgent:
         self.__errorStatus = "Can't find the vmRunLogVmMonitorAgent for endpoint %s" % self.__endpoint
         self.log.error( self.__errorStatus )
         return
 
       # cvmfs http proxy:
-      self.__cvmfs_http_proxy = self.__getCSCloudEndpointOption( "CVMFS_HTTP_PROXY" )
+      self.__cvmfs_http_proxy = self.__getCSImageOption( "CVMFS_HTTP_PROXY" )
       if not self.__cvmfs_http_proxy:
         self.__errorStatus = "Can't find the CVMFS_HTTP_PROXY for endpoint %s" % self.__endpoint
         self.log.error( self.__errorStatus )
         return
 
     ## Additional Network pool
-    self.__osIpPool = self.__getCSCloudEndpointOption( "osIpPool" )
+    self.__osIpPool = self.__getCSImageOption( "vmOsIpPool" )
     if not self.__osIpPool:
        self.__osIpPool = 'NO'
 
@@ -187,7 +187,7 @@ class NovaImage:
     With ssh method, contextualization is asyncronous operation
     """
     if self.__contextMethod =='ssh':
-      request = self.__clinova.contextualize_VMInstance( public_ip, self.__vmCertPath, self.__vmKeyPath, self.__vmRunJobAgent, self.__vmRunVmMonitorAgent, self.__vmRunLogJobAgent, self.__vmRunLogVmMonitorAgent, self.__vmSpecificContextPath, self.__vmGeneralContextPath , self.__cvmfs_http_proxy )
+      request = self.__clinova.contextualize_VMInstance( public_ip, self.__vmCertPath, self.__vmKeyPath, self.__vmRunJobAgent, self.__vmRunVmMonitorAgent, self.__vmRunLogJobAgent, self.__vmRunLogVmMonitorAgent, self.__vmCvmfsContextPath, self.__vmDiracContextPath , self.__cvmfs_http_proxy )
       if request.returncode != 0:
         self.__errorStatus = "Can't contextualize VM id %s at endpoint %s: %s" % (uniqueId, self.__endpoint, request.stderr)
         self.log.error( self.__errorStatus )

@@ -112,14 +112,14 @@ class NovaClient:
     Conextualize an active instance
     This is necesary because the libcloud deploy_node, including key/cert copy and ssh run, based on amiconfig, are sychronous operations which can not scale
     """
-    def contextualize_VMInstance( public_ip, vmCertPath, vmKeyPath, vmRunJobAgent, vmRunVmMonitorAgent, vmRunLogJobAgent, vmRunLogVmMonitorAgent, specificContextPath, generalContextPath, cvmfs_http_proxy ):
+    def contextualize_VMInstance( public_ip, vmCertPath, vmKeyPath, vmRunJobAgent, vmRunVmMonitorAgent, vmRunLogJobAgent, vmRunLogVmMonitorAgent, cvmfsContextPath, diracContextPath, cvmfs_http_proxy ):
       request = Request()
 
       if contextMethod == 'ssh': 
         # the contextualization using ssh needs the VM to be ACTIVE, so VirtualMachineContextualization check status and launch contextualize_VMInstance
 
         # from specif template write the cmvfs http proxy on a temporal script to submit to the VMs with the specific cvmfs config
-        f = open(specificContextPath,'r')   
+        f = open(cvmfsContextPath,'r')   
         chain = f.read()  
         chain = chain.replace("TEMPLATE_VALUE",cvmfs_http_proxy)  
         f.close()   
@@ -129,9 +129,6 @@ class NovaClient:
         tempContext.write(chain)
         tempContext.close()  
 
-        # if the public dirac user key is not in the CernVM, then it would be necesary to put it with amiconfig before the following contextualization
-        # 		I have serious dubtes about the scalability of the amiconfig cert/key insertion on a VM, I don't use it
-        # the contextualization steps are: copy all files, run remote ssh for specific, run remote ssh for general
         # 1) copy the necesary files
 
         # prepare paramiko sftp client
@@ -169,7 +166,7 @@ class NovaClient:
         sftp.close()
         transport.close()
 
-        #2) Run the specific contextualization script:    
+        #2) Run the cvmvfs contextualization script:    
 
         # prepare paramiko ssh client
         try:
@@ -182,10 +179,10 @@ class NovaClient:
 	    return request
 
         try:
-            f = open(specificContextPath,'r')
+            f = open(cvmfsContextPath,'r')
             chain = f.read()
         except Exception, errmsg:
-            request.stderr = "Can't read from file %s: %s" % (specificContextPath,errmsg)
+            request.stderr = "Can't read from file %s: %s" % (cvmfsContextPath,errmsg)
             request.returncode = -1
 	    return request
 
@@ -201,10 +198,10 @@ class NovaClient:
         #3) Run the general DIRAC contextualization script:    
 
         try:
-            f = open(generalContextPath,'r')
+            f = open(diracContextPath,'r')
             chain = f.read()
         except Exception, errmsg:
-            request.stderr = "Can't read from file %s: %s" % (generalContextPath,errmsg)
+            request.stderr = "Can't read from file %s: %s" % (diracContextPath,errmsg)
             request.returncode = -1
 	    return request
 

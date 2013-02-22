@@ -21,10 +21,6 @@ class NovaImage:
     self.__bootImageName = self.__getCSImageOption( "bootImageName" ) 
     self.log = gLogger.getSubLogger( "Image %s(%s): " % ( DIRACImageName, self.__bootImageName ) )
     self.__errorStatus = ""
-    # Get the instance type name (openstack instance flavor size)
-    self.__instanceType = self.__getCSCloudEndpointOption( "instanceType" ) 
-    if not self.__instanceType:
-      self.__instanceType = 'm1.small' 
     #Get CloudEndpoint on submission time
     self.__endpoint = endpoint
     if not self.__endpoint:
@@ -75,7 +71,7 @@ class NovaImage:
       self.log.error( self.__errorStatus )
       return
     # creating driver for connection to the endpoint and check connection
-    self.__clinova = NovaClient(self.__osAuthURL, self.__osUserName, self.__osPasswd, self.__osTenantName, self.__osBaseURL, self,__osServiceRegion)
+    self.__clinova = NovaClient(self.__osAuthURL, self.__osUserName, self.__osPasswd, self.__osTenantName, self.__osBaseURL, self.__osServiceRegion)
     request = self.__clinova.check_connection()
     if request.returncode != 0:
       self.__errorStatus = "Can't connect to OpenStack nova endpoint %s\n osAuthURL: %s\n%s" % (self.__osBaseURL, self.__osAuthURL, request.stderr)
@@ -163,24 +159,23 @@ class NovaImage:
 
   def __getCSImageOption( self, option, defValue = "" ):
     """
-    Following we can see that every CSImageOption are related with the booting
-    image, the contextualized hdc image has no asociated options
+    Following we can see that every CSImageOption are related with the booting image
     """
     return gConfig.getValue( "/Resources/VirtualMachines/Images/%s/%s" % ( self.__DIRACImageName, option ), defValue )
 
   def __getCSCloudEndpointOption( self, option, defValue = "" ):
     return gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( self.__endpoint, option ), defValue )
 
-  def startNewInstance( self ):
+  def startNewInstance( self, instanceType ):
     """
     Wrapping the image creation
     """
     if self.__errorStatus:
       return S_ERROR( self.__errorStatus )
-    self.log.info( "Starting new instance for image (boot,hdc): %s,%s; to endpoint %s DIRAC driver of nova endpoint" % ( self.__bootImageName, self.__endpoint ) )
-    request = self.__clinova.create_VMInstance( self.__bootImageName, self.__contextMethod, self.__instanceType, self.__bootImage, self.__osIpPool )
+    self.log.info( "Starting new instance for image: %s; to endpoint %s DIRAC driver of nova endpoint" % ( self.__bootImageName, self.__endpoint ) )
+    request = self.__clinova.create_VMInstance( self.__bootImageName, self.__contextMethod, instanceType, self.__bootImage, self.__osIpPool )
     if request.returncode != 0:
-      self.__errorStatus = "Can't create instance for boot image (boot,hdc): %s/%s at server %s and Auth URL: %s \n%s" % (self.__bootImageName, self.__osBaseURL, self.__osAuthURL, request.stdout)
+      self.__errorStatus = "Can't create instance for boot image: %s at server %s and Auth URL: %s \n%s" % (self.__bootImageName, self.__osBaseURL, self.__osAuthURL, request.stderr)
       self.log.error( self.__errorStatus )
       return S_ERROR( self.__errorStatus )
 
@@ -200,7 +195,7 @@ class NovaImage:
 
     return S_OK( uniqueId )
 
-  def getInstanceStatus( uniqueId ):
+  def getInstanceStatus( self, uniqueId ):
     """
     Wrapping the get status of the uniqueId VM from the endpoint
     """

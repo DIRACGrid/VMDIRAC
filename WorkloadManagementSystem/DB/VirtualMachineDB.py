@@ -76,7 +76,7 @@ class VirtualMachineDB( DB ):
   tablesDesc[ 'vm_Instances' ] = { 'Fields' : { 'VMInstanceID' : 'BIGINT UNSIGNED AUTO_INCREMENT NOT NULL',
                                                 'Name' : 'VARCHAR(255) NOT NULL',
                                                 'Endpoint' : 'VARCHAR(32) NOT NULL',
-                                                'UniqueID' : 'VARCHAR(32) NOT NULL DEFAULT ""',
+                                                'UniqueID' : 'VARCHAR(64) NOT NULL DEFAULT ""',
                                                 'VMImageID' : 'INTEGER UNSIGNED NOT NULL',
                                                 'Status' : 'VARCHAR(32) NOT NULL',
                                                 'LastUpdate' : 'DATETIME',
@@ -189,7 +189,7 @@ class VirtualMachineDB( DB ):
       instanceID = int( instanceID )
     except Exception, e:
       raise e
-      return DIRAC.S_ERROR( "Instance id has to be a number" )
+      return DIRAC.S_ERROR( "uniqueID has to be a number" )
     ( tableName, validStates, idName ) = self.__getTypeTuple( 'Instance' )
     sqlUpdate = "UPDATE `%s` SET UniqueID = %s WHERE %s = %d" % ( tableName, uniqueID, idName, instanceID )
     return self._update( sqlUpdate )
@@ -200,7 +200,9 @@ class VirtualMachineDB( DB ):
     """
     instanceID = self.__getInstanceID( uniqueID )
     if not instanceID['OK']:
+      print "POR AQUI 1"
       return instanceID
+    print "POR AQUI 2"
     instanceID = instanceID['Value']
 
     status = self.__setState( 'Instance', instanceID, 'Submitted' )
@@ -243,13 +245,17 @@ class VirtualMachineDB( DB ):
     """
     Update publicIP when used for contextualization previus to declareInstanceRunning
     """
-    values = self._escapeValues( [ publicIP] )
-    if not values['OK']:
-      return S_ERROR( "Cannot escape values: %s" % str( values ) )
-    publicIP = values['Value']
+    result = self._escapeString( publicIP )
+    if not result['OK']:
+      return result
+    publicIP = result[ 'Value' ]
+    try:
+      instanceID = int( instanceID )
+    except:
+      return DIRAC.S_ERROR( "instanceID has to be an integer value" )
 
     ( tableName, validStates, idName ) = self.__getTypeTuple( 'Instance' )
-    cmd = 'UPDATE `%s` SET PublicIP = %s WHERE %s = %s' % \
+    cmd = 'UPDATE `%s` SET PublicIP = %s WHERE %s = %d' % \
              ( tableName, publicIP, idName, instanceID )
 
     return self._update( cmd )

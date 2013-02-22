@@ -34,7 +34,7 @@ class Request():
 class NovaClient:
     def __init__(self, osAuthURL=None , osUserName = None, osPasswd = None, osTenantName = None , osBaseURL = None, osServiceRegion = None):
       self.osServiceRegion = osServiceRegion    
-      self.cloudManagerAPI = get_driver(Provider.OPENSTACK)
+      cloudManagerAPI = get_driver(Provider.OPENSTACK)
       self.driver = cloudManagerAPI(osUserName, osPasswd,
                 ex_force_auth_url=osAuthURL,
                 ex_force_service_region=osServiceRegion,
@@ -52,7 +52,7 @@ class NovaClient:
     def check_connection(self):
       request = Request()
       try:
-          images = driver.list_images()
+          images = self.driver.list_images()
       except Exception, errmsg:
           request.stderr = errmsg
           request.returncode = -1
@@ -79,7 +79,7 @@ class NovaClient:
     and creates a context script, taken the given parameters.
     Successful creation returns instance VM 
     """
-    def create_VMInstance( self, bootImageName, contextMethod, flavorName, bootImage, ipPool, vmCertPath, vmKeyPath, vmRunJobAgent, vmRunVmMonitorAgent, vmRunLogJobAgent, vmRunLogVmMonitorAgent, specificContextPath, generalContextPath, cvmfs_http_proxy ):
+    def create_VMInstance( self, bootImageName, contextMethod, flavorName, bootImage, ipPool ):
       request = Request()
       vm_name = bootImageName + '+' + contextMethod + '+' + str(time.time())[0:10] 
 
@@ -223,7 +223,7 @@ class NovaClient:
     """
     Get the status VM instance for a given VMinstanceId 
     """
-    def getStatus_VMinstance( self, uniqueId ):
+    def getStatus_VMInstance( self, uniqueId ):
       request = Request()
       try:
           infonode = self.pynovaclient.servers.list(uniqueId)

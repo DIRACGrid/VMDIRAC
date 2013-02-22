@@ -21,6 +21,7 @@ from DIRAC import gConfig
 
 
 from VMDIRAC.WorkloadManagementSystem.Client.ServerUtils     import virtualMachineDB
+from VMDIRAC.WorkloadManagementSystem.Client.NovaImage import NovaImage
 
 import random, time
 import DIRAC
@@ -47,8 +48,12 @@ class VirtualMachineContextualization( AgentModule ):
 
     for uniqueId, endpoint, publicIP in result['Value']:
 
-        imageName = virtualMachineDB.getImageNameFromInstance ( uniqueId )
-        nima = NovaImage( imageName, endpoint )
+        retDict = virtualMachineDB.getImageNameFromInstance ( uniqueId )
+        if not retDict['OK']:
+           return retDict
+
+        diracImageName = retDict['Value']
+        nima = NovaImage( diracImageName, endpoint )
 
         result = nima.getInstanceStatus( uniqueId )
         if not result[ 'OK' ]:

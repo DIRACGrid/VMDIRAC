@@ -57,7 +57,8 @@ class CloudDirector( VMDirector ):
       idInstance = result['Value']
       return S_OK( idInstance )
 
-    if ( driver == 'occi-0.9' or 'driver == occi-0.8'):
+
+    if ( driver == 'occi-0.9' or driver == 'occi-0.8'):
       instanceType = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, 'instanceType' ), "" )
       imageDriver = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, 'imageDriver' ), "" )
       oima = OcciImage( imageName, endpoint )
@@ -73,8 +74,10 @@ class CloudDirector( VMDirector ):
       result = nima.startNewInstance( instanceType )
       if not result[ 'OK' ]:
         return result
-      return ( result.VMnode.id, result.public_ip )
+      uniqueID = result['Value'].VMnode.id
+      publicIP = result['Value'].public_ip
+      return S_OK( [uniqueID, publicIP] )
 
 
-    return DIRAC.S_ERROR( 'Unknown DIRAC Cloud driver %s' % driver )
+    return S_ERROR( 'Unknown DIRAC Cloud driver %s' % driver )
 

@@ -133,7 +133,7 @@ class VMDirector:
         return retDict
     else:
       # if nova driver then check contextMethod and update status if need ssh contextualization:
-      contextMethod = DIRAC.gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, "contextMethod" ) )
+      contextMethod = DIRAC.gConfig.getValue( "/Resources/VirtualMachines/Images/%s/%s" % ( imageName, "contextMethod" ) )
       if contextMethod == 'ssh':
         retDict = virtualMachineDB.declareInstanceWait_ssh_context( uniqueID )
         if not retDict['OK']:

@@ -169,7 +169,7 @@ class NovaClient:
             print "POR AQUI 3"
             stdin, stdout, stderr = ssh.exec_command("wget --no-check-certificate -O /root/contextualize-script 'https://github.com/vmendez/VMDIRAC/raw/multi-endpoint/WorkloadManagementSystem/private/bootstrap/contextualize-script.py' >> /var/log/contextualize-script.log 2>&1")
             print "POR AQUI 4"
-            remotecmd = "python /root/contextualize-script -c '%s' -k '%s' -j '%s' -m '%s' -l '%s' -L '%s' -v '%s' -d '%s' -p '%s' -s '%s'  >> /var/log/contextualize-script.log 2>&1" %(vmCertPath, vmKeyPath, vmRunJobAgent, vmRunVmMonitorAgent, vmRunLogJobAgent, vmRunLogVmMonitorAgent, cvmfsContextPath, diracContextPath, cvmfs_http_proxy, siteName) 
+            remotecmd = "python /root/contextualize-script -c '%s' -k '%s' -j '%s' -m '%s' -l '%s' -L '%s' -v '%s' -d '%s' -p '%s' -s '%s'  >> '/var/log/contextualize-script.log' 2>&1" %(vmCertPath, vmKeyPath, vmRunJobAgent, vmRunVmMonitorAgent, vmRunLogJobAgent, vmRunLogVmMonitorAgent, cvmfsContextPath, diracContextPath, cvmfs_http_proxy, siteName) 
             print "remotecmd"
             print remotecmd
             stdin, stdout, stderr = ssh.exec_command(remotecmd)

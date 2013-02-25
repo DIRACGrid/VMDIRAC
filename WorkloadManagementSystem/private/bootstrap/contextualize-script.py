@@ -23,9 +23,9 @@ def main(argv):
     vmRunLogVmMonitorAgent = ''
     localVmRunLogVmMonitorAgent = '/root/run.log.vm-monitor-agent'
     cvmfsContextPath = ''
-    localCvmfsContextPath = ''
+    localCvmfsContextPath = '/root/cvmfs-context.sh'
     diracContextPath = ''
-    localDiracContextPath = ''
+    localDiracContextPath = '/root/dirac-context.sh'
     cvmfs_http_proxy = ''
     siteName = ''
     try:

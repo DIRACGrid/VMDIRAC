@@ -19,6 +19,7 @@ from libcloud.compute.providers import get_driver
 from novaclient.v1_1 import client
 
 import paramiko 
+import getpass 
 
 # Classes
 ###################
@@ -112,7 +113,7 @@ class NovaClient:
     Conextualize an active instance
     This is necesary because the libcloud deploy_node, including key/cert copy and ssh run, based on amiconfig, are sychronous operations which can not scale
     """
-    def contextualize_VMInstance( public_ip, vmCertPath, vmKeyPath, vmRunJobAgent, vmRunVmMonitorAgent, vmRunLogJobAgent, vmRunLogVmMonitorAgent, cvmfsContextPath, diracContextPath, cvmfs_http_proxy, siteName="testingSiteName" ):
+    def contextualize_VMInstance( self, public_ip, contextMethod, vmCertPath, vmKeyPath, vmRunJobAgent, vmRunVmMonitorAgent, vmRunLogJobAgent, vmRunLogVmMonitorAgent, cvmfsContextPath, diracContextPath, cvmfs_http_proxy, siteName="testingSiteName" ):
       request = Request()
 
       if contextMethod == 'ssh': 
@@ -122,9 +123,11 @@ class NovaClient:
 
         # prepare paramiko sftp client
         try:
+            print "CONNECTING"
             privatekeyfile = os.path.expanduser('~/.ssh/id_rsa')
             mykey = paramiko.RSAKey.from_private_key_file(privatekeyfile)
-            username = os.getusername()
+            username =  getpass.getuser()
+            transport = paramiko.Transport((public_ip, 22))
             transport.connect(username = username, pkey = mykey)
             sftp = paramiko.SFTPClient.from_transport(transport)
         except Exception, errmsg:
@@ -135,8 +138,8 @@ class NovaClient:
         # scp VM cert/key
         try:
             print "POR AQUI"
-            sftp.put('/root/vmservicecert.pem',vmCertPath)
-            sftp.put('/root/vmservicekey.pem',vmKeyPath)
+            sftp.put(vmCertPath, '/root/vmservicecert.pem')
+            sftp.put(vmKeyPath, '/root/vmservicekey.pem')
         except Exception, errmsg:
             request.stderr = errmsg
             request.returncode = -1
@@ -150,9 +153,11 @@ class NovaClient:
         # prepare paramiko ssh client
         try:
             print "POR AQUI 2"
-            sshclient = paramiko.SSHClient()
-            sshclient.load_system_host_keys()
-            sshclient.connect(public_ip)
+            ssh = paramiko.SSHClient()
+            ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            ssh.connect(public_ip, username=username, port=22, pkey=mykey)
+            #sshclient.load_system_host_keys()
+            #sshclient.connect(public_ip)
         except Exception, errmsg:
             request.stderr = "Can't open ssh conection to %s: %s" % (public_ip,errmsg)
             request.returncode = -1
@@ -162,9 +167,9 @@ class NovaClient:
 
         try:
             print "POR AQUI 3"
-            stdin, stdout, stderr = sshclient.exec_command("wget --no-check-certificate -O contextualize-script 'https://github.com/vmendez/VMDIRAC/blob/multi-endpoint/WorkloadManagementSystem/private/bootstrap/contextualize-script.py'")
+            stdin, stdout, stderr = ssh.exec_command("wget --no-check-certificate -O contextualize-script 'https://github.com/vmendez/VMDIRAC/raw/multi-endpoint/WorkloadManagementSystem/private/bootstrap/contextualize-script.py'")
             print "POR AQUI 4"
-            stdin, stdout, stderr = sshclient.exec_command("python contextualize-scprit -c %s -k %s -j %s -m %s -l %s -L %s -v %s -d %s -p %s -s %s" %(vmCertPath, vmKeyPath, vmRunJobAgent, vmRunVmMonitorAgent, vmRunLogJobAgent, vmRunLogVmMonitorAgent, cvmfsContextPath, diracContextPath, cvmfs_http_proxy, siteName) )
+            stdin, stdout, stderr = ssh.exec_command("python contextualize-scprit -c %s -k %s -j %s -m %s -l %s -L %s -v %s -d %s -p %s -s %s" %(vmCertPath, vmKeyPath, vmRunJobAgent, vmRunVmMonitorAgent, vmRunLogJobAgent, vmRunLogVmMonitorAgent, cvmfsContextPath, diracContextPath, cvmfs_http_proxy, siteName) )
         except Exception, errmsg:
             request.stderr = "Can't run remote ssh to %s: %s" % (public_ip,errmsg)
             request.returncode = -1

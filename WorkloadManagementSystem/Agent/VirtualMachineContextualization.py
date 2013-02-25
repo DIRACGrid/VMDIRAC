@@ -59,8 +59,10 @@ class VirtualMachineContextualization( AgentModule ):
         if not result[ 'OK' ]:
           return result
 
-        if result == 'ACTIVE':
+        if result['Value'] == 'ACTIVE':
           result = nima.contextualizeInstance( uniqueId, publicIP )
+          print "result of contextualize:"
+          print result
           if not result[ 'OK' ]:
             return result
           retDict = virtualMachineDB.declareInstanceContextualizing( uniqueId )

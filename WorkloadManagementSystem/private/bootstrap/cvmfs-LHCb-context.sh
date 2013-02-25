@@ -5,8 +5,8 @@
 #
 #
 
-mkdir /home/cache >> /var/log/specific-context-script.log 2>&1
-chown cvmfs:cvmfs /home/cache >> /var/log/specific-context-script.log 2>&1
+mkdir /home/cache >> /var/log/cvmfs-context-script.log 2>&1
+chown cvmfs:cvmfs /home/cache >> /var/log/cvmfs-context-script.log 2>&1
 
 	cat<<EOF>/etc/cvmfs/default.local
 CVMFS_CACHE_BASE=/home/cache
@@ -30,7 +30,7 @@ CVMFS_QUOTA_THRESHOLD=1500
 EOF
 
 # reaload configuration to activate new setup:
-/sbin/service cvmfs reload >> /var/log/specific-context-script.log 2>&1
-cvmfs_config showconfig >> /var/log/specific-confext-scprit.log 2>&1
+/sbin/service cvmfs reload >> /var/log/cvmfs-context-script.log 2>&1
+cvmfs_config showconfig >> /var/log/cvmfs-confext-scprit.log 2>&1
 
 exit 0

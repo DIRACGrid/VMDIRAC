@@ -187,7 +187,7 @@ class NovaImage:
     With ssh method, contextualization is asyncronous operation
     """
     if self.__contextMethod =='ssh':
-      request = self.__clinova.contextualize_VMInstance( public_ip, self.__vmCertPath, self.__vmKeyPath, self.__vmRunJobAgent, self.__vmRunVmMonitorAgent, self.__vmRunLogJobAgent, self.__vmRunLogVmMonitorAgent, self.__vmCvmfsContextPath, self.__vmDiracContextPath , self.__cvmfs_http_proxy )
+      request = self.__clinova.contextualize_VMInstance( public_ip, self.__contextMethod, self.__vmCertPath, self.__vmKeyPath, self.__vmRunJobAgent, self.__vmRunVmMonitorAgent, self.__vmRunLogJobAgent, self.__vmRunLogVmMonitorAgent, self.__vmCvmfsContextPath, self.__vmDiracContextPath , self.__cvmfs_http_proxy )
       if request.returncode != 0:
         self.__errorStatus = "Can't contextualize VM id %s at endpoint %s: %s" % (uniqueId, self.__endpoint, request.stderr)
         self.log.error( self.__errorStatus )

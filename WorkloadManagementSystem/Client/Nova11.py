@@ -167,9 +167,12 @@ class NovaClient:
 
         try:
             print "POR AQUI 3"
-            stdin, stdout, stderr = ssh.exec_command("wget --no-check-certificate -O contextualize-script 'https://github.com/vmendez/VMDIRAC/raw/multi-endpoint/WorkloadManagementSystem/private/bootstrap/contextualize-script.py'")
+            stdin, stdout, stderr = ssh.exec_command("wget --no-check-certificate -O contextualize-script 'https://github.com/vmendez/VMDIRAC/raw/multi-endpoint/WorkloadManagementSystem/private/bootstrap/contextualize-script.py' >> /var/log/contextualize-script.log 2>&1")
             print "POR AQUI 4"
-            stdin, stdout, stderr = ssh.exec_command("python contextualize-scprit -c %s -k %s -j %s -m %s -l %s -L %s -v %s -d %s -p %s -s %s" %(vmCertPath, vmKeyPath, vmRunJobAgent, vmRunVmMonitorAgent, vmRunLogJobAgent, vmRunLogVmMonitorAgent, cvmfsContextPath, diracContextPath, cvmfs_http_proxy, siteName) )
+            remotecmd = "python contextualize-script -c '%s' -k '%s' -j '%s' -m '%s' -l '%s' -L '%s' -v '%s' -d '%s' -p '%s' -s '%s'  >> /var/log/contextualize-script.log 2>&1" %(vmCertPath, vmKeyPath, vmRunJobAgent, vmRunVmMonitorAgent, vmRunLogJobAgent, vmRunLogVmMonitorAgent, cvmfsContextPath, diracContextPath, cvmfs_http_proxy, siteName) 
+            print "remotecmd"
+            print remotecmd
+            stdin, stdout, stderr = ssh.exec_command(remotecmd)
         except Exception, errmsg:
             request.stderr = "Can't run remote ssh to %s: %s" % (public_ip,errmsg)
             request.returncode = -1

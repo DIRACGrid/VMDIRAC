@@ -70,12 +70,12 @@ def main(argv):
 
     #2) Run the cvmvfs contextualization script:    
     if not ( cvmfsContextPath == '' ):
-      os.system("chmod u+x ./%s" %localCvmfsContextPath )
-      os.system("./%s %s" %(localCvmfsContextPath, cvmfs_http_proxy) )
+      os.system("chmod u+x %s" %localCvmfsContextPath )
+      os.system("%s %s" %(localCvmfsContextPath, cvmfs_http_proxy) )
 
     #3) Run the dirac contextualization script:    
-    os.system("chmod u+x ./%s" %localDiracContextPath )
-    os.system("./%s %s %s %s %s %s %s %s" %(localDiracContextPath, siteName, vmCertPath, vmKeyPath, localVmRunJobAgent, localVmRunVmMonitorAgent, localVmRunLogJobAgent, localVmRunLogVmMonitorAgent) )
+    os.system("chmod u+x %s" %localDiracContextPath )
+    os.system("%s %s %s %s %s %s %s %s" %(localDiracContextPath, siteName, vmCertPath, vmKeyPath, localVmRunJobAgent, localVmRunVmMonitorAgent, localVmRunLogJobAgent, localVmRunLogVmMonitorAgent) )
 
 if __name__ == "__main__":
     main(sys.argv[1:])

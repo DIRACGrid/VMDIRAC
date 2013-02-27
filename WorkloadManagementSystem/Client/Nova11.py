@@ -160,7 +160,7 @@ class NovaClient:
         #3) Run the DIRAC contextualization orchestator script:    
 
         try:
-            stdin, stdout, stderr = ssh.exec_command("wget --no-check-certificate -O /root/contextualize-script.bash 'https://github.com/vmendez/VMDIRAC/raw/multi-endpoint/WorkloadManagementSystem/private/bootstrap/contextualize-script.py' >> /var/log/contextualize-script.log 2>&1")
+            stdin, stdout, stderr = ssh.exec_command("wget --no-check-certificate -O /root/contextualize-script.bash 'https://github.com/vmendez/VMDIRAC/raw/multi-endpoint/WorkloadManagementSystem/private/bootstrap/contextualize-script.bash' >> /var/log/contextualize-script.log 2>&1")
             remotecmd = "/bin/bash /root/contextualize-script.bash '%s' '%s' '%s' '%s' '%s' '%s' '%s' '%s' '%s' '%s' >> /var/log/contextualize-script.log 2>&1  &" %(vmCertPath, vmKeyPath, vmRunJobAgent, vmRunVmMonitorAgent, vmRunLogJobAgent, vmRunLogVmMonitorAgent, cvmfsContextPath, diracContextPath, cvmfs_http_proxy, siteName) 
             print "remotecmd"
             print remotecmd

@@ -40,7 +40,7 @@ wget --no-check-certificate -O ${localCvmfsContextPath} ${cvmfsContextPath}
 wget --no-check-certificate -O ${localDiracContextPath} ${diracContextPath} 
 
 #2) Run the cvmvfs contextualization script:    
-if [ ${cvmfsContextPath != 'NONE' ]
+if [ ${cvmfsContextPath} != 'NONE' ]
 then
     chmod u+x ${localCvmfsContextPath}
     bash ${localCvmfsContextPath} ${cvmfs_http_proxy}

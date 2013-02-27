@@ -23,12 +23,12 @@ diracContextPath=$8
 cvmfs_http_proxy=$9
 siteName=$10
 
-localVmRunJobAgent = /root/run.job-agent
-localVmRunVmMonitorAgent = /root/run.vm-monitor-agent
-localVmRunLogJobAgent = /root/run.log.job-agent 
-localVmRunLogVmMonitorAgent = /root/run.log.vm-monitor-agent
-localCvmfsContextPath = /root/cvmfs-context.sh
-localDiracContextPath = /root/dirac-context.sh
+localVmRunJobAgent=/root/run.job-agent
+localVmRunVmMonitorAgent=/root/run.vm-monitor-agent
+localVmRunLogJobAgent=/root/run.log.job-agent 
+localVmRunLogVmMonitorAgent=/root/run.log.vm-monitor-agent
+localCvmfsContextPath=/root/cvmfs-context.sh
+localDiracContextPath=/root/dirac-context.sh
 
 # vmcert and key have been previoslly copy to VM, these paths are local, the rest of files are on some repo... 
 # 1) download the necesary files:

@@ -11,13 +11,13 @@ if [ $# -ne 4 ]
     exit 1
 fi
 
-siteName = $1
-vmCertPath = $2
-vmKeyPath = $3
-localVmRunJobAgent = $4
-localVmRunVmMonitorAgent = $5
-localVmRunLogJobAgent = $6
-localVmRunLogVmMonitorAgent = $7
+siteName=$1
+vmCertPath=$2
+vmKeyPath=$3
+localVmRunJobAgent=$4
+localVmRunVmMonitorAgent=$5
+localVmRunLogJobAgent=$6
+localVmRunLogVmMonitorAgent=$7
 
 
 # dirac user:

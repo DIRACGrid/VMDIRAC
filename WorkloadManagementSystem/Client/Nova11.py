@@ -7,7 +7,6 @@
 # TODO: frist release only with user/passd, to implement proxy auth with VOMS
 
 import os
-import subprocess
 import sys
 import time
 
@@ -113,7 +112,7 @@ class NovaClient:
     Conextualize an active instance
     This is necesary because the libcloud deploy_node, including key/cert copy and ssh run, based on amiconfig, are sychronous operations which can not scale
     """
-    def contextualize_VMInstance( self, public_ip, contextMethod, vmCertPath, vmKeyPath, vmRunJobAgent, vmRunVmMonitorAgent, vmRunLogJobAgent, vmRunLogVmMonitorAgent, cvmfsContextPath, diracContextPath, cvmfs_http_proxy, siteName="testingSiteName" ):
+    def contextualize_VMInstance( self, public_ip, contextMethod, vmCertPath, vmKeyPath, vmRunJobAgent, vmRunVmMonitorAgent, vmRunLogJobAgent, vmRunLogVmMonitorAgent, cvmfsContextPath, diracContextPath, cvmfs_http_proxy, siteName ):
       request = Request()
 
       if contextMethod == 'ssh': 
@@ -146,9 +145,7 @@ class NovaClient:
         sftp.close()
         transport.close()
 
-        #2) Run the cvmvfs contextualization script:    
-
-        # prepare paramiko ssh client
+        #2)  prepare paramiko ssh client
         try:
             ssh = paramiko.SSHClient()
             ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -163,8 +160,8 @@ class NovaClient:
         #3) Run the DIRAC contextualization orchestator script:    
 
         try:
-            stdin, stdout, stderr = ssh.exec_command("wget --no-check-certificate -O /root/contextualize-script 'https://github.com/vmendez/VMDIRAC/raw/multi-endpoint/WorkloadManagementSystem/private/bootstrap/contextualize-script.py' >> /var/log/contextualize-script.log 2>&1")
-            remotecmd = "/usr/bin/python /root/contextualize-script -c '%s' -k '%s' -j '%s' -m '%s' -l '%s' -L '%s' -v '%s' -d '%s' -p '%s' -s '%s' &" %(vmCertPath, vmKeyPath, vmRunJobAgent, vmRunVmMonitorAgent, vmRunLogJobAgent, vmRunLogVmMonitorAgent, cvmfsContextPath, diracContextPath, cvmfs_http_proxy, siteName) 
+            stdin, stdout, stderr = ssh.exec_command("wget --no-check-certificate -O /root/contextualize-script.bash 'https://github.com/vmendez/VMDIRAC/raw/multi-endpoint/WorkloadManagementSystem/private/bootstrap/contextualize-script.py' >> /var/log/contextualize-script.log 2>&1")
+            remotecmd = "/bin/bash /root/contextualize-script.bash '%s' '%s' '%s' '%s' '%s' '%s' '%s' '%s' '%s' '%s' >> /var/log/contextualize-script.log 2>&1  &" %(vmCertPath, vmKeyPath, vmRunJobAgent, vmRunVmMonitorAgent, vmRunLogJobAgent, vmRunLogVmMonitorAgent, cvmfsContextPath, diracContextPath, cvmfs_http_proxy, siteName) 
             print "remotecmd"
             print remotecmd
             stdin, stdout, stderr = ssh.exec_command(remotecmd)

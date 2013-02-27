@@ -70,6 +70,12 @@ class NovaImage:
       self.__errorStatus = "Can't find the osServiceRegion for endpoint %s" % self.__endpoint
       self.log.error( self.__errorStatus )
       return
+    # Site name (temporaly at Endpoint, but this sould be get it from Resources LHCbDIRAC like scheme)
+    self.__siteName = self.__getCSCloudEndpointOption( "siteName" )
+    if not self.__siteName:
+      self.__errorStatus = "Can't find the siteName for endpoint %s" % self.__endpoint
+      self.log.error( self.__errorStatus )
+      return
     # creating driver for connection to the endpoint and check connection
     self.__clinova = NovaClient(self.__osAuthURL, self.__osUserName, self.__osPasswd, self.__osTenantName, self.__osBaseURL, self.__osServiceRegion)
     request = self.__clinova.check_connection()
@@ -187,7 +193,7 @@ class NovaImage:
     With ssh method, contextualization is asyncronous operation
     """
     if self.__contextMethod =='ssh':
-      request = self.__clinova.contextualize_VMInstance( public_ip, self.__contextMethod, self.__vmCertPath, self.__vmKeyPath, self.__vmRunJobAgent, self.__vmRunVmMonitorAgent, self.__vmRunLogJobAgent, self.__vmRunLogVmMonitorAgent, self.__vmCvmfsContextPath, self.__vmDiracContextPath , self.__cvmfs_http_proxy )
+      request = self.__clinova.contextualize_VMInstance( public_ip, self.__contextMethod, self.__vmCertPath, self.__vmKeyPath, self.__vmRunJobAgent, self.__vmRunVmMonitorAgent, self.__vmRunLogJobAgent, self.__vmRunLogVmMonitorAgent, self.__vmCvmfsContextPath, self.__vmDiracContextPath , self.__cvmfs_http_proxy, self.__siteName )
       if request.returncode != 0:
         self.__errorStatus = "Can't contextualize VM id %s at endpoint %s: %s" % (uniqueId, self.__endpoint, request.stderr)
         self.log.error( self.__errorStatus )

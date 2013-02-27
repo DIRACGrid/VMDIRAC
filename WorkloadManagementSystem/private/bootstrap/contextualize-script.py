@@ -31,7 +31,7 @@ def main(argv):
     try:
       opts, args = getopt.getopt(argv,"hc:k:j:m:l:L:v:d:p",["certfile=","keyfile=","runjobagent=","runvmmonitoragent=","runlogagent=","cvmfscontextscript=","diraccontextscript=","cvmfshttpproxy="])
     except getopt.GetoptError:
-      print 'python contextualize-script  -c <certfile> -k <keyfile> -j <runjobagent> -m <runvmmonitoragent> -l <runlogagent> -L <runlogvmmonitoragent>  -v <cvmfscontextscript> -d <diraccontextscript> -p <cvmfshttpproxy>'
+      print 'python contextualize-script  -c <certfile> -k <keyfile> -j <runjobagent> -m <runvmmonitoragent> -l <runlogagent> -L <runlogvmmonitoragent>  -v <cvmfscontextscript> -d <diraccontextscript> -p <cvmfshttpproxy> -s <sitename>'
       sys.exit(2)
 
     for opt, arg in opts:

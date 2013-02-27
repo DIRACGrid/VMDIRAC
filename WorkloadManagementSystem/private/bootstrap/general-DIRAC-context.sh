@@ -7,7 +7,7 @@
         echo "Starting dirac-context-script.sh" > /var/log/dirac-context-script.log 2>&1
 
 if [ $# -ne 4 ]
-    echo "ERROR: 7 Parameters are necesary to this scprit" > /var/log/dirac-context-script.log 2>&1
+    echo "ERROR: general-DIRAC-context.bash siteName vmCertPath vmKeyPath localVmRunJobAgent localVmRunVmMonitorAgent localVmRunLogJobAgent localVmRunLogVmMonitorAgent" > /var/log/dirac-context-script.log 2>&1
     exit 1
 fi
 

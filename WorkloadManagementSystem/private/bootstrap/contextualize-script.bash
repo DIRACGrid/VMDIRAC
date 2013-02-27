@@ -8,20 +8,20 @@
 
 if [ $# -ne 10 ]
 then
-	echo "./contextualize-script.bash  <certfile> <keyfile> <runjobagent> <runvmmonitoragent> <runlogjobagent> <runlogvmmonitoragent> <cvmfscontextscript> <diraccontextscript> <cvmfshttpproxy> <sitename>"
+	echo "bash contextualize-script.bash  certfile keyfile runjobagent runvmmonitoragent runlogjobagent runlogvmmonitoragent cvmfscontextscript diraccontextscript cvmfshttpproxy sitename>"
 	exit 1
 fi
 
-vmCertPath = $1
-vmKeyPath = $2
-vmRunJobAgent = $3
-vmRunVmMonitorAgent = $4
-vmRunLogJobAgent = $5
-vmRunLogVmMonitorAgent = $6
-cvmfsContextPath = $7
-diracContextPath = $8
-cvmfs_http_proxy = $9
-siteName = $10
+vmCertPath=$1
+vmKeyPath=$2
+vmRunJobAgent=$3
+vmRunVmMonitorAgent=$4
+vmRunLogJobAgent=$5
+vmRunLogVmMonitorAgent=$6
+cvmfsContextPath=$7
+diracContextPath=$8
+cvmfs_http_proxy=$9
+siteName=$10
 
 localVmRunJobAgent = /root/run.job-agent
 localVmRunVmMonitorAgent = /root/run.vm-monitor-agent

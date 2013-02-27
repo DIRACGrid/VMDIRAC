@@ -123,7 +123,6 @@ class NovaClient:
 
         # prepare paramiko sftp client
         try:
-            print "CONNECTING"
             privatekeyfile = os.path.expanduser('~/.ssh/id_rsa')
             mykey = paramiko.RSAKey.from_private_key_file(privatekeyfile)
             username =  getpass.getuser()
@@ -165,7 +164,7 @@ class NovaClient:
 
         try:
             stdin, stdout, stderr = ssh.exec_command("wget --no-check-certificate -O /root/contextualize-script 'https://github.com/vmendez/VMDIRAC/raw/multi-endpoint/WorkloadManagementSystem/private/bootstrap/contextualize-script.py' >> /var/log/contextualize-script.log 2>&1")
-            remotecmd = "/usr/bin/python /root/contextualize-script -c '%s' -k '%s' -j '%s' -m '%s' -l '%s' -L '%s' -v '%s' -d '%s' -p '%s' -s '%s'  >> '/var/log/contextualize-script.log' 2>&1" %(vmCertPath, vmKeyPath, vmRunJobAgent, vmRunVmMonitorAgent, vmRunLogJobAgent, vmRunLogVmMonitorAgent, cvmfsContextPath, diracContextPath, cvmfs_http_proxy, siteName) 
+            remotecmd = "/usr/bin/python /root/contextualize-script -c '%s' -k '%s' -j '%s' -m '%s' -l '%s' -L '%s' -v '%s' -d '%s' -p '%s' -s '%s' &" %(vmCertPath, vmKeyPath, vmRunJobAgent, vmRunVmMonitorAgent, vmRunLogJobAgent, vmRunLogVmMonitorAgent, cvmfsContextPath, diracContextPath, cvmfs_http_proxy, siteName) 
             print "remotecmd"
             print remotecmd
             stdin, stdout, stderr = ssh.exec_command(remotecmd)

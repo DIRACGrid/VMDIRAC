@@ -43,11 +43,11 @@ wget --no-check-certificate -O ${localDiracContextPath} ${diracContextPath}
 if [ ${cvmfsContextPath} != 'NONE' ]
 then
     chmod u+x ${localCvmfsContextPath}
-    bash ${localCvmfsContextPath} ${cvmfs_http_proxy}
+    bash ${localCvmfsContextPath} "${cvmfs_http_proxy}"
 fi
 
 #3) Run the dirac contextualization script:    
 chmod u+x ${localDiracContextPath}
-bash ${localDiracContextPath} ${siteName} ${vmCertPath} ${vmKeyPath} ${localVmRunJobAgent} ${localVmRunVmMonitorAgent} ${localVmRunLogJobAgent} ${localVmRunLogVmMonitorAgent}
+bash ${localDiracContextPath} "${siteName}" "${vmCertPath}" "${vmKeyPath}" "${localVmRunJobAgent}" "${localVmRunVmMonitorAgent}" "${localVmRunLogJobAgent}" "${localVmRunLogVmMonitorAgent}"
 
 exit 0

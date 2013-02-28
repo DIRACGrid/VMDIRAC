@@ -31,6 +31,6 @@ EOF
 
 # reaload configuration to activate new setup:
 /sbin/service cvmfs reload >> /var/log/cvmfs-context-script.log 2>&1
-cvmfs_config showconfig >> /var/log/cvmfs-context-scprit.log 2>&1
+cvmfs_config showconfig >> /var/log/cvmfs-context-script.log 2>&1
 
 exit 0

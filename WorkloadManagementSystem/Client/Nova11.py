@@ -150,8 +150,6 @@ class NovaClient:
             ssh = paramiko.SSHClient()
             ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             ssh.connect(public_ip, username=username, port=22, pkey=mykey)
-            #sshclient.load_system_host_keys()
-            #sshclient.connect(public_ip)
         except Exception, errmsg:
             request.stderr = "Can't open ssh conection to %s: %s" % (public_ip,errmsg)
             request.returncode = -1

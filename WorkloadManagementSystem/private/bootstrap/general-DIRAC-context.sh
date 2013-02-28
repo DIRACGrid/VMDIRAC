@@ -23,7 +23,7 @@ localVmRunLogVmMonitorAgent=$7
 # dirac user:
         /usr/sbin/useradd -d /opt/dirac dirac
 
-# servercert/serverkey previouslly to this scprit copied 
+# servercert/serverkey previouslly to this script copied 
 #
 	cd /opt/dirac
 	su dirac -c'mkdir -p etc/grid-security' >> /var/log/dirac-context-script.log 2>&1

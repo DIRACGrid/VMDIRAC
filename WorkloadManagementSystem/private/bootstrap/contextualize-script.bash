@@ -23,6 +23,18 @@ diracContextPath=$8
 cvmfs_http_proxy=$9
 siteName=$10
 
+
+echo "1 $vmCertPath" >> /var/log/contextualize-script.log 2>&1
+echo "2 vmKeyPath" >> /var/log/contextualize-script.log 2>&1
+echo "3 vmRunJobAgent" >> /var/log/contextualize-script.log 2>&1
+echo "4 vmRunVmMonitorAgent" >> /var/log/contextualize-script.log 2>&1
+echo "5 vmRunLogJobAgent" >> /var/log/contextualize-script.log 2>&1
+echo "6 vmRunLogVmMonitorAgent" >> /var/log/contextualize-script.log 2>&1
+echo "7 cvmfsContextPath" >> /var/log/contextualize-script.log 2>&1
+echo "8 diracContextPath" >> /var/log/contextualize-script.log 2>&1
+echo "9 cvmfs_http_proxy" >> /var/log/contextualize-script.log 2>&1
+echo "10 siteName" >> /var/log/contextualize-script.log 2>&1
+
 localVmRunJobAgent=/root/run.job-agent
 localVmRunVmMonitorAgent=/root/run.vm-monitor-agent
 localVmRunLogJobAgent=/root/run.log.job-agent 
@@ -32,22 +44,22 @@ localDiracContextPath=/root/dirac-context.sh
 
 # vmcert and key have been previoslly copy to VM, these paths are local, the rest of files are on some repo... 
 # 1) download the necesary files:
-wget --no-check-certificate -O ${localVmRunJobAgent} ${vmRunJobAgent}
-wget --no-check-certificate -O ${localVmRunVmMonitorAgent} ${vmRunVmMonitorAgent} 
-wget --no-check-certificate -O ${localVmRunLogJobAgent} ${vmRunLogJobAgent} 
-wget --no-check-certificate -O ${localVmRunLogVmMonitorAgent} ${vmRunLogVmMonitorAgent} 
-wget --no-check-certificate -O ${localCvmfsContextPath} ${cvmfsContextPath} 
-wget --no-check-certificate -O ${localDiracContextPath} ${diracContextPath} 
+wget --no-check-certificate -O ${localVmRunJobAgent} ${vmRunJobAgent} >> /var/log/contextualize-script.log 2>&1
+wget --no-check-certificate -O ${localVmRunVmMonitorAgent} ${vmRunVmMonitorAgent} >> /var/log/contextualize-script.log 2>&1
+wget --no-check-certificate -O ${localVmRunLogJobAgent} ${vmRunLogJobAgent} >> /var/log/contextualize-script.log 2>&1
+wget --no-check-certificate -O ${localVmRunLogVmMonitorAgent} ${vmRunLogVmMonitorAgent} >> /var/log/contextualize-script.log 2>&1
+wget --no-check-certificate -O ${localCvmfsContextPath} ${cvmfsContextPath} >> /var/log/contextualize-script.log 2>&1
+wget --no-check-certificate -O ${localDiracContextPath} ${diracContextPath} >> /var/log/contextualize-script.log 2>&1
 
 #2) Run the cvmvfs contextualization script:    
 if [ ${cvmfsContextPath} != 'NONE' ]
 then
-    chmod u+x ${localCvmfsContextPath}
-    bash ${localCvmfsContextPath} "${cvmfs_http_proxy}"
+    chmod u+x ${localCvmfsContextPath} >> /var/log/contextualize-script.log 2>&1
+    bash ${localCvmfsContextPath} "${cvmfs_http_proxy}" >> /var/log/contextualize-script.log 2>&1
 fi
 
 #3) Run the dirac contextualization script:    
-chmod u+x ${localDiracContextPath}
-bash ${localDiracContextPath} "${siteName}" "${vmCertPath}" "${vmKeyPath}" "${localVmRunJobAgent}" "${localVmRunVmMonitorAgent}" "${localVmRunLogJobAgent}" "${localVmRunLogVmMonitorAgent}"
+chmod u+x ${localDiracContextPath} >> /var/log/contextualize-script.log 2>&1
+bash ${localDiracContextPath} "${siteName}" "${vmCertPath}" "${vmKeyPath}" "${localVmRunJobAgent}" "${localVmRunVmMonitorAgent}" "${localVmRunLogJobAgent}" "${localVmRunLogVmMonitorAgent}" >> /var/log/contextualize-script.log 2>&1
 
 exit 0

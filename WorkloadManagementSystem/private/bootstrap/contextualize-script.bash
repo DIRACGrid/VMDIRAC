@@ -21,7 +21,7 @@ vmRunLogVmMonitorAgent=$6
 cvmfsContextPath=$7
 diracContextPath=$8
 cvmfs_http_proxy=$9
-siteName=$10
+siteName=${10}
 
 
 echo "1 $vmCertPath" >> /var/log/contextualize-script.log 2>&1

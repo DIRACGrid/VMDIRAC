@@ -7,7 +7,7 @@
 
 if [ $# -ne 1 ]
 then
-	cvmfs-LHCb-context.sh <cvmfs_http_proxy>
+	echo "cvmfs-LHCb-context.sh <cvmfs_http_proxy>"
 fi	
 
 

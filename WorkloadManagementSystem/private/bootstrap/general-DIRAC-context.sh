@@ -8,13 +8,13 @@
 
 if [ $# -ne 7 ]
 then
-    echo "ERROR: general-DIRAC-context.bash <siteName> <vmCertPath> <vmKeyPath> <localVmRunJobAgent> <localVmRunVmMonitorAgent> <localVmRunLogJobAgent> <localVmRunLogVmMonitorAgent>" > /var/log/dirac-context-script.log 2>&1
+    echo "ERROR: general-DIRAC-context.bash <siteName> <putCertPath> <putKeyPath> <localVmRunJobAgent> <localVmRunVmMonitorAgent> <localVmRunLogJobAgent> <localVmRunLogVmMonitorAgent>" > /var/log/dirac-context-script.log 2>&1
     exit 1
 fi
 
 siteName=$1
-vmCertPath=$2
-vmKeyPath=$3
+putCertPath=$2
+putKeyPath=$3
 localVmRunJobAgent=$4
 localVmRunVmMonitorAgent=$5
 localVmRunLogJobAgent=$6
@@ -29,9 +29,9 @@ localVmRunLogVmMonitorAgent=$7
 	cd /opt/dirac
 	su dirac -c'mkdir -p etc/grid-security' >> /var/log/dirac-context-script.log 2>&1
 	chmod -R 755 etc >> /var/log/dirac-context-script.log 2>&1
-	mv ${vmCertPath} etc/grid-security/servercert.pem >> /var/log/dirac-context-script.log 2>&1
+	mv ${putCertPath} etc/grid-security/servercert.pem >> /var/log/dirac-context-script.log 2>&1
 	chmod 444 /root/servercert.pem >> /var/log/dirac-context-script.log 2>&1
-	mv ${vmKeyPath} etc/grid-security/serverkey.pem >> /var/log/dirac-context-script.log 2>&1
+	mv ${putKeyPath} etc/grid-security/serverkey.pem >> /var/log/dirac-context-script.log 2>&1
 	chmod 400 /root/serverkey.pem >> /var/log/dirac-context-script.log 2>&1
 	chown dirac:dirac etc >> /var/log/dirac-context-script.log 2>&1
 	

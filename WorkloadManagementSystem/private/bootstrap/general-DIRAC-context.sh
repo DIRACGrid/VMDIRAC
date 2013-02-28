@@ -29,7 +29,7 @@ localVmRunLogVmMonitorAgent=$7
 	cd /opt/dirac
 	su dirac -c'mkdir -p etc/grid-security' >> /var/log/dirac-context-script.log 2>&1
 	chmod -R 755 etc >> /var/log/dirac-context-script.log 2>&1
-	mv ${vmCertPAth} etc/grid-security/servercert.pem >> /var/log/dirac-context-script.log 2>&1
+	mv ${vmCertPath} etc/grid-security/servercert.pem >> /var/log/dirac-context-script.log 2>&1
 	chmod 444 /root/servercert.pem >> /var/log/dirac-context-script.log 2>&1
 	mv ${vmKeyPath} etc/grid-security/serverkey.pem >> /var/log/dirac-context-script.log 2>&1
 	chmod 400 /root/serverkey.pem >> /var/log/dirac-context-script.log 2>&1
@@ -69,7 +69,7 @@ localVmRunLogVmMonitorAgent=$7
         for retry in 0 1 2 3 4 5 6 7 8 9
         do
                 # multi-endpoint:
-		su dirac -c'dirac-configure -UHdd -S VMDIRAC-Production -o /LocalSite/CPUTime=1800 -o /LocalSite/SubmitPool=Cloud -o /LocalSite/Contextualization=nova-open-stack -o /LocalSite/Site=${siteName} -o /LocalSite/CE=CE-nouse defaults-VMDIRAC.cfg ' >> /var/log/dirac-context-script.log 2>&1
+		su dirac -c"dirac-configure -UHdd -S VMDIRAC-Production -o /LocalSite/CPUTime=1800 -o /LocalSite/SubmitPool=Cloud -o /LocalSite/Contextualization=nova-open-stack -o /LocalSite/Site=${siteName} -o /LocalSite/CE=CE-nouse defaults-VMDIRAC.cfg"  >> /var/log/dirac-context-script.log 2>&1
 		# options H: SkipCAChecks, dd: debug level 2, U: UseServerCertificate 
 		# options only for debuging D: SkipCADownload
 		# after UseServerCertificate = yes for the configuration with CS

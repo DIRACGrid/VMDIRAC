@@ -134,9 +134,11 @@ class NovaClient:
 	    return request
 
         # scp VM cert/key
+        putCertPath = "/root/vmservicecert.pem"
+        putKeyPath = "/root/vmservicekey.pem"
         try:
-            sftp.put(vmCertPath, '/root/vmservicecert.pem')
-            sftp.put(vmKeyPath, '/root/vmservicekey.pem')
+            sftp.put(vmCertPath, putCertPath)
+            sftp.put(vmKeyPath, putKeyPath)
             # while the ssh.exec_command is asyncronous request I need to put on the VM the contextualize-script to ensure the file existence before exec
             sftp.put(vmContextualizeScriptPath, '/root/contextualize-script.bash')
         except Exception, errmsg:
@@ -161,7 +163,7 @@ class NovaClient:
         #3) Run the DIRAC contextualization orchestator script:    
 
         try:
-            remotecmd = "/bin/bash /root/contextualize-script.bash \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\'" %(vmCertPath, vmKeyPath, vmRunJobAgentURL, vmRunVmMonitorAgentURL, vmRunLogJobAgentURL, vmRunLogVmMonitorAgentURL, cvmfsContextURL, diracContextURL, cvmfs_http_proxy, siteName) 
+            remotecmd = "/bin/bash /root/contextualize-script.bash \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\'" %(putCertPath, putKeyPath, vmRunJobAgentURL, vmRunVmMonitorAgentURL, vmRunLogJobAgentURL, vmRunLogVmMonitorAgentURL, cvmfsContextURL, diracContextURL, cvmfs_http_proxy, siteName) 
             stdin, stdout, stderr = ssh.exec_command(remotecmd)
         except Exception, errmsg:
             request.stderr = "Can't run remote ssh to %s: %s" % (public_ip,errmsg)

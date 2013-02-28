@@ -8,7 +8,7 @@
 
 if [ $# -ne 10 ]
 then
-	echo "bash contextualize-script.bash  certfile keyfile runjobagent runvmmonitoragent runlogjobagent runlogvmmonitoragent cvmfscontextscript diraccontextscript cvmfshttpproxy sitename>"
+	echo "bash contextualize-script.bash  <certfile> <keyfile> <runjobagent> <runvmmonitoragent> <runlogjobagent> <runlogvmmonitoragent> <cvmfscontextscript> <diraccontextscript> <cvmfshttpproxy> <sitename>"
 	exit 1
 fi
 
@@ -25,15 +25,15 @@ siteName=$10
 
 
 echo "1 $vmCertPath" >> /var/log/contextualize-script.log 2>&1
-echo "2 vmKeyPath" >> /var/log/contextualize-script.log 2>&1
-echo "3 vmRunJobAgent" >> /var/log/contextualize-script.log 2>&1
-echo "4 vmRunVmMonitorAgent" >> /var/log/contextualize-script.log 2>&1
-echo "5 vmRunLogJobAgent" >> /var/log/contextualize-script.log 2>&1
-echo "6 vmRunLogVmMonitorAgent" >> /var/log/contextualize-script.log 2>&1
-echo "7 cvmfsContextPath" >> /var/log/contextualize-script.log 2>&1
-echo "8 diracContextPath" >> /var/log/contextualize-script.log 2>&1
-echo "9 cvmfs_http_proxy" >> /var/log/contextualize-script.log 2>&1
-echo "10 siteName" >> /var/log/contextualize-script.log 2>&1
+echo "2 $vmKeyPath" >> /var/log/contextualize-script.log 2>&1
+echo "3 $vmRunJobAgent" >> /var/log/contextualize-script.log 2>&1
+echo "4 $vmRunVmMonitorAgent" >> /var/log/contextualize-script.log 2>&1
+echo "5 $vmRunLogJobAgent" >> /var/log/contextualize-script.log 2>&1
+echo "6 $vmRunLogVmMonitorAgent" >> /var/log/contextualize-script.log 2>&1
+echo "7 $cvmfsContextPath" >> /var/log/contextualize-script.log 2>&1
+echo "8 $diracContextPath" >> /var/log/contextualize-script.log 2>&1
+echo "9 $cvmfs_http_proxy" >> /var/log/contextualize-script.log 2>&1
+echo "10 $siteName" >> /var/log/contextualize-script.log 2>&1
 
 localVmRunJobAgent=/root/run.job-agent
 localVmRunVmMonitorAgent=/root/run.vm-monitor-agent

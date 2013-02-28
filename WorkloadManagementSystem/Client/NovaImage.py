@@ -109,45 +109,51 @@ class NovaImage:
         self.log.error( self.__errorStatus )
         return
 
-      # the cvmfs context path
-      self.__vmCvmfsContextPath = self.__getCSImageOption( "vmCvmfsContextPath" )
-      if not self.__vmCvmfsContextPath:
-        self.__errorStatus = "Can't find the vmCvmfsContextPath for endpoint %s" % self.__endpoint
+      self.__vmContextualizeScriptPath = self.__getCSImageOption( "vmContextualizeScriptPath" )
+      if not self.__vmContextualizeScriptPath:
+        self.__errorStatus = "Can't find the vmContextualizeScriptPath for endpoint %s" % self.__endpoint
         self.log.error( self.__errorStatus )
         return
 
-      # the specific context path
-      self.__vmDiracContextPath = self.__getCSImageOption( "vmDiracContextPath" )
-      if not self.__vmDiracContextPath:
-        self.__errorStatus = "Can't find the vmDiracContextPath for endpoint %s" % self.__endpoint
+      # the cvmfs context URL
+      self.__vmCvmfsContextURL = self.__getCSImageOption( "vmCvmfsContextURL" )
+      if not self.__vmCvmfsContextURL:
+        self.__errorStatus = "Can't find the vmCvmfsContextURL for endpoint %s" % self.__endpoint
         self.log.error( self.__errorStatus )
         return
 
-      # the runsvdir run file forjobAgent 
-      self.__vmRunJobAgent = self.__getCSImageOption( "vmRunJobAgent" )
-      if not self.__vmRunJobAgent:
-        self.__errorStatus = "Can't find the vmRunJobAgent for endpoint %s" % self.__endpoint
+      # the specific context URL
+      self.__vmDiracContextURL = self.__getCSImageOption( "vmDiracContextURL" )
+      if not self.__vmDiracContextURL:
+        self.__errorStatus = "Can't find the vmDiracContextURL for endpoint %s" % self.__endpoint
         self.log.error( self.__errorStatus )
         return
 
-      # the runsvdir run file vmMonitorAgent 
-      self.__vmRunVmMonitorAgent = self.__getCSImageOption( "vmRunVmMonitorAgent" )
-      if not self.__vmRunVmMonitorAgent:
-        self.__errorStatus = "Can't find the vmRunVmMonitorAgent for endpoint %s" % self.__endpoint
+      # the runsvdir run file forjobAgent URL
+      self.__vmRunJobAgentURL = self.__getCSImageOption( "vmRunJobAgentURL" )
+      if not self.__vmRunJobAgentURL:
+        self.__errorStatus = "Can't find the vmRunJobAgentURL for endpoint %s" % self.__endpoint
         self.log.error( self.__errorStatus )
         return
 
-      # the runsvdir run.log file forjobAgent 
-      self.__vmRunLogJobAgent = self.__getCSImageOption( "vmRunLogJobAgent" )
-      if not self.__vmRunLogJobAgent:
-        self.__errorStatus = "Can't find the vmRunLogJobAgent for endpoint %s" % self.__endpoint
+      # the runsvdir run file vmMonitorAgentURL 
+      self.__vmRunVmMonitorAgentURL = self.__getCSImageOption( "vmRunVmMonitorAgentURL" )
+      if not self.__vmRunVmMonitorAgentURL:
+        self.__errorStatus = "Can't find the vmRunVmMonitorAgentURL for endpoint %s" % self.__endpoint
         self.log.error( self.__errorStatus )
         return
 
-      # the runsvdir run.log file vmMonitorAgent 
-      self.__vmRunLogVmMonitorAgent = self.__getCSImageOption( "vmRunLogVmMonitorAgent" )
-      if not self.__vmRunLogVmMonitorAgent:
-        self.__errorStatus = "Can't find the vmRunLogVmMonitorAgent for endpoint %s" % self.__endpoint
+      # the runsvdir run.log file forjobAgent URL 
+      self.__vmRunLogJobAgentURL = self.__getCSImageOption( "vmRunLogJobAgentURL" )
+      if not self.__vmRunLogJobAgentURL:
+        self.__errorStatus = "Can't find the vmRunLogJobAgentURL for endpoint %s" % self.__endpoint
+        self.log.error( self.__errorStatus )
+        return
+
+      # the runsvdir run.log file vmMonitorAgentURL 
+      self.__vmRunLogVmMonitorAgentURL = self.__getCSImageOption( "vmRunLogVmMonitorAgentURL" )
+      if not self.__vmRunLogVmMonitorAgentURL:
+        self.__errorStatus = "Can't find the vmRunLogVmMonitorAgentURL for endpoint %s" % self.__endpoint
         self.log.error( self.__errorStatus )
         return
 
@@ -193,7 +199,7 @@ class NovaImage:
     With ssh method, contextualization is asyncronous operation
     """
     if self.__contextMethod =='ssh':
-      request = self.__clinova.contextualize_VMInstance( public_ip, self.__contextMethod, self.__vmCertPath, self.__vmKeyPath, self.__vmRunJobAgent, self.__vmRunVmMonitorAgent, self.__vmRunLogJobAgent, self.__vmRunLogVmMonitorAgent, self.__vmCvmfsContextPath, self.__vmDiracContextPath , self.__cvmfs_http_proxy, self.__siteName )
+      request = self.__clinova.contextualize_VMInstance( public_ip, self.__contextMethod, self.__vmCertPath, self.__vmKeyPath, self.__vmContextualizeScriptPath, self.__vmRunJobAgentURL, self.__vmRunVmMonitorAgentURL, self.__vmRunLogJobAgentURL, self.__vmRunLogVmMonitorAgentURL, self.__vmCvmfsContextURL, self.__vmDiracContextURL , self.__cvmfs_http_proxy, self.__siteName )
       if request.returncode != 0:
         self.__errorStatus = "Can't contextualize VM id %s at endpoint %s: %s" % (uniqueId, self.__endpoint, request.stderr)
         self.log.error( self.__errorStatus )

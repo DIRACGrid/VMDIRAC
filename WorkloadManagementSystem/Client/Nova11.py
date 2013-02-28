@@ -112,7 +112,7 @@ class NovaClient:
     Conextualize an active instance
     This is necesary because the libcloud deploy_node, including key/cert copy and ssh run, based on amiconfig, are sychronous operations which can not scale
     """
-    def contextualize_VMInstance( self, public_ip, contextMethod, vmCertPath, vmKeyPath, vmRunJobAgent, vmRunVmMonitorAgent, vmRunLogJobAgent, vmRunLogVmMonitorAgent, cvmfsContextPath, diracContextPath, cvmfs_http_proxy, siteName ):
+    def contextualize_VMInstance( self, public_ip, contextMethod, vmCertPath, vmKeyPath, vmContextualizeScriptPath, vmRunJobAgentURL, vmRunVmMonitorAgentURL, vmRunLogJobAgentURL, vmRunLogVmMonitorAgentURL, cvmfsContextURL, diracContextURL, cvmfs_http_proxy, siteName ):
       request = Request()
 
       if contextMethod == 'ssh': 
@@ -137,11 +137,14 @@ class NovaClient:
         try:
             sftp.put(vmCertPath, '/root/vmservicecert.pem')
             sftp.put(vmKeyPath, '/root/vmservicekey.pem')
+            # while the ssh.exec_command is asyncronous request I need to put on the VM the contextualize-script to ensure the file existence before exec
+            sftp.put(vmContextualizeScriptPath, '/root/contextualize-script.bash')
         except Exception, errmsg:
             request.stderr = errmsg
             request.returncode = -1
 	    return request
  
+
         sftp.close()
         transport.close()
 
@@ -158,8 +161,10 @@ class NovaClient:
         #3) Run the DIRAC contextualization orchestator script:    
 
         try:
-            stdin, stdout, stderr = ssh.exec_command("wget --no-check-certificate -O /root/contextualize-script.bash 'https://github.com/vmendez/VMDIRAC/raw/multi-endpoint/WorkloadManagementSystem/private/bootstrap/contextualize-script.bash' >> /var/log/contextualize-script.log 2>&1")
-            remotecmd = "/bin/bash /root/contextualize-script.bash \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' &" %(vmCertPath, vmKeyPath, vmRunJobAgent, vmRunVmMonitorAgent, vmRunLogJobAgent, vmRunLogVmMonitorAgent, cvmfsContextPath, diracContextPath, cvmfs_http_proxy, siteName) 
+            # while the ssh.exec_command is asyncronous request I need to put on the VM the contextualize-script to ensure the file existence before exec
+            #stdin, stdout, stderr = ssh.exec_command("wget --no-check-certificate -O /root/contextualize-script.bash 'https://github.com/vmendez/VMDIRAC/raw/multi-endpoint/WorkloadManagementSystem/private/bootstrap/contextualize-script.bash' >> /var/log/contextualize-script.log 2>&1")
+
+            remotecmd = "/bin/bash /root/contextualize-script.bash \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' &" %(vmCertPath, vmKeyPath, vmRunJobAgentURL, vmRunVmMonitorAgentURL, vmRunLogJobAgentURL, vmRunLogVmMonitorAgentURL, cvmfsContextURL, diracContextURL, cvmfs_http_proxy, siteName) 
             print "remotecmd"
             print remotecmd
             stdin, stdout, stderr = ssh.exec_command(remotecmd)

@@ -6,9 +6,9 @@
 
         echo "Starting dirac-context-script.sh" > /var/log/dirac-context-script.log 2>&1
 
-if [ $# -ne 4 ]
+if [ $# -ne 7 ]
 then
-    echo "ERROR: general-DIRAC-context.bash siteName vmCertPath vmKeyPath localVmRunJobAgent localVmRunVmMonitorAgent localVmRunLogJobAgent localVmRunLogVmMonitorAgent" > /var/log/dirac-context-script.log 2>&1
+    echo "ERROR: general-DIRAC-context.bash <siteName> <vmCertPath> <vmKeyPath> <localVmRunJobAgent> <localVmRunVmMonitorAgent> <localVmRunLogJobAgent> <localVmRunLogVmMonitorAgent>" > /var/log/dirac-context-script.log 2>&1
     exit 1
 fi
 

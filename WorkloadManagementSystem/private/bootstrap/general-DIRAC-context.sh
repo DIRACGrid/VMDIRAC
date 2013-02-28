@@ -6,9 +6,9 @@
 
         echo "Starting dirac-context-script.sh" > /var/log/dirac-context-script.log 2>&1
 
-if [ $# -ne 7 ]
+if [ $# -ne 8 ]
 then
-    echo "ERROR: general-DIRAC-context.bash <siteName> <putCertPath> <putKeyPath> <localVmRunJobAgent> <localVmRunVmMonitorAgent> <localVmRunLogJobAgent> <localVmRunLogVmMonitorAgent>" > /var/log/dirac-context-script.log 2>&1
+    echo "ERROR: general-DIRAC-context.bash <siteName> <putCertPath> <putKeyPath> <localVmRunJobAgent> <localVmRunVmMonitorAgent> <localVmRunLogJobAgent> <localVmRunLogVmMonitorAgent> <cloudDriver>" > /var/log/dirac-context-script.log 2>&1
     exit 1
 fi
 
@@ -19,6 +19,7 @@ localVmRunJobAgent=$4
 localVmRunVmMonitorAgent=$5
 localVmRunLogJobAgent=$6
 localVmRunLogVmMonitorAgent=$7
+cloudDriver=$8
 
 
 # dirac user:
@@ -69,7 +70,7 @@ localVmRunLogVmMonitorAgent=$7
         for retry in 0 1 2 3 4 5 6 7 8 9
         do
                 # multi-endpoint:
-		su dirac -c"dirac-configure -UHdd -S VMDIRAC-Production -o /LocalSite/CPUTime=1800 -o /LocalSite/SubmitPool=Cloud -o /LocalSite/Contextualization=nova-open-stack -o /LocalSite/Site=${siteName} -o /LocalSite/CE=CE-nouse defaults-VMDIRAC.cfg"  >> /var/log/dirac-context-script.log 2>&1
+		su dirac -c"dirac-configure -UHdd -S VMDIRAC-Production -o /LocalSite/CPUTime=1800 -o /LocalSite/SubmitPool=Cloud -o /LocalSite/CloudDriver=${cloudDriver} -o /LocalSite/Site=${siteName} -o /LocalSite/CE=CE-nouse defaults-VMDIRAC.cfg"  >> /var/log/dirac-context-script.log 2>&1
 		# options H: SkipCAChecks, dd: debug level 2, U: UseServerCertificate 
 		# options only for debuging D: SkipCADownload
 		# after UseServerCertificate = yes for the configuration with CS
@@ -87,12 +88,6 @@ localVmRunLogVmMonitorAgent=$7
 	echo "etc/dirac.cfg content previous to agents run: "  >> /var/log/dirac-context-script.log 2>&1
 	cat etc/dirac.cfg >> /var/log/dirac-context-script.log 2>&1
 	echo >> /var/log/dirac-context-script.log 2>&1
-	# another way to do the same could work when bugfix
-	# first generate de proxy server
-	#su dirac -c'dirac-proxy-init -C /opt/dirac/etc/grid-security/servercert.pem -K /opt/dirac/etc/grid-security/serverkey.pem' >> /var/log/dirac-context-script.log 2>&1
-	# second configure without UseServerCertificate option
-        #su dirac -c'dirac-configure -Hdd -S VMDIRAC-Production -o /LocalSite/CPUTime=1800 -o /LocalSite/SubmitPools=Occi -o /LocalSite/Site=VMDIRAC.develop-pic.es -o /LocalSite/CE=CE-nouse defaults-VMDIRAC.cfg ' >> /var/log/dirac-context-script.log 2>&1
-
 
 # start the agents: VirtualMachineMonitor, JobAgent
 

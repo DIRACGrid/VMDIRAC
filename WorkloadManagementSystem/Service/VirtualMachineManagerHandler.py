@@ -108,7 +108,7 @@ class VirtualMachineManagerHandler( RequestHandler ):
 
   ###########################################################################
   types_declareInstanceHalting = [ StringType, FloatType ]
-  def export_declareInstanceHalting( self, vmId, load, contextualization ):
+  def export_declareInstanceHalting( self, vmId, load, cloudDriver ):
     """
     Insert the heart beat info from a halting instance
     Declares "Halted" the instance and the image 
@@ -123,7 +123,7 @@ class VirtualMachineManagerHandler( RequestHandler ):
     if not result[ 'OK' ]:
       return result
     
-    if contextualization == 'occi':
+    if (cloudDriver == 'occi-0.9' or cloudDriver == 'occi-0.8'):
       result = gVirtualMachineDB.getImageNameFromInstance( vmId )
       if not result[ 'OK' ]:
         return result
@@ -132,7 +132,7 @@ class VirtualMachineManagerHandler( RequestHandler ):
       oima = OcciImage( imageName, endpoint )
       result = oima.stopInstance( vmId )
 
-    if contextualization == 'nova':
+    if cloudDriver == 'nova-1.1':
       result = gVirtualMachineDB.getImageNameFromInstance( vmId )
       if not result[ 'OK' ]:
         return result

@@ -26,11 +26,14 @@
 
 """
 
-__RCSID__ = "$Id: VirtualMachineDB.py 16 2010-03-15 11:39:29Z ricardo.graciani@gmail.com $"
-
 import types
-from DIRAC.Core.Base.DB import DB
-import DIRAC
+
+#DIRAC
+from DIRAC                import gConfig, S_OK, S_ERROR
+from DIRAC.Core.Base.DB   import DB
+from DIRAC.Core.Utilities import DEncode, Time
+
+__RCSID__ = "$Id: VirtualMachineDB.py 16 2010-03-15 11:39:29Z ricardo.graciani@gmail.com $"
 
 class VirtualMachineDB( DB ):
 
@@ -103,30 +106,30 @@ class VirtualMachineDB( DB ):
     For a given instance vmId it returns the asociated Endpoint in the instance table, thus the ImageName of such instance 
     Using _getFields( self, tableName, outFields = None, inFields = None, inValues = None, limit = 0, conn = None )
     """
-    ( tableName, validStates, idName ) = self.__getTypeTuple( 'Instance' )
+    ( tableName, _validStates, _idName ) = self.__getTypeTuple( 'Instance' )
     endpoint = self._getFields( tableName, [ 'Endpoint' ], [ 'UniqueID' ], [ vmId ] )
     if not endpoint['OK']:
       return endpoint
 
     if not endpoint['Value']:
-      return DIRAC.S_ERROR( 'Unknown %s = %s' % ( 'UniqueID', vmId ) )
+      return S_ERROR( 'Unknown %s = %s' % ( 'UniqueID', vmId ) )
 
-    return DIRAC.S_OK( endpoint['Value'][0][0] )
+    return S_OK( endpoint['Value'][0][0] )
 
   def getImageNameFromInstance( self, vmId ):
     """
     For a given vmId it returns the asociated Name in the instance table, thus the ImageName of such instance 
     Using _getFields( self, tableName, outFields = None, inFields = None, inValues = None, limit = 0, conn = None )
     """
-    ( tableName, validStates, idName ) = self.__getTypeTuple( 'Instance' )
+    ( tableName, _validStates, _idName ) = self.__getTypeTuple( 'Instance' )
     imageName = self._getFields( tableName, [ 'Name' ], [ 'UniqueID' ], [ vmId ] )
     if not imageName['OK']:
       return imageName
 
     if not imageName['Value']:
-      return DIRAC.S_ERROR( 'Unknown %s = %s' % ( 'UniqueID', vmId ) )
+      return S_ERROR( 'Unknown %s = %s' % ( 'UniqueID', vmId ) )
 
-    return DIRAC.S_OK( imageName['Value'][0][0] )
+    return S_OK( imageName['Value'][0][0] )
 
   def __init__( self, maxQueueSize = 10 ):
     DB.__init__( self, 'VirtualMachineDB', 'WorkloadManagement/VirtualMachineDB', maxQueueSize )
@@ -153,21 +156,23 @@ class VirtualMachineDB( DB ):
 
     return self._createTables( tablesToCreate )
 
-  def __getTypeTuple( self, object ):
+  def __getTypeTuple( self, element ):
     """
     return tuple of (tableName, validStates, idName) for object
     """
-    tableName = ''
+    tableName   = ''
     validStates = []
-    idName = ''
-    if object == 'Image':
-      tableName = 'vm_Images'
+    idName      = ''
+    
+    if element == 'Image':
+      tableName   = 'vm_Images'
       validStates = self.validImageStates
-      idName = 'VMImageID'
-    elif object == 'Instance':
-      tableName = 'vm_Instances'
+      idName      = 'VMImageID'
+      
+    elif element == 'Instance':
+      tableName   = 'vm_Instances'
       validStates = self.validInstanceStates
-      idName = 'VMInstanceID'
+      idName      = 'VMInstanceID'
 
     return ( tableName, validStates, idName )
 
@@ -204,7 +209,7 @@ class VirtualMachineDB( DB ):
     """
     result = self.__getInstanceID( uniqueID )
     if result['OK']:
-      return DIRAC.S_ERROR( 'UniqueID is not unique: %s' % uniqueID )
+      return S_ERROR( 'UniqueID is not unique: %s' % uniqueID )
 
     result = self._escapeString( uniqueID )
     if not result['OK']:
@@ -213,9 +218,10 @@ class VirtualMachineDB( DB ):
     try:
       instanceID = int( instanceID )
     except Exception, e:
+      #FIXME: WTF ? raise or return ?
       raise e
-      return DIRAC.S_ERROR( "Instance id has to be a number" )
-    ( tableName, validStates, idName ) = self.__getTypeTuple( 'Instance' )
+      return S_ERROR( "Instance id has to be a number" )
+    ( tableName, _validStates, idName ) = self.__getTypeTuple( 'Instance' )
     sqlUpdate = "UPDATE `%s` SET UniqueID = %s WHERE %s = %d" % ( tableName, uniqueID, idName, instanceID )
     return self._update( sqlUpdate )
 
@@ -282,17 +288,17 @@ class VirtualMachineDB( DB ):
     stallingInstances = []
 
     if not oldInstances['Value']:
-      return DIRAC.S_OK( stallingInstances )
+      return S_OK( stallingInstances )
 
-    for id in oldInstances['Value']:
-      id = id[0]
-      stalled = self.__setState( 'Instance', id, 'Stalled' )
+    for iD in oldInstances['Value']:
+      iD = iD[0]
+      stalled = self.__setState( 'Instance', iD, 'Stalled' )
       if not stalled['OK']:
         continue
-      self.__addInstanceHistory( id, 'Stalled' )
-      stallingInstances.append( id )
+      self.__addInstanceHistory( iD, 'Stalled' )
+      stallingInstances.append( iD )
 
-    return DIRAC.S_OK( stallingInstances )
+    return S_OK( stallingInstances )
 
 
   def instanceIDHeartBeat( self, uniqueID, load, jobs, transferredFiles, transferredBytes, uptime ):
@@ -314,16 +320,16 @@ class VirtualMachineDB( DB ):
     self.__setLastLoadAndUptime( instanceID, load, uptime )
 
     #TODO: Send empty dir just in case we want to send flags (such as stop vm)
-    return DIRAC.S_OK( {} )
+    return S_OK( {} )
 
   def getInstancesByStatus( self, status ):
     """
     Get dictionary of Image Names with InstanceIDs in given status 
     """
     if status not in self.validInstanceStates:
-      return DIRAC.S_ERROR( 'Status %s is not known' % status )
+      return S_ERROR( 'Status %s is not known' % status )
 
-    ( tableName, validStates, idName ) = self.__getTypeTuple( 'Instance' )
+    ( tableName, _validStates, idName ) = self.__getTypeTuple( 'Instance' )
 
     runningInstances = self._getFields( tableName, [ 'VMImageID', 'UniqueID' ], ['Status'], [status] )
     if not runningInstances['OK']:
@@ -333,7 +339,7 @@ class VirtualMachineDB( DB ):
     imagesDict = {}
     for imageID, uniqueID in runningInstances:
       if not imageID in imagesDict:
-        ( tableName, validStates, idName ) = self.__getTypeTuple( 'Image' )
+        ( tableName, _validStates, idName ) = self.__getTypeTuple( 'Image' )
         imageName = self._getFields( tableName, ['Name'], [idName], [imageID] )
         if not imageName['OK']:
           continue
@@ -342,16 +348,16 @@ class VirtualMachineDB( DB ):
         instancesDict[imagesDict[imageID]] = []
       instancesDict[imagesDict[imageID]].append( uniqueID )
 
-    return DIRAC.S_OK( instancesDict )
+    return S_OK( instancesDict )
 
   def getInstancesByStatusAndEndpoint( self, status, endpoint  ):
     """
     Get dictionary of Image Names with InstanceIDs in given status 
     """
     if status not in self.validInstanceStates:
-      return DIRAC.S_ERROR( 'Status %s is not known' % status )
+      return S_ERROR( 'Status %s is not known' % status )
 
-    ( tableName, validStates, idName ) = self.__getTypeTuple( 'Instance' )
+    ( tableName, _validStates, idName ) = self.__getTypeTuple( 'Instance' )
 
     runningInstances = self._getFields( tableName, [ 'VMImageID', 'UniqueID'], ['Status', 'Endpoint'], [status, endpoint] )
     if not runningInstances['OK']:
@@ -361,7 +367,7 @@ class VirtualMachineDB( DB ):
     imagesDict = {}
     for imageID, uniqueID in runningInstances:
       if not imageID in imagesDict:
-        ( tableName, validStates, idName ) = self.__getTypeTuple( 'Image' )
+        ( tableName, _validStates, idName ) = self.__getTypeTuple( 'Image' )
         imageName = self._getFields( tableName, ['Name'], [idName], [imageID] )
         if not imageName['OK']:
           continue
@@ -370,7 +376,7 @@ class VirtualMachineDB( DB ):
         instancesDict[imagesDict[imageID]] = []
       instancesDict[imagesDict[imageID]].append( uniqueID )
 
-    return DIRAC.S_OK( instancesDict )
+    return S_OK( instancesDict )
 
 
   def getAllInfoForUniqueID( self, uniqueID ):
@@ -389,7 +395,7 @@ class VirtualMachineDB( DB ):
     if not result[ 'OK' ]:
       return result
     imgData = result[ 'Value' ]
-    return DIRAC.S_OK( { 'Image' : imgData, 'Instance' : instData } )
+    return S_OK( { 'Image' : imgData, 'Instance' : instData } )
 
   def __insertInstance( self, imageName, instanceName, endpoint, runningPodName ):
     """
@@ -400,10 +406,10 @@ class VirtualMachineDB( DB ):
       return image
     imageID = image['Value']
 
-    ( tableName, validStates, idName ) = self.__getTypeTuple( 'Instance' )
+    ( tableName, validStates, _idName ) = self.__getTypeTuple( 'Instance' )
 
-    fields = ['Name', 'Endpoint','VMImageID', 'Status', 'LastUpdate' ]
-    values = [instanceName, endpoint, imageID, validStates[0], DIRAC.Time.toString() ]
+    fields = ['Name', 'Endpoint', 'VMImageID', 'Status', 'LastUpdate' ]
+    values = [instanceName, endpoint, imageID, validStates[0], Time.toString() ]
     result = self.getRunningPodDict( runningPodName )
     if not result[ 'OK' ]:
       return result
@@ -416,12 +422,12 @@ class VirtualMachineDB( DB ):
 
     if instance['OK'] and 'lastRowId' in instance:
       self.__addInstanceHistory( instance['lastRowId'], validStates[0] )
-      return DIRAC.S_OK( instance['lastRowId'] )
+      return S_OK( instance['lastRowId'] )
 
     if not instance['OK']:
       return instance
 
-    return DIRAC.S_ERROR( 'Failed to insert new Instance' )
+    return S_ERROR( 'Failed to insert new Instance' )
 
   def __runningInstance( self, instanceID, load, jobs, transferredFiles, transferredBytes ):
     """
@@ -447,7 +453,7 @@ class VirtualMachineDB( DB ):
 
     # Add History record
     self.__addInstanceHistory( instanceID, 'Running', load, jobs, transferredFiles, transferredBytes )
-    return DIRAC.S_OK()
+    return S_OK()
 
   def __getImageForRunningInstance( self, instanceID ):
     """
@@ -461,7 +467,7 @@ class VirtualMachineDB( DB ):
     if not result['OK']:
       return result
     info = result[ 'Value' ]
-    ( tableName, validStates, idName ) = self.__getTypeTuple( 'Image' )
+    ( _tableName, _validStates, idName ) = self.__getTypeTuple( 'Image' )
 
     imageID = info[ idName ]
 
@@ -469,14 +475,14 @@ class VirtualMachineDB( DB ):
     if not imageStatus['OK']:
       return imageStatus
 
-    return DIRAC.S_OK( imageID )
+    return S_OK( imageID )
 
   def __getOldInstanceIDs( self, secondsIdle, states ):
     """
     Return list of instance IDs that have not updated after the given time stamp
     they are required to be in one of the given states
     """
-    ( tableName, validStates, idName ) = self.__getTypeTuple( 'Instance' )
+    ( tableName, _validStates, idName ) = self.__getTypeTuple( 'Instance' )
     sqlCond = []
     sqlCond.append( 'TIMESTAMPDIFF( SECOND, `LastUpdate`, UTC_TIMESTAMP() ) > % d' % secondsIdle )
     sqlCond.append( 'Status IN ( "%s" )' % '", "'.join( states ) )
@@ -488,69 +494,69 @@ class VirtualMachineDB( DB ):
     """
     Retrieve and InstanceID associated to a submitted Instance for a given Image
     """
-    ( tableName, validStates, idName ) = self.__getTypeTuple( 'Image' )
+    ( tableName, _validStates, idName ) = self.__getTypeTuple( 'Image' )
     imageID = self._getFields( tableName, [ idName ], ['Name'], [imageName] )
     if not imageID['OK']:
       return imageID
 
     if not imageID['Value']:
-      return DIRAC.S_ERROR( 'Unknown Image = %s' % imageName )
+      return S_ERROR( 'Unknown Image = %s' % imageName )
 
-    if len( imageID['Value'] ) <> 1:
-      return DIRAC.S_ERROR( 'Image name "%s" is not unique' % imageName )
+    if len( imageID['Value'] ) != 1:
+      return S_ERROR( 'Image name "%s" is not unique' % imageName )
 
     imageID = imageID['Value'][0][0]
     imageIDName = idName
 
-    ( tableName, validStates, idName ) = self.__getTypeTuple( 'Instance' )
+    ( tableName, _validStates, idName ) = self.__getTypeTuple( 'Instance' )
 
     instanceID = self._getFields( tableName, [idName], [ imageIDName, 'Status' ], [ imageID, 'Submitted' ] )
     if not instanceID['OK']:
       return instanceID
 
     if not instanceID['Value']:
-      return DIRAC.S_ERROR( 'No Submitted instance of "%s" found' % imageName )
+      return S_ERROR( 'No Submitted instance of "%s" found' % imageName )
 
-    return DIRAC.S_OK( instanceID['Value'][0][0] )
+    return S_OK( instanceID['Value'][0][0] )
 
-  def __setState( self, object, id, state ):
+  def __setState( self, element, iD, state ):
     """
     Attempt to set object in state, checking if transition is allowed
     """
-    knownStates = self.allowedTransitions[object].keys()
+    knownStates = self.allowedTransitions[element].keys()
     if not state in knownStates:
-      return DIRAC.S_ERROR( 'Transition to %s not possible' % state )
+      return S_ERROR( 'Transition to %s not possible' % state )
 
-    allowedStates = self.allowedTransitions[object][state]
+    allowedStates = self.allowedTransitions[element][state]
 
-    currentState = self.__getStatus( object, id )
+    currentState = self.__getStatus( element, iD )
     if not currentState['OK']:
       return currentState
 
-    ( tableName, validStates, idName ) = self.__getTypeTuple( object )
+    ( tableName, _validStates, idName ) = self.__getTypeTuple( element )
 
     currentState = currentState['Value']
     if currentState == state:
       cmd = 'UPDATE `%s` SET LastUpdate = UTC_TIMESTAMP() WHERE %s = %s' % \
-          ( tableName, idName, id )
+          ( tableName, idName, iD )
 
       ret = self._update( cmd )
       if not ret['OK']:
         return ret
-      return DIRAC.S_OK( state )
+      return S_OK( state )
 
     if not currentState in allowedStates:
       msg = 'Transition ( %s -> %s ) not allowed' % ( currentState, state )
-      return DIRAC.S_ERROR( msg )
+      return S_ERROR( msg )
 
     cmd = 'UPDATE `%s` SET Status = "%s", LastUpdate = UTC_TIMESTAMP() WHERE %s = %s' % \
-        ( tableName, state, idName, id )
+        ( tableName, state, idName, iD )
 
     ret = self._update( cmd )
     if not ret['OK']:
       return ret
 
-    return DIRAC.S_OK( state )
+    return S_OK( state )
 
   def __setInstanceIPs( self, instanceID, publicIP, privateIP ):
     """
@@ -561,7 +567,7 @@ class VirtualMachineDB( DB ):
       return S_ERROR( "Cannot escape values: %s" % str( values ) )
     ( publicIP, privateIP ) = values['Value']
 
-    ( tableName, validStates, idName ) = self.__getTypeTuple( 'Instance' )
+    ( tableName, _validStates, idName ) = self.__getTypeTuple( 'Instance' )
     cmd = 'UPDATE `%s` SET PublicIP = %s, PrivateIP = %s WHERE %s = %s' % \
              ( tableName, publicIP, privateIP, idName, instanceID )
 
@@ -571,15 +577,15 @@ class VirtualMachineDB( DB ):
     """
     For a given uniqueID of an instance return associated internal InstanceID 
     """
-    ( tableName, validStates, idName ) = self.__getTypeTuple( 'Instance' )
+    ( tableName, _validStates, idName ) = self.__getTypeTuple( 'Instance' )
     instanceID = self._getFields( tableName, [ idName ], [ 'UniqueID' ], [ uniqueID ] )
     if not instanceID['OK']:
       return instanceID
 
     if not instanceID['Value']:
-      return DIRAC.S_ERROR( 'Unknown %s = %s' % ( 'UniqueID', uniqueID ) )
+      return S_ERROR( 'Unknown %s = %s' % ( 'UniqueID', uniqueID ) )
 
-    return DIRAC.S_OK( instanceID['Value'][0][0] )
+    return S_OK( instanceID['Value'][0][0] )
 
   def __getImageID( self, imageName, runningPodName ):
     """
@@ -592,7 +598,7 @@ class VirtualMachineDB( DB ):
       return imageID
 
     if len( imageID['Value'] ) > 1:
-      return DIRAC.S_ERROR( 'Image name "%s" is not unique' % imageName )
+      return S_ERROR( 'Image name "%s" is not unique' % imageName )
     if len( imageID['Value'] ) == 0:
       # The image does not exits in DB, has to be inserted
       imageID = 0
@@ -605,7 +611,7 @@ class VirtualMachineDB( DB ):
       return result
     runningPodDict = result[ 'Value' ]
     cloudendpoints = runningPodDict['CloudEndpoints']
-    requirements = DIRAC.DEncode.encode( runningPodDict['Requirements'] )
+    requirements = DEncode.encode( runningPodDict['Requirements'] )
 
     if imageID:
       ret = self._getFields( tableName, [idName], ['Name', 'CloudEndpoints', 'Requirements'],
@@ -613,29 +619,29 @@ class VirtualMachineDB( DB ):
       if not ret['OK']:
         return ret
       if not ret['Value']:
-        return DIRAC.S_ERROR( 'Image "%s" in DB but it does not match' % imageName )
+        return S_ERROR( 'Image "%s" in DB but it does not match' % imageName )
       else:
-        return DIRAC.S_OK( imageID )
+        return S_OK( imageID )
 
     ret = self._insert( tableName, ['Name', 'CloudEndpoints', 'Requirements', 'Status', 'LastUpdate'],
-                                     [imageName, cloudendpoints, requirements, validStates[0], DIRAC.Time.toString()] )
+                                     [imageName, cloudendpoints, requirements, validStates[0], Time.toString()] )
     if ret['OK'] and 'lastRowId' in ret:
-      id = ret['lastRowId']
+      iD = ret['lastRowId']
       ret = self._getFields( tableName, [idName], ['Name', 'CloudEndpoints', 'Requirements'],
                                                   [imageName, cloudendpoints, requirements] )
       if not ret['OK']:
         return ret
-      if not ret['Value'] or id <> ret['Value'][0][0]:
-        result = self.__getInfo( 'Image', id )
+      if not ret['Value'] or iD != ret['Value'][0][0]:
+        result = self.__getInfo( 'Image', iD )
         if result['OK']:
           image = result[ 'Value' ]
           self.log.error( 'Trying to insert Name: "%s", CloudEndpoints: "%s", Requirements: "%s"' %
                                             ( imageName, cloudendpoints, requirements ) )
           self.log.error( 'But inserted     Name: "%s", CloudEndpoints: "%s", Requirements: "%s"' %
                                             ( image['Name'], image['CloudEndpoints'], image['Requirements'] ) )
-        return self.__setError( 'Image', id, 'Failed to insert new Image' )
-      return DIRAC.S_OK( id )
-    return DIRAC.S_ERROR( 'Failed to insert new Image' )
+        return self.__setError( 'Image', iD, 'Failed to insert new Image' )
+      return S_OK( iD )
+    return S_ERROR( 'Failed to insert new Image' )
 
   def __addInstanceHistory( self, instanceID, status, load = 0.0, jobs = 0,
                             transferredFiles = 0, transferredBytes = 0 ):
@@ -644,22 +650,22 @@ class VirtualMachineDB( DB ):
     """
     try:
       load = float( load )
-    except:
-      return DIRAC.S_ERROR( "Load has to be a float value" )
+    except ValueError:
+      return S_ERROR( "Load has to be a float value" )
     try:
       jobs = int( jobs )
-    except:
-      return DIRAC.S_ERROR( "Jobs has to be an integer value" )
+    except ValueError:
+      return S_ERROR( "Jobs has to be an integer value" )
     try:
       transferredFiles = int( transferredFiles )
-    except:
-      return DIRAC.S_ERROR( "Transferred files has to be an integer value" )
+    except ValueError:
+      return S_ERROR( "Transferred files has to be an integer value" )
 
     self._insert( 'vm_History' , [ 'VMInstanceID', 'Status', 'Load',
                                    'Update', 'Jobs', 'TransferredFiles',
                                    'TransferredBytes' ],
                                  [ instanceID, status, load,
-                                   DIRAC.Time.toString(), jobs,
+                                   Time.toString(), jobs,
                                    transferredFiles, transferredBytes ] )
     return
 
@@ -672,75 +678,77 @@ class VirtualMachineDB( DB ):
                                                                                                      load,
                                                                                                      instanceID )
     self._update( sqlUpdate )
-    return DIRAC.S_OK()
+    return S_OK()
 
-  def __getInfo( self, object, id ):
+  def __getInfo( self, element, iD ):
     """
     Return dictionary with info for Images and Instances by ID
     """
-    ( tableName, validStates, idName ) = self.__getTypeTuple( object )
+    ( tableName, _validStates, idName ) = self.__getTypeTuple( element )
     if not tableName:
-      return DIRAC.S_ERROR( 'Unknown DB object: %s' % object )
-    fields = self.tablesDesc[ tableName ]['Fields']
-    ret = self._getFields( tableName , fields, [idName], [id] )
-    if not ret['OK']:
+      return S_ERROR( 'Unknown DB object: %s' % element )
+    
+    fields = self.tablesDesc[ tableName ][ 'Fields' ]
+    ret    = self._getFields( tableName , fields, [ idName ], [ iD ] )
+    
+    if not ret[ 'OK' ]:
       return ret
-    if not ret['Value']:
-      return DIRAC.S_ERROR( 'Unknown %s = %s' % ( idName, id ) )
+    if not ret[ 'Value' ]:
+      return S_ERROR( 'Unknown %s = %s' % ( idName, iD ) )
+    values = ret[ 'Value' ][ 0 ]
 
-    data = {}
-    values = ret['Value'][0]
+    data   = {}
     fields = fields.keys()
+    
     for i in range( len( fields ) ):
-      data[fields[i]] = values[i]
+      data[ fields[ i ] ] = values[ i ]
 
-    return DIRAC.S_OK( data )
+    return S_OK( data )
 
 
-  def __getStatus( self, object, id ):
+  def __getStatus( self, element, iD ):
     """
     Check and return status of Images and Instances by ID
     returns:
       S_OK(Status) if Status is valid and not Error 
       S_ERROR(ErrorMessage) otherwise
     """
-    ( tableName, validStates, idName ) = self.__getTypeTuple( object )
+    ( tableName, validStates, idName ) = self.__getTypeTuple( element )
     if not tableName:
-      return DIRAC.S_ERROR( 'Unknown DB object: %s' % object )
+      return S_ERROR( 'Unknown DB object: %s' % element )
 
-    ret = self._getFields( tableName, ['Status', 'ErrorMessage'], [idName], [id] )
+    ret = self._getFields( tableName, [ 'Status', 'ErrorMessage' ], [ idName ], [ iD ] )
     if not ret['OK']:
       return ret
 
     if not ret['Value']:
-      return DIRAC.S_ERROR( 'Unknown %s = %s' % ( idName, id ) )
+      return S_ERROR( 'Unknown %s = %s' % ( idName, iD ) )
 
-    ( status, msg ) = ret['Value'][0]
+    ( status, msg ) = ret[ 'Value' ][ 0 ]
     if not status in validStates:
-      return self.__setError( object, id, 'Invalid Status: %s' % status )
-    if status == validStates[-1]:
-      return DIRAC.S_ERROR( msg )
+      return self.__setError( element, iD, 'Invalid Status: %s' % status )
+    
+    if status == validStates[ -1 ]:
+      return S_ERROR( msg )
 
-    return DIRAC.S_OK( status )
+    return S_OK( status )
 
 
-  def __setError( self, object, id, reason ):
+  def __setError( self, element, iD, reason ):
     """
     """
-    ( tableName, validStates, idName ) = self.__getTypeTuple( object )
+    ( tableName, validStates, idName ) = self.__getTypeTuple( element )
     if not tableName:
-      return DIRAC.S_ERROR( 'Unknown DB object: %s' % object )
+      return S_ERROR( 'Unknown DB object: %s' % element )
 
-    cmd = 'UPDATE `%s` SET Status = "%s", ErrorMessage = "%s", LastUpdate = UTC_TIMESTAMP() WHERE %s = %s' % ( tableName,
-                                                                                 validStates[-1],
-                                                                                 reason,
-                                                                                 idName,
-                                                                                 id )
+    cmd = 'UPDATE `%s` SET Status = "%s", ErrorMessage = "%s", LastUpdate = UTC_TIMESTAMP() WHERE %s = %s'
+    cmd = cmd % ( tableName, validStates[-1], reason, idName, iD )
+    
     ret = self._update( cmd )
     if not ret['OK']:
       return ret
 
-    return DIRAC.S_ERROR( reason )
+    return S_ERROR( reason )
 
   #Monitoring functions
 
@@ -806,22 +814,22 @@ class VirtualMachineDB( DB ):
     if retVal[ 'OK' ]:
       totalRecords = retVal[ 'Value' ][0][0]
     #return
-    return DIRAC.S_OK( { 'ParameterNames' : fields,
+    return S_OK( { 'ParameterNames' : fields,
                          'Records' : data,
                          'TotalRecords' : totalRecords } )
 
   def getHistoryForInstanceID( self, instanceId ):
     try:
       instanceId = int( instanceId )
-    except:
-      return DIRAC.S_ERROR( "Instance Id has to be a number!" )
+    except ValueError:
+      return S_ERROR( "Instance Id has to be a number!" )
     fields = ( 'Status', 'Load', 'Update', 'Jobs', 'TransferredFiles', 'TransferredBytes' )
     sqlFields = [ '`%s`' % f for f in fields ]
     sqlQuery = "SELECT %s FROM `vm_History` WHERE VMInstanceId=%d" % ( ", ".join( sqlFields ), instanceId )
     retVal = self._query( sqlQuery )
     if not retVal[ 'OK' ]:
       return retVal
-    return DIRAC.S_OK( { 'ParameterNames' : fields,
+    return S_OK( { 'ParameterNames' : fields,
                          'Records' : retVal[ 'Value' ] } )
 
   def getInstanceCounters( self, groupField = "Status", selDict = {} ):
@@ -844,7 +852,7 @@ class VirtualMachineDB( DB ):
     result = self._query( sqlQuery )
     if not result[ 'OK' ]:
       return result
-    return DIRAC.S_OK( dict( result[ 'Value' ] ) )
+    return S_OK( dict( result[ 'Value' ] ) )
 
   def getHistoryValues( self, averageBucket, selDict = {}, fields2Get = False, timespan = 0 ):
     try:
@@ -963,18 +971,18 @@ class VirtualMachineDB( DB ):
           else:
             finalData[-1].append( values[i] )
 
-    return DIRAC.S_OK( { 'ParameterNames' : paramFields,
+    return S_OK( { 'ParameterNames' : paramFields,
                          'Records' : finalData } )
 
   def getRunningInstancesHistory( self, timespan = 0, bucketSize = 900 ):
     try:
       bucketSize = max( 300, int( bucketSize ) )
     except:
-      return DIRAC.S_ERROR( "Bucket has to be an integer" )
+      return S_ERROR( "Bucket has to be an integer" )
     try:
       timespan = max( 0, int( timespan ) )
     except:
-      return DIRAC.S_ERROR( "Timespan has to be an integer" )
+      return S_ERROR( "Timespan has to be an integer" )
 
     groupby = "FROM_UNIXTIME(UNIX_TIMESTAMP( `Update` ) - UNIX_TIMESTAMP( `Update` ) mod %d )" % bucketSize
     sqlFields = [ groupby, "COUNT( DISTINCT( `VMInstanceID` ) )" ]
@@ -991,28 +999,30 @@ class VirtualMachineDB( DB ):
     Return from CS a Dictionary with RunningPod definition
     """
     runningPodsCSPath = '/Resources/VirtualMachines/RunningPods'
-    definedRunningPods = DIRAC.gConfig.getSections( runningPodsCSPath )
+    definedRunningPods = gConfig.getSections( runningPodsCSPath )
     if not definedRunningPods['OK']:
       return definedRunningPods
 
     if runningPodName not in definedRunningPods['Value']:
-      return DIRAC.S_ERROR( 'RunningPod "%s" not defined' % runningPodName )
+      return S_ERROR( 'RunningPod "%s" not defined' % runningPodName )
   
     runningPodCSPath = '%s/%s' % ( runningPodsCSPath, runningPodName )
 
     runningPodDict = {}
 
-    cloudEndpoints = DIRAC.gConfig.getValue( '%s/CloudEndpoints' % runningPodCSPath , '' )
+    cloudEndpoints = gConfig.getValue( '%s/CloudEndpoints' % runningPodCSPath , '' )
     if not cloudEndpoints:
-      return DIRAC.S_ERROR( 'Missing CloudEndpoints for RunnningPod "%s"' % runningPodName )
-    for option, value in DIRAC.gConfig.getOptionsDict( runningPodCSPath )['Value'].items():
+      return S_ERROR( 'Missing CloudEndpoints for RunnningPod "%s"' % runningPodName )
+    for option, value in gConfig.getOptionsDict( runningPodCSPath )['Value'].items():
       runningPodDict[option] = value
-    runningPodRequirementsDict = DIRAC.gConfig.getOptionsDict( '%s/Requirements' % runningPodCSPath )
+    runningPodRequirementsDict = gConfig.getOptionsDict( '%s/Requirements' % runningPodCSPath )
     if not runningPodRequirementsDict['OK']:
-      return DIRAC.S_ERROR( 'Missing Requirements for RunningPod "%s"' % runningPodName )
+      return S_ERROR( 'Missing Requirements for RunningPod "%s"' % runningPodName )
     if 'CPUTime' in runningPodRequirementsDict['Value']:
       runningPodRequirementsDict['Value']['CPUTime'] = int( runningPodRequirementsDict['Value']['CPUTime'] )
     runningPodDict['Requirements'] = runningPodRequirementsDict['Value']
   
-    return DIRAC.S_OK( runningPodDict )
+    return S_OK( runningPodDict )
 
+################################################################################
+#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF

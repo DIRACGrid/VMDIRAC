@@ -1,45 +1,50 @@
-__RCSID__ = "$Id$"
-
+import commands
+import os
 import time
 import urllib2
-import os, commands
-from DIRAC.Core.Base.AgentModule import AgentModule
-
-from DIRAC import gLogger, S_OK, S_ERROR, gConfig, rootPath
-from DIRAC.Core.Utilities import List, Network
-from VMDIRAC.WorkloadManagementSystem.Client.ServerUtils import virtualMachineDB
-from VMDIRAC.WorkloadManagementSystem.private.OutputDataExecutor import OutputDataExecutor
 
 try:
   from hashlib import md5
 except:
   from md5 import md5
 
+#DIRAC
+from DIRAC                       import gLogger, S_OK, S_ERROR, gConfig, rootPath
+from DIRAC.Core.Base.AgentModule import AgentModule
+from DIRAC.Core.Utilities        import List, Network
+
+#VMDIRAC
+from VMDIRAC.WorkloadManagementSystem.Client.ServerUtils         import virtualMachineDB
+from VMDIRAC.WorkloadManagementSystem.private.OutputDataExecutor import OutputDataExecutor
+
+
+__RCSID__ = '$Id: $'
+
 class VirtualMachineMonitorAgent( AgentModule ):
 
   def getAmazonVMId( self ):
     try:
       fd = urllib2.urlopen( "http://instance-data.ec2.internal/latest/meta-data/instance-id" )
-      id = fd.read().strip()
+      iD = fd.read().strip()
       fd.close()
-      return S_OK( id )
+      return S_OK( iD )
     except Exception, e:
       return S_ERROR( "Could not retrieve amazon instance id: %s" % str( e ) )
 
   def getOcciVMId( self ):
     try:
       fd = open( os.path.join( '/etc', 'VMID' ), 'r' )
-      id = fd.read().strip()
+      iD = fd.read().strip()
       fd.close()
-      return S_OK( id )
+      return S_OK( iD )
     except Exception, e:
       return S_ERROR( "Could not retrieve occi instance id: %s" % str( e ) )
 
   def getCloudStackVMId( self ):
     try:
-      id = commands.getstatusoutput( '/bin/hostname' )
-      str = id[1].split( '-' )
-      return S_OK( str[2] )
+      iD      = commands.getstatusoutput( '/bin/hostname' )
+      splitId = iD[1].split( '-' )
+      return S_OK( splitId[2] )
     except Exception, e:
       return S_ERROR( "Could not retrieve CloudStack instance id: %s" % str( e ) )
 
@@ -292,3 +297,6 @@ class VirtualMachineMonitorAgent( AgentModule ):
     # all endpoint:
     gLogger.info( "Executing system halt..." )
     os.system( "halt" )
+    
+#...............................................................................
+#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF    

@@ -82,27 +82,25 @@
 
 
 """
-__RCSID__ = "$Id$"
 
+import random, time
 from random import shuffle
-from DIRAC.Core.Base.AgentModule import AgentModule
-from DIRAC import gConfig
 
+#DIRAC
+import DIRAC
 
-from DIRAC.Resources.Computing.ComputingElement                 import getResourceDict
+from DIRAC                                             import gConfig, S_OK
+from DIRAC.Core.Base.AgentModule                       import AgentModule
+from DIRAC.Core.Utilities.ThreadPool                   import ThreadPool
+from DIRAC.WorkloadManagementSystem.Client.ServerUtils import taskQueueDB
 
-from DIRAC.WorkloadManagementSystem.Client.ServerUtils          import taskQueueDB
-from VMDIRAC.WorkloadManagementSystem.Client.ServerUtils     import virtualMachineDB
+#VMDIRAC
+from VMDIRAC.WorkloadManagementSystem.Client.ServerUtils    import virtualMachineDB
 #from VMDIRAC.WorkloadManagementSystem.private.AmazonDirector import AmazonDirector
 #from VMDIRAC.WorkloadManagementSystem.private.OcciDirector import OcciDirector
 from VMDIRAC.WorkloadManagementSystem.private.CloudDirector import CloudDirector
 
-from VMDIRAC.WorkloadManagementSystem.private.KVMDirector    import KVMDirector
-
-from DIRAC.Core.Utilities.ThreadPool                            import ThreadPool
-
-import random, time
-import DIRAC
+__RCSID__ = '$Id: $'
 
 random.seed()
 
@@ -134,7 +132,7 @@ class VirtualMachineScheduler( AgentModule ):
 
     self.callBackLock = threading.Lock()
 
-    return DIRAC.S_OK()
+    return S_OK()
 
   def execute( self ):
     """Main Agent code:
@@ -167,7 +165,7 @@ class VirtualMachineScheduler( AgentModule ):
 
         endpointFound = False
         cloudEndpointsStr = runningPodDict['CloudEndpoints']
-	# random 
+  # random 
         cloudEndpoints = [element for element in cloudEndpointsStr.split( ',' )]
         shuffle( cloudEndpoints )
         self.log.info( 'cloudEndpoints random failover: %s' % cloudEndpoints )
@@ -190,8 +188,8 @@ class VirtualMachineScheduler( AgentModule ):
             break
 
         if not endpointFound:
-            self.log.info( 'Skipping, from list %s; there is no endpoint with free slots found for image %s' % ( runningPodDict['CloudEndpoints'], imageName ) )
-            continue
+          self.log.info( 'Skipping, from list %s; there is no endpoint with free slots found for image %s' % ( runningPodDict['CloudEndpoints'], imageName ) )
+          continue
 
         imageRequirementsDict = runningPodDict['RequirementsDict']
         #self.log.info( 'Image Requirements Dict: ', imageRequirementsDict )
@@ -256,7 +254,7 @@ class VirtualMachineScheduler( AgentModule ):
       # for pool in self.pools:
       self.pools['Default'].processAllResults()
 
-    return DIRAC.S_OK()
+    return S_OK()
 
   def submitPilotsForTaskQueue( self, taskQueueDict, waitingPilots ):
 
@@ -283,7 +281,7 @@ class VirtualMachineScheduler( AgentModule ):
     pilotsToSubmit = min( pilotsToSubmit, int( ( 1 + extraPilotFraction ) * taskQueueJobs ) + extraPilots - waitingPilots )
 
     if pilotsToSubmit <= 0:
-      return DIRAC.S_OK( 0 )
+      return S_OK( 0 )
     self.log.verbose( 'Submitting %s pilots for TaskQueue %s' % ( pilotsToSubmit, taskQueueID ) )
 
     return self.__submitPilots( taskQueueDict, pilotsToSubmit )
@@ -321,7 +319,7 @@ class VirtualMachineScheduler( AgentModule ):
         time.sleep( self.am_getOption( 'ThreadStartDelay' ) )
         break
 
-    return DIRAC.S_OK( pilotsToSubmit )
+    return S_OK( pilotsToSubmit )
 
   def __checkSubmitPools( self ):
     # this method is called at initialization and at the beginning of each execution cycle
@@ -450,4 +448,5 @@ class VirtualMachineScheduler( AgentModule ):
       self.callBackLock.acquire()
       self.callBackLock.release()
 
-
+#...............................................................................
+#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF

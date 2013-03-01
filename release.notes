@@ -1,3 +1,11 @@
+[v0r6]
+
+Adding nova-1.1 driver and ssh contextualization method, ready to extend to amiconfig contextualization.
+
+[v0r5]
+
+Multi-endpoint OpenNebula and CloudStack in a fed way. Running-pads, DIRAC-Images and Endpoints scheme.
+
 [v0r4]
 
 FIX: Added missing occi and cloud director files

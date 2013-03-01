@@ -8,22 +8,22 @@
 
 if [ $# -ne 12 ]
 then
-	echo "bash contextualize-script.bash  <certfile> <keyfile> <runjobagent> <runvmmonitoragent> <runlogjobagent> <runlogvmmonitoragent> <cvmfscontextscript> <diraccontextscript> <cvmfshttpproxy> <sitename> <clouddriver> <uniqueid>"
+	echo "bash contextualize-script.bash  <uniqueId> <certfile> <keyfile> <runjobagent> <runvmmonitoragent> <runlogjobagent> <runlogvmmonitoragent> <cvmfscontextscript> <diraccontextscript> <cvmfshttpproxy> <sitename> <clouddriver> <uniqueid>"
 	exit 1
 fi
 
-vmCertPath=$1
-vmKeyPath=$2
-vmRunJobAgent=$3
-vmRunVmMonitorAgent=$4
-vmRunLogJobAgent=$5
-vmRunLogVmMonitorAgent=$6
-cvmfsContextPath=$7
-diracContextPath=$8
-cvmfs_http_proxy=$9
-siteName=${10}
-cloudDriver=${11}
-uniqueId=${12}
+uniqueId=$1
+vmCertPath=$2
+vmKeyPath=$3
+vmRunJobAgent=$4
+vmRunVmMonitorAgent=$5
+vmRunLogJobAgent=$6
+vmRunLogVmMonitorAgent=$7
+cvmfsContextPath=$8
+diracContextPath=$9
+cvmfs_http_proxy=${10}
+siteName=${11}
+cloudDriver=${12}
 
 localVmRunJobAgent=/root/run.job-agent
 localVmRunVmMonitorAgent=/root/run.vm-monitor-agent

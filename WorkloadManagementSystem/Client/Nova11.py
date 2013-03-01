@@ -112,7 +112,7 @@ class NovaClient:
     Conextualize an active instance
     This is necesary because the libcloud deploy_node, including key/cert copy and ssh run, based on amiconfig, are sychronous operations which can not scale
     """
-    def contextualize_VMInstance( self, public_ip, contextMethod, vmCertPath, vmKeyPath, vmContextualizeScriptPath, vmRunJobAgentURL, vmRunVmMonitorAgentURL, vmRunLogJobAgentURL, vmRunLogVmMonitorAgentURL, cvmfsContextURL, diracContextURL, cvmfs_http_proxy, siteName, cloudDriver ):
+    def contextualize_VMInstance( self, uniqueId, public_ip, contextMethod, vmCertPath, vmKeyPath, vmContextualizeScriptPath, vmRunJobAgentURL, vmRunVmMonitorAgentURL, vmRunLogJobAgentURL, vmRunLogVmMonitorAgentURL, cvmfsContextURL, diracContextURL, cvmfs_http_proxy, siteName, cloudDriver ):
       request = Request()
 
       if contextMethod == 'ssh': 
@@ -163,7 +163,9 @@ class NovaClient:
         #3) Run the DIRAC contextualization orchestator script:    
 
         try:
-            remotecmd = "/bin/bash /root/contextualize-script.bash \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\'" %(putCertPath, putKeyPath, vmRunJobAgentURL, vmRunVmMonitorAgentURL, vmRunLogJobAgentURL, vmRunLogVmMonitorAgentURL, cvmfsContextURL, diracContextURL, cvmfs_http_proxy, siteName, cloudDriver) 
+            remotecmd = "/bin/bash /root/contextualize-script.bash \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\'" %(uniqueId, putCertPath, putKeyPath, vmRunJobAgentURL, vmRunVmMonitorAgentURL, vmRunLogJobAgentURL, vmRunLogVmMonitorAgentURL, cvmfsContextURL, diracContextURL, cvmfs_http_proxy, siteName, cloudDriver) 
+            print "remotecmd"
+            print remotecmd
             stdin, stdout, stderr = ssh.exec_command(remotecmd)
         except Exception, errmsg:
             request.stderr = "Can't run remote ssh to %s: %s" % (public_ip,errmsg)

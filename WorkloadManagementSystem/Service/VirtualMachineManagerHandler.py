@@ -1,8 +1,5 @@
-########################################################################
 # $HeadURL$
-########################################################################
-
-""" VirtualMachineHandler provides remote access to VirtualMachineDB
+''' VirtualMachineHandler provides remote access to VirtualMachineDB
 
     The following methods are available in the Service interface:
     
@@ -13,44 +10,54 @@
     - declareInstanceHalting
     - getInstancesByStatus
 
-"""
+'''
 
-__RCSID__ = "$Id$"
+from types import DictType, FloatType, IntType, ListType, LongType, StringType, TupleType, UnicodeType 
 
-from DIRAC.Core.DISET.RequestHandler import RequestHandler
-from DIRAC import S_OK, S_ERROR
-from DIRAC.Core.Utilities.ThreadScheduler              import gThreadScheduler
-from VMDIRAC.WorkloadManagementSystem.DB.VirtualMachineDB               import VirtualMachineDB
-from VMDIRAC.WorkloadManagementSystem.Client.OcciImage import OcciImage
+#DIRAC
+from DIRAC                                import S_OK, S_ERROR
+from DIRAC.Core.DISET.RequestHandler      import RequestHandler
+from DIRAC.Core.Utilities.ThreadScheduler import gThreadScheduler
 
-from types import *
+#VMDIRAC
+from VMDIRAC.WorkloadManagementSystem.Client.OcciImage    import OcciImage
+from VMDIRAC.WorkloadManagementSystem.DB.VirtualMachineDB import VirtualMachineDB
+
+__RCSID__ = '$Id: $'
 
 # This is a global instance of the VirtualMachineDB class
-gVirtualMachineDB = False
+gVirtualMachineDB = None
 
-def initializeVirtualMachineManagerHandler( serviceInfo ):
+def initializeVirtualMachineManagerHandler( _serviceInfo ):
 
   global gVirtualMachineDB
   gVirtualMachineDB = VirtualMachineDB()
   gVirtualMachineDB.declareStalledInstances()
+  
   if gVirtualMachineDB._connected:
     gThreadScheduler.addPeriodicTask( 60 * 15, gVirtualMachineDB.declareStalledInstances )
     return S_OK()
+  
   return S_ERROR()
 
 class VirtualMachineManagerHandler( RequestHandler ):
 
   def initialize( self ):
+
     credDict = self.getRemoteCredentials()
-    self.ownerDN = credDict[ 'DN' ]
-    self.ownerGroup = credDict[ 'group' ]
-    self.userProperties = credDict[ 'properties' ]
-    self.owner = credDict[ 'username' ]
+    
+    self.ownerDN              = credDict[ 'DN' ]
+    self.ownerGroup           = credDict[ 'group' ]
+    self.userProperties       = credDict[ 'properties' ]
+    self.owner                = credDict[ 'username' ]
     self.peerUsesLimitedProxy = credDict[ 'isLimitedProxy' ]
-    self.diracSetup = self.serviceInfoDict[ 'clientSetup' ]
+    self.diracSetup           = self.serviceInfoDict[ 'clientSetup' ]
 
 
   ###########################################################################
+  
+  #FIXME: cannot we do a type cast to simply define one input type ?
+  
   types_insertInstance = [ StringType, ( StringType, UnicodeType ), ]
   def export_insertInstance( self, imageName, instanceName, endpoint, runningPodName ):
     """
@@ -60,6 +67,9 @@ class VirtualMachineManagerHandler( RequestHandler ):
     return gVirtualMachineDB.insertInstance( imageName, instanceName, endpoint, runningPodName)
 
   ###########################################################################
+  
+  #FIXME: cannot we do a type cast to simply define one input type ?
+  
   types_setInstanceUniqueID = [ LongType, ( StringType, UnicodeType ) ]
   def export_setInstanceUniqueID( self, instanceID, uniqueID ):
     """
@@ -89,8 +99,11 @@ class VirtualMachineManagerHandler( RequestHandler ):
     return gVirtualMachineDB.declareInstanceRunning( uniqueID, publicIP, privateIP )
 
   ###########################################################################
+  
+  #FIXME: cannot we do a type cast to simply define one input type ?
+  
   types_instanceIDHeartBeat = [ StringType, FloatType, ( IntType, LongType ),
-                               ( IntType, LongType ), ( IntType, LongType ) ]
+                                ( IntType, LongType ), ( IntType, LongType ) ]
   def export_instanceIDHeartBeat( self, uniqueID, load, jobs,
                                   transferredFiles, transferredBytes, uptime = 0 ):
     """
@@ -101,8 +114,9 @@ class VirtualMachineManagerHandler( RequestHandler ):
     """
     try:
       uptime = int( uptime )
-    except:
+    except ValueError:
       uptime = 0
+    
     return gVirtualMachineDB.instanceIDHeartBeat( uniqueID, load, jobs,
                                                   transferredFiles, transferredBytes, uptime )
 
@@ -120,7 +134,7 @@ class VirtualMachineManagerHandler( RequestHandler ):
     endpoint = result[ 'Value' ]
 
     result = gVirtualMachineDB.declareInstanceHalting( vmId, load)
-    if not contextualization =='occi':
+    if not contextualization == 'occi':
       return result
     if not result[ 'OK' ]:
       return result
@@ -130,7 +144,7 @@ class VirtualMachineManagerHandler( RequestHandler ):
       return result
     imageName = result[ 'Value' ]
 
-    oima = OcciImage( imageName, endpoint )
+    oima   = OcciImage( imageName, endpoint )
     result = oima.stopInstance( vmId )
 
     return result
@@ -152,6 +166,9 @@ class VirtualMachineManagerHandler( RequestHandler ):
     return gVirtualMachineDB.getAllInfoForUniqueID( uniqueID )
 
   ###########################################################################
+  
+  #FIXME: cannot we do a type cast to simply define one input type ?
+  
   types_getInstancesContent = [ DictType, ( ListType, TupleType ),
                                 ( IntType, LongType ), ( IntType, LongType ) ]
   def export_getInstancesContent( self, selDict, sortDict, start, limit ):
@@ -177,6 +194,7 @@ class VirtualMachineManagerHandler( RequestHandler ):
     return gVirtualMachineDB.getInstanceCounters()
 
   ###########################################################################
+  
   types_getHistoryValues = [ IntType, DictType  ]
   def export_getHistoryValues( self, averageBucket, selDict, fields2Get = [], timespan = 0 ):
     """
@@ -191,3 +209,6 @@ class VirtualMachineManagerHandler( RequestHandler ):
     Retrieve number of running instances in each bucket
     """
     return gVirtualMachineDB.getRunningInstancesHistory( timespan, bucketSize )
+
+#...............................................................................
+#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF

@@ -204,14 +204,14 @@ class NovaClient:
       try:
           infonode = self.pynovaclient.servers.delete(uniqueId)
       except Exception, errmsg:
-          request.stderr = errmsg
+          self.stderr = "Can't stop VMinstance uniqueId %s; %s:" % (uniqueId,errmsg)
           request.returncode = -1
 
       if not ipPool=='NONE':
         try:
             self.pynovaclient.floating_ips.delete(public_ip)
         except Exception, errmsg:
-            request.stderr = errmsg
+            self.stderr = "Can't delete floating ip %s of VMinstance uniqueId %s; %s:" % (public_ip, uniqueId,errmsg)
             request.returncode = -1
 
 

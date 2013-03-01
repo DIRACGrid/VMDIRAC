@@ -84,7 +84,6 @@ class VirtualMachineMonitorAgent( AgentModule ):
       return S_ERROR( "/LocalSite/VirtualMachineName is not defined" )
     #Variables coming from the vm 
     imgPath = "/Resources/VirtualMachines/Images/%s" % self.vmName
-    # temporal patch for occi until CS Endpoint implemented:
     for csOption, csDefault, varName in ( ( "MinWorkingLoad", 0.01, "vmMinWorkingLoad" ),
                                           ( "LoadAverageTimespan", 60, "vmLoadAvgTimespan" ),
                                           ( "JobWrappersLocation", "/opt/dirac/pro/job/Wrapper/", "vmJobWrappersLocation" ),
@@ -297,6 +296,6 @@ class VirtualMachineMonitorAgent( AgentModule ):
 
     #time.sleep( sleepTime )
 
-    # all endpoint:
-    gLogger.info( "Executing system halt..." )
-    os.system( "halt" )
+    if not cloudDriver == 'nova-1.1':
+      gLogger.info( "Executing system halt..." )
+      os.system( "halt" )

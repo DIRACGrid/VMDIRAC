@@ -207,7 +207,7 @@ class NovaClient:
           request.stderr = errmsg
           request.returncode = -1
 
-      if not ipPool=='NO':
+      if not ipPool=='NONE':
         try:
             self.pynovaclient.floating_ips.delete(public_ip)
         except Exception, errmsg:

@@ -1,10 +1,17 @@
 #!/usr/bin/env python
+#FIXME: do we really need shebang line here ?
 
 import boto
 import time
+import types
+
+#DIRAC
 from DIRAC import gLogger, gConfig, S_OK, S_ERROR
 
+#VMDIRAC
 from VMDIRAC.WorkloadManagementSystem.Client.AmazonInstance import AmazonInstance
+
+__RCSID__ = '$Id: $'
 
 class AmazonImage:
 
@@ -14,23 +21,28 @@ class AmazonImage:
   labelled by key_name and associated with a given Amazon Web Services account
   """
   def __init__( self, vmName, endpoint ):
+    
     self.log = gLogger.getSubLogger( "AMI:%s" % vmName )
-    self.__vmName = vmName
-    self.__vmImage = False
-    self.__instances = []
+    
+    self.__vmName      = vmName
+    self.__vmImage     = False
+    self.__instances   = []
     self.__errorStatus = ""
     #Get CloudEndpoint free slot on submission time
-    self.__endpoint = endpoint
+    self.__endpoint    = endpoint
+    
     if not self.__endpoint:
       self.__errorStatus = "Can't find endpoint for image %s" % self.__DIRACImageName
       self.log.error( self.__errorStatus )
       return
+    
     #Get AMI Id
     self.__vmAMI = self.__getCSImageOption( "AMI" )
     if not self.__vmAMI:
       self.__errorStatus = "Can't find AMI for image %s" % self.__vmName
       self.log.error( self.__errorStatus )
       return
+    
     #Get Max allowed price
     self.__vmMaxAllowedPrice = self.__getCSImageOption( "MaxAllowedPrice", 0.0 )
     #Get Amazon credentials
@@ -40,12 +52,14 @@ class AmazonImage:
       self.__errorStatus = "Can't find AccessKey for Endpoint %s" % self.__endpoint
       self.log.error( self.__errorStatus )
       return
+    
     # Secret key
     self.__amSecretKey = self.__getCSCloudEndpointOption( "SecretKey" )
     if not self.__amSecretKey:
       self.__errorStatus = "Can't find SecretKey for Endpoint %s" % self.__endpoint
       self.log.error( self.__errorStatus )
       return
+    
     #Try connection
     try:
       self.__conn = boto.connect_ec2( self.__amAccessKey, self.__amSecretKey )
@@ -161,18 +175,19 @@ class AmazonImage:
     if idList:
       return S_OK( idList )
     return S_ERROR( "Could not start any spot instance. Failed SIRs : %s" % ", ".join( invalidSIRs ) )
-  """
-  Simple call to terminate a VM based on its id
-  """
+  
   def stopInstances( self, instancesList ):
+    """
+    Simple call to terminate a VM based on its id
+    """
     if type( instancesList ) in ( types.StringType, types.UnicodeType ):
       instancesList = [ instancesList ]
     self.__conn.terminate_instances( instancesList )
 
-  """
-  Get all instances for this image
-  """
   def getAllInstances( self ):
+    """
+    Get all instances for this image
+    """
     instances = []
     for res in self.__conn.get_all_instances():
       for instance in res.instances:
@@ -180,10 +195,10 @@ class AmazonImage:
           instances.append( AmazonInstance( instance.id, self.__amAccessKey, self.__amSecretKey ) )
     return instances
 
-  """
-  Get all running instances for this image
-  """
   def getAllRunningInstances( self ):
+    """
+    Get all running instances for this image
+    """
     instances = []
     for res in self.__conn.get_all_instances():
       for instance in res.instances:
@@ -192,3 +207,6 @@ class AmazonImage:
           if instance.state == u'running':
             instances.append( AmazonInstance( instance.id, self.__amAccessKey, self.__amSecretKey ) )
     return instances
+
+#...............................................................................
+#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF

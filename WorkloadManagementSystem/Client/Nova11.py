@@ -213,7 +213,7 @@ class NovaClient:
         try:
             self.pynovaclient.floating_ips.delete(public_ip)
         except Exception, errmsg:
-            request.stderr = "%s /n Can't delete floating ip %s of VMinstance uniqueId %s; %s:" % (self.stderr, public_ip, uniqueId,errmsg)
+            request.stderr = "%s /n Can't delete floating ip %s of VMinstance uniqueId %s; %s:" % (request.stderr, public_ip, uniqueId,errmsg)
             request.returncode = -1
 
 

@@ -12,10 +12,11 @@
 '''
 
 from pkgutil import extend_path
+
+__RCSID__ = '$Id: __init__.py 46 2010-03-18 14:52:51Z adriancasajus@gmail.com $'
+
 #FIXME: why defined here ?
 __path__ = extend_path( __path__, __name__ )
-
-__RCSID__ = "$Id: __init__.py 46 2010-03-18 14:52:51Z adriancasajus@gmail.com $"
 
 # Define Version
 
@@ -35,5 +36,5 @@ if preVersion:
   version      = "%s-pre%s"  % ( version, preVersion )
   buildVersion = "%s pre %s" % ( buildVersion, preVersion )
   
-################################################################################
+#...............................................................................
 #EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF

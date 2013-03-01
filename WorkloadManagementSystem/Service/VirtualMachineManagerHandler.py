@@ -22,6 +22,7 @@ from DIRAC import S_OK, S_ERROR
 from DIRAC.Core.Utilities.ThreadScheduler              import gThreadScheduler
 from VMDIRAC.WorkloadManagementSystem.DB.VirtualMachineDB               import VirtualMachineDB
 from VMDIRAC.WorkloadManagementSystem.Client.OcciImage import OcciImage
+from VMDIRAC.WorkloadManagementSystem.Client.NovaImage import NovaImage
 
 from types import *
 

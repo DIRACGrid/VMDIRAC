@@ -296,6 +296,6 @@ class VirtualMachineMonitorAgent( AgentModule ):
 
     #time.sleep( sleepTime )
 
-    if not cloudDriver == 'nova-1.1':
-      gLogger.info( "Executing system halt..." )
-      os.system( "halt" )
+
+    gLogger.info( "Executing system halt..." )
+    os.system( "halt" )

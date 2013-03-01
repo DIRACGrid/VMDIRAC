@@ -211,11 +211,13 @@ class NovaClient:
 
       if not ipPool=='NONE':
         try:
-            self.pynovaclient.floating_ips.delete(public_ip)
+            floating_ips = self.pynovaclient.floating_ips.list()
+            for floating_ip in floating_ips:
+                if floating_ip.ip == public_ip:
+                    self.pynovaclient.floating_ips.delete(floating_ip.id)
         except Exception, errmsg:
             request.stderr = "%s /n Can't delete floating ip %s of VMinstance uniqueId %s; %s:" % (request.stderr, public_ip, uniqueId,errmsg)
             request.returncode = -1
-
 
       return request
 

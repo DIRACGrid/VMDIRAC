@@ -24,6 +24,9 @@ cloudDriver=$8
 
 # dirac user:
         /usr/sbin/useradd -d /opt/dirac dirac
+# To work wiht the cmvfs LB_LOGIN of LHCb:
+        chmod g+w /root
+        chown root:dirac /root
 
 # servercert/serverkey previouslly to this script copied 
 #

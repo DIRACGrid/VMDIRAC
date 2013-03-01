@@ -232,7 +232,7 @@ class NovaImage:
 
     request = self.__clinova.terminate_VMinstance( uniqueId, self.__osIpPool, public_ip )
     if request.returncode != 0:
-      self.__errorStatus = "Can't delete VM instance %s from endpoint %s: %s" % (uniqueId, self.__endpoint, request.stderr)
+      self.__errorStatus = "Can't delete VM instance %s, IP %s, IpPool %s, from endpoint %s: %s" % (uniqueId, public_ip, self.__osIpPool, self.__endpoint, request.stderr)
       self.log.error( self.__errorStatus )
       return S_ERROR( self.__errorStatus )
 

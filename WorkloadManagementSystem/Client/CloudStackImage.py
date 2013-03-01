@@ -4,20 +4,22 @@
 # Author : Victor Mendez ( vmendez.tic@gmail.com )
 ########################################################################
 
-
-import time
+#DIRAC
 from DIRAC import gLogger, gConfig, S_OK, S_ERROR
 
+#VMDIRAC
+from VMDIRAC.WorkloadManagementSystem.Client.CloudStackClient   import CloudStackClient
 from VMDIRAC.WorkloadManagementSystem.Client.CloudStackInstance import CloudStackInstance
-from VMDIRAC.WorkloadManagementSystem.Client.CloudStackClient import CloudStackClient
+
+__RCSID__ = '$Id: $'
 
 class CloudStackImage:
-
   """
   The CloudStack Image Interface provides the functionality required to use
   a CloudStack infrastructure.
   Authentication is provided by an CloudStack SecretKey/ApiKey attributes
   """
+
   def __init__( self, csImageName, endpoint ):
     self.__csImageName = csImageName
     self.log = gLogger.getSubLogger( "CloudStack Image Name: (%s) " % ( csImageName ) )
@@ -128,38 +130,35 @@ class CloudStackImage:
     if not self.__errorStatus:
       self.log.info( "Available CloudStack server  %s" % self.__CloudStackURI )
 
-  """
-  Following we can see that every CSImageOption are related with the booting
-  image
-  """
   def __getCSImageOption( self, option, defValue = "" ):
+    """
+    Following we can see that every CSImageOption are related with the booting
+    image
+    """
     return gConfig.getValue( "/Resources/VirtualMachines/Images/%s/%s" % ( self.__csImageName, option ), defValue )
 
-  """
-  One can correspond to many images, get the SecretKey, ApiKey other CloudStack server specific values
-  """
   def __getCSCloudEndpointOption( self, option, defValue = "" ):
     """
-    One flavour can correspond to many images
+    One can correspond to many images, get the SecretKey, ApiKey other CloudStack server specific values
     """
     return gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( self.__endpoint, option ), defValue )
 
-  """
-  Specific options of Instance creation
-  """
   def __getCSCloudSiteOptionServiceOffering( self, option, defValue = "" ):
+    """
+    Specific options of Instance creation
+    """
     return gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/serviceOffering/%s" % ( self.__endpoint, option ), defValue )
 
-  """
-  Specific options of CloudStack
-  """
   def __getCSCloudSiteOptionZones( self, option, defValue = "" ):
+    """
+    Specific options of CloudStack
+    """
     return gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/optionsZones/%s" % ( self.__endpoint, option ), defValue )
 
-  """
-  Prior to use, virtual machine images are that are in the CloudStack server. 
-  """
   def startNewInstance( self, instanceType = "small" ):
+    """
+    Prior to use, virtual machine images are that are in the CloudStack server. 
+    """
     if self.__errorStatus:
       return S_ERROR( self.__errorStatus )
     self.log.info( "Starting new instance for image boot: %s" % ( self.__csImageName ) )
@@ -179,11 +178,10 @@ class CloudStackImage:
 
     return S_OK( request.stdout )
 
-  """
-  Simple call to terminate a VM based on its id
-  """
   def stopInstance( self, VMinstanceId ):
-
+    """
+    Simple call to terminate a VM based on its id
+    """
     request = self.__clicloudstack.terminate_VMinstance( VMinstanceId )
     if request.returncode != 0:
       self.__errorStatus = "Can't delete VM instance ide %s from server %s\n%s" % ( VMinstanceId, self.__CloudStackURI, request.stdout )
@@ -192,11 +190,10 @@ class CloudStackImage:
 
     return S_OK( request.stdout )
 
-
-  """
-  Get all instances for this image
-  """
   def getAllInstances( self ):
+    """
+    Get all instances for this image
+    """
     instances = []
     request = self.__clicloudstack.get_all_VMinstances( self.__serviceOfferingId )
     if request.returncode != 0:
@@ -208,10 +205,10 @@ class CloudStackImage:
       instances.append( CloudStackInstance ( instanceId, self.__CloudStackURI, self.__secretKey, self.__apiKey ) )
     return instances
 
-  """
-  Get all running instances for this image
-  """
   def getAllRunningInstances( self ):
+    """
+    Get all running instances for this image
+    """
     instances = []
     request = self.__clicloudstack.get_running_VMinstances( self.__csImageName )
     if request.returncode != 0:
@@ -223,3 +220,5 @@ class CloudStackImage:
       instances.append( CloudStackInstance ( instanceId, self.__CloudStackURI, self.__secretKey, self.__apiKey ) )
     return instances
 
+#...............................................................................
+#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF

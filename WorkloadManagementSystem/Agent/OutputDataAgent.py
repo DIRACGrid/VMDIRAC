@@ -17,14 +17,14 @@
 
 """
 
-__RCSID__ = "$Id$"
+#DIRAC
+from DIRAC                       import gLogger, S_OK
+from DIRAC.Core.Base.AgentModule import AgentModule
 
-from DIRAC.Core.Base.AgentModule                                    import AgentModule
-from DIRAC.Core.Utilities.ThreadPool                                import ThreadPool
-from DIRAC.Core.Utilities.Shifter                                   import setupShifterProxyInEnv
+#VMDIRAC
 from VMDIRAC.WorkloadManagementSystem.private.OutputDataExecutor import OutputDataExecutor
-from DIRAC import S_OK, S_ERROR, gConfig, gLogger
 
+__RCSID__ = "$Id: $"
 
 class OutputDataAgent( AgentModule ):
 
@@ -55,3 +55,6 @@ class OutputDataAgent( AgentModule ):
 
 
     return S_OK()
+
+#...............................................................................
+#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF

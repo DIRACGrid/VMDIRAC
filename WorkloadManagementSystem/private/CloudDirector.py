@@ -4,14 +4,21 @@
 # Author : Victor Mendez
 ########################################################################
 
-from DIRAC import gLogger, S_OK, S_ERROR, gConfig, rootPath
-from VMDIRAC.WorkloadManagementSystem.private.VMDirector import VMDirector
-from VMDIRAC.WorkloadManagementSystem.Client.OcciImage import OcciImage
-from VMDIRAC.WorkloadManagementSystem.Client.AmazonImage import AmazonImage
+#DIRAC
+from DIRAC import gConfig, S_OK
+
+#VMDIRAC
+from VMDIRAC.WorkloadManagementSystem.Client.AmazonImage     import AmazonImage
 from VMDIRAC.WorkloadManagementSystem.Client.CloudStackImage import CloudStackImage
+from VMDIRAC.WorkloadManagementSystem.Client.OcciImage       import OcciImage
+from VMDIRAC.WorkloadManagementSystem.private.VMDirector     import VMDirector
 # aqui conf automatica de modulos (adri)
+# love spanish comments on code :D
+
+__RCSID__ = '$Id: $'
 
 class CloudDirector( VMDirector ):
+  
   def __init__( self, submitPool ):
 
     VMDirector.__init__( self, submitPool )
@@ -31,7 +38,7 @@ class CloudDirector( VMDirector ):
     """
     VMDirector.configureFromSection( self, mySection )
 
-  def _submitInstance( self, imageName, workDir, endpoint ):
+  def _submitInstance( self, imageName, _workDir, endpoint ):
     """
       Real backend method to submit a new Instance of a given Image
       It has the decision logic of sumbission to the multi-endpoint, from the available from a given imageName, first approach: FirstFit 
@@ -41,28 +48,38 @@ class CloudDirector( VMDirector ):
     driver = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, 'driver' ), "" )
 
     if driver == 'Amazon':
-      ami = AmazonImage( imageName, endpoint )
+      ami    = AmazonImage( imageName, endpoint )
       result = ami.startNewInstances()
+      
       if not result[ 'OK' ]:
         return result
-      idInstance = result['Value'][0]
+      idInstance = result[ 'Value' ][ 0 ]
+      
       return S_OK( idInstance )
 
     if driver == 'CloudStack':
-      csi = CloudStackImage( imageName , endpoint )
+      csi    = CloudStackImage( imageName , endpoint )
       result = csi.startNewInstance()
+      
       if not result[ 'OK' ]:
         return result
-      idInstance = result['Value']
+      idInstance = result[ 'Value' ]
+      
       return S_OK( idInstance )
 
     # driver is occi like
-    instanceType = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, 'instanceType' ), "" )
-    imageDriver = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, 'imageDriver' ), "" )
-    oima = OcciImage( imageName, endpoint )
+    endPointPath = '/Resources/VirtualMachines/CloudEndpoints'
+    instanceType = gConfig.getValue( "%s/%s/%s" % ( endPointPath, endpoint, 'instanceType' ), '' )
+    imageDriver  = gConfig.getValue( "%s/%s/%s" % ( endPointPath, endpoint, 'imageDriver' ) , '' )
+    
+    oima   = OcciImage( imageName, endpoint )
     result = oima.startNewInstance( instanceType, imageDriver )
+    
     if not result[ 'OK' ]:
       return result
-    idInstance = result['Value']
+    idInstance = result[ 'Value' ]
+    
     return S_OK( idInstance )
 
+#...............................................................................
+#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF

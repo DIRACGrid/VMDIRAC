@@ -1,19 +1,28 @@
+# $HeadURL$
 
-import os, shutil, time
-from DIRAC import gConfig, S_OK, S_ERROR, gLogger
-from DIRAC.Core.Utilities.ThreadPool import ThreadPool
-from DIRAC.Core.Utilities.ThreadSafe import Synchronizer
-from DIRAC.Core.Utilities.Subprocess import pythonCall
-from DIRAC.Core.Utilities import List
-from DIRAC.DataManagementSystem.Client.ReplicaManager               import ReplicaManager
-from DIRAC.Resources.Catalog.FileCatalog                            import FileCatalog
-from DIRAC.Resources.Storage.StorageElement                         import StorageElement
+import os
+import time
+
+#DIRAC
+from DIRAC                                            import gConfig, S_OK, S_ERROR, gLogger
+from DIRAC.Core.Utilities                             import List
+from DIRAC.Core.Utilities.Subprocess                  import pythonCall
+from DIRAC.Core.Utilities.ThreadPool                  import ThreadPool
+from DIRAC.Core.Utilities.ThreadSafe                  import Synchronizer
+from DIRAC.DataManagementSystem.Client.ReplicaManager import ReplicaManager
+from DIRAC.Resources.Catalog.FileCatalog              import FileCatalog
+from DIRAC.Resources.Storage.StorageElement           import StorageElement
+
+__RCSID__ = '$Id: $'
 
 transferSync = Synchronizer()
 
 class OutputDataExecutor:
 
   def __init__( self, csPath = "" ):
+
+    #FIXME: use Operations helper ...
+    
     self.log = gLogger.getSubLogger( "OutputDataExecutor" )
     if not csPath:
       vo = gConfig.getValue( "/DIRAC/VirtualOrganization", "" )
@@ -27,10 +36,10 @@ class OutputDataExecutor:
                                     gConfig.getValue( "%s/MaxTransfers" % self.__transfersCSPath, 4 ),
                                     gConfig.getValue( "%s/MaxQueuedTransfers" % self.__transfersCSPath, 100 ) )
     self.__threadPool.daemonize()
-    self.__processingFiles = set()
+    self.__processingFiles    = set()
     self.__okTransferredFiles = 0
     self.__okTransferredBytes = 0
-    self.__failedFiles = {}
+    self.__failedFiles        = {}
 
   def getNumOKTransferredFiles( self ):
     return self.__okTransferredFiles
@@ -42,12 +51,13 @@ class OutputDataExecutor:
     return self.__threadPool.isWorking()
 
   def getDefinedTransferPaths( self ):
-    result = gConfig.getSections( self.__transfersCSPath )
-    if not result['OK']:
+    
+    pathList = gConfig.getSections( self.__transfersCSPath )
+    
+    if not pathList[ 'OK' ]:
       self.log.info( 'No Input/Output Pair defined in CS' )
       return S_OK()
-
-    pathList = result['Value']
+    pathList = pathList[ 'Value' ]
 
     tPaths = {}
     for name in pathList:
@@ -86,14 +96,14 @@ class OutputDataExecutor:
     Get list of files to be processed from InputPath
     """
     inputFCName = transferDict['InputFC']
-    inputPath = transferDict['InputPath']
+    inputPath   = transferDict['InputPath']
 
     if inputFCName == 'LocalDisk':
       files = []
       try:
-        for file in os.listdir( inputPath ):
-          if os.path.isfile( os.path.join( inputPath, file ) ):
-            files.append( file )
+        for fileName in os.listdir( inputPath ):
+          if os.path.isfile( os.path.join( inputPath, fileName ) ):
+            files.append( fileName )
       except:
         pass
       return files
@@ -110,7 +120,7 @@ class OutputDataExecutor:
 
     subDirs = result['Value']['Successful'][inputPath]['SubDirs']
     files = result['Value']['Successful'][inputPath]['Files']
-    for dir in subDirs:
+    for subDir in subDirs:
       self.log.info( 'Ignoring subdirectory:', dir )
     return files.keys()
 
@@ -137,14 +147,14 @@ class OutputDataExecutor:
 
   @transferSync
   def __addFilesToThreadPool( self, files, transferDict ):
-    for file in files:
-      file = os.path.basename( file )
-      if file in self.__processingFiles:
+    for fileName in files:
+      fileName = os.path.basename( fileName )
+      if fileName in self.__processingFiles:
         continue
       self.__processingFiles.add( file )
       time.sleep( 1 )
       ret = self.__threadPool.generateJobAndQueueIt( self.__transferIfNotRegistered,
-                                            args = ( file, transferDict ),
+                                            args = ( fileName, transferDict ),
                                             oCallback = self.transferCallback,
                                             blocking = False )
       if not ret['OK']:
@@ -294,15 +304,19 @@ class OutputDataExecutor:
 
   @transferSync
   def transferCallback( self, threadedJob, submitResult ):
-    if not submitResult['OK']:
-      file = submitResult['Message']
-      if file not in self.__failedFiles:
-        self.__failedFiles[file] = 0
-      self.__failedFiles[file] += 1
+    
+    if not submitResult[ 'OK' ]:
+      fileName = submitResult['Message']
+      if fileName not in self.__failedFiles:
+        self.__failedFiles[fileName] = 0
+      self.__failedFiles[fileName] += 1
     else:
-      file = submitResult['Value']
-      if file in self.__failedFiles:
-        del self.__failedFiles[file]
+      fileName = submitResult['Value']
+      if fileName in self.__failedFiles:
+        del self.__failedFiles[fileName]
     #Take out from processing files
-    if file in self.__processingFiles:
-      self.__processingFiles.discard( file )
+    if fileName in self.__processingFiles:
+      self.__processingFiles.discard( fileName )
+
+#..............................................................................,
+#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF

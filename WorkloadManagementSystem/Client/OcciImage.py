@@ -18,30 +18,24 @@ class OcciImage:
 
   def __init__( self, DIRACImageName, endpoint):
     """
-    The OCCI Image Interface (OII) provides the functionality required to use
+    The OCCI Image Interface provides the functionality required to use
     a standard occi cloud infrastructure.
     Authentication is provided by an occi user/password attributes
     """
     self.__DIRACImageName = DIRACImageName
     self.__bootImageName = self.__getCSImageOption( "bootImageName" ) 
     self.__hdcImageName = self.__getCSImageOption( "hdcImageName" )
-    self.log = gLogger.getSubLogger( "OII %s(%s,%s): " % ( DIRACImageName, self.__bootImageName, self.__hdcImageName ) )
+    self.log = gLogger.getSubLogger( "Image %s(%s,%s): " % ( DIRACImageName, self.__bootImageName, self.__hdcImageName ) )
 # __instances list not used now 
     self.__instances = []
     self.__errorStatus = ""
-    #Get CloudEndpoint free slot on submission time
+    #Get CloudEndpoint on submission time
     self.__endpoint = endpoint
     if not self.__endpoint:
       self.__errorStatus = "Can't find endpoint for image %s" % self.__DIRACImageName
       self.log.error( self.__errorStatus )
       return
-    #Get URI endpoint
-    self.__occiURI = self.__getCSCloudEndpointOption( "occiURI" )
-    if not self.__occiURI:
-      self.__errorStatus = "Can't find the server occiURI for endpoint %s" % self.__endpoint
-      self.log.error( self.__errorStatus )
-      return
-    #Get OCCI server URI
+    #Get OCCI URI endpoint
     self.__occiURI = self.__getCSCloudEndpointOption( "occiURI" )
     if not self.__occiURI:
       self.__errorStatus = "Can't find the server occiURI for endpoint %s" % self.__endpoint
@@ -95,21 +89,24 @@ class OcciImage:
     self.__bootOII = request.stdout
 
     #Get the hdc Occi Image Id (OII) from URI server
-    request = self.__cliocci.get_image_id( self.__hdcImageName )
-    if request.returncode != 0:
-      self.__errorStatus = "Can't get the contextual image id for %s from server %s\n%s" % (self.__hdcImageName, self.__occiURI, request.stdout)
-      self.log.error( self.__errorStatus )
-      return
-    self.__hdcOII = request.stdout
+    if not self.__hdcImageName == 'NO_CONTEXT':
+      request = self.__cliocci.get_image_id( self.__hdcImageName )
+      if request.returncode != 0:
+        self.__errorStatus = "Can't get the contextual image id for %s from server %s\n%s" % (self.__hdcImageName, self.__occiURI, request.stdout)
+        self.log.error( self.__errorStatus )
+        return
+      self.__hdcOII = request.stdout
+    else:
+      self.__hdcOII = 'NO_CONTEXT'
 
-    # iface manual or auto (DHCP image)
+    # iface static or auto (DHCP image)
     self.__iface = self.__getCSCloudEndpointOption( "iface" )
     if not self.__iface:
-      self.__errorStatus = "Can't find the iface (manual/auto) for endpoint %s" % self.__endpoint
+      self.__errorStatus = "Can't find the iface (static/auto) for endpoint %s" % self.__endpoint
       self.log.error( self.__errorStatus )
       return
 
-    if iface == 'static': 
+    if self.__iface == 'static': 
 
         # dns1
         self.__DNS1 = self.__getCSCloudEndpointOption( "DNS1" )

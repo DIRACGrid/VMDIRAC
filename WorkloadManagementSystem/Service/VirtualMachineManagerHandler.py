@@ -22,6 +22,7 @@ from DIRAC import S_OK, S_ERROR
 from DIRAC.Core.Utilities.ThreadScheduler              import gThreadScheduler
 from VMDIRAC.WorkloadManagementSystem.DB.VirtualMachineDB               import VirtualMachineDB
 from VMDIRAC.WorkloadManagementSystem.Client.OcciImage import OcciImage
+from VMDIRAC.WorkloadManagementSystem.Client.NovaImage import NovaImage
 
 from types import *
 
@@ -57,7 +58,7 @@ class VirtualMachineManagerHandler( RequestHandler ):
     Check Status of a given image
     Will insert a new Instance in the DB
     """
-    return gVirtualMachineDB.insertInstance( imageName, instanceName, endpoint, runningPodName)
+    return gVirtualMachineDB.insertInstance( imageName, instanceName, endpoint, runningPodName )
 
   ###########################################################################
   types_setInstanceUniqueID = [ LongType, ( StringType, UnicodeType ) ]
@@ -108,7 +109,7 @@ class VirtualMachineManagerHandler( RequestHandler ):
 
   ###########################################################################
   types_declareInstanceHalting = [ StringType, FloatType ]
-  def export_declareInstanceHalting( self, vmId, load, contextualization ):
+  def export_declareInstanceHalting( self, vmId, load, cloudDriver ):
     """
     Insert the heart beat info from a halting instance
     Declares "Halted" the instance and the image 
@@ -119,19 +120,32 @@ class VirtualMachineManagerHandler( RequestHandler ):
       return result
     endpoint = result[ 'Value' ]
 
-    result = gVirtualMachineDB.declareInstanceHalting( vmId, load)
-    if not contextualization =='occi':
-      return result
+    result = gVirtualMachineDB.declareInstanceHalting( vmId, load )
     if not result[ 'OK' ]:
       return result
+    
+    if (cloudDriver == 'occi-0.9' or cloudDriver == 'occi-0.8'):
+      result = gVirtualMachineDB.getImageNameFromInstance( vmId )
+      if not result[ 'OK' ]:
+        return result
+      imageName = result[ 'Value' ]
 
-    result = gVirtualMachineDB.getImageNameFromInstance( vmId )
-    if not result[ 'OK' ]:
-      return result
-    imageName = result[ 'Value' ]
+      oima = OcciImage( imageName, endpoint )
+      result = oima.stopInstance( vmId )
 
-    oima = OcciImage( imageName, endpoint )
-    result = oima.stopInstance( vmId )
+    if cloudDriver == 'nova-1.1':
+      result = gVirtualMachineDB.getImageNameFromInstance( vmId )
+      if not result[ 'OK' ]:
+        return result
+      imageName = result[ 'Value' ]
+
+      nima = NovaImage( imageName, endpoint )
+      result = gVirtualMachineDB.getPublicIpFromInstance ( vmId )
+      if not result[ 'OK' ]:
+        return result
+
+      public_ip = result[ 'Value' ]
+      result = nima.stopInstance( vmId, public_ip )
 
     return result
 
@@ -191,3 +205,11 @@ class VirtualMachineManagerHandler( RequestHandler ):
     Retrieve number of running instances in each bucket
     """
     return gVirtualMachineDB.getRunningInstancesHistory( timespan, bucketSize )
+
+  ###########################################################################
+  types_getRunningInstancesBEPHistory = [ IntType, IntType ]
+  def export_getRunningInstancesBEPHistory( self, timespan, bucketSize ):
+    """
+    Retrieve number of running instances in each bucket
+    """
+    return gVirtualMachineDB.getRunningInstancesBEPHistory( timespan, bucketSize )

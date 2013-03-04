@@ -28,14 +28,14 @@
      For each backend there should be a section with at least the following:
        - Images: List of available Images
        - [ImageName]: Section with requirements associated to that Image
-         (Site, JobType, PilotType, LHCbPlatform, ...), This should be in agreement with what 
+         (Site, JobType, PilotType, LHCbPlatform, ...), This should be in agreement with what
          is defined in the local configuration of the VM JobAgent: /AgentJobRequirements
 
      It will use those Directors to submit VMs for each of the Supported SubmitPools
        - SubmitPools (see above)
 
      SubmitPools may refer to:
-       - a full Cloud provider (AmazonEC2, Occi, CloudStack) 
+       - a full Cloud provider (AmazonEC2, Occi, CloudStack)
        - a locally accessible Xen or KVM server
 
      For every Cloud SubmitPool there must be a corresponding Section with the necessary parameters:
@@ -47,16 +47,16 @@
 
        - RunningPods: relates a single DIRAC VM with their VM scheduler options and the cloud ends for a run
        - Images: bootstrap image, context image and URL context files, the HEPIX of a DIRAC VM
-       - CloudEndpoints: With the driver and the on-the-fly context image      
+       - CloudEndpoints: With the driver and the on-the-fly context image
 
       The VM submission logic is as follows:
 
         For each configured backend and VM image:
-        
+
         - Determine the pending workload that could be executed by the VM instance.
 
         - Check number of already running instances.
-        
+
         - Require Instantiation of a new VM for each "required" type.
 
         - Report the sum of the Target number of VMs to be instantiated.
@@ -68,7 +68,7 @@
         In summary:
 
         All VMs are considered on every iteration, so the same build up factor applies to each Cloud
-        
+
         All TaskQueues are considered on every iteration, pilots are submitted
         statistically proportional to the priority and the Number of waiting tasks
         of the TaskQueue, boosted for the TaskQueues with lower CPU requirements and
@@ -93,8 +93,6 @@ from DIRAC.Resources.Computing.ComputingElement                 import getResour
 
 from DIRAC.WorkloadManagementSystem.Client.ServerUtils          import taskQueueDB
 from VMDIRAC.WorkloadManagementSystem.Client.ServerUtils     import virtualMachineDB
-#from VMDIRAC.WorkloadManagementSystem.private.AmazonDirector import AmazonDirector
-#from VMDIRAC.WorkloadManagementSystem.private.OcciDirector import OcciDirector
 from VMDIRAC.WorkloadManagementSystem.private.CloudDirector import CloudDirector
 
 from VMDIRAC.WorkloadManagementSystem.private.KVMDirector    import KVMDirector
@@ -167,7 +165,7 @@ class VirtualMachineScheduler( AgentModule ):
 
         endpointFound = False
         cloudEndpointsStr = runningPodDict['CloudEndpoints']
-	# random 
+	# random
         cloudEndpoints = [element for element in cloudEndpointsStr.split( ',' )]
         shuffle( cloudEndpoints )
         self.log.info( 'cloudEndpoints random failover: %s' % cloudEndpoints )
@@ -175,7 +173,7 @@ class VirtualMachineScheduler( AgentModule ):
           self.log.info( 'Checking to submit to: %s' % endpoint )
           maxEndpointInstances = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, 'MaxEndpointInstances' ), "" )
           if not maxEndpointInstances:
-            self.log.info( 'CloudEndpoint %s has no define MaxEndpointInstances option' % endpoint )
+            self.log.info( 'CS CloudEndpoint %s has no define MaxEndpointInstance option' % endpoint )
             continue
 
           endpointInstances = 0

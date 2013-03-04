@@ -9,6 +9,7 @@ from VMDIRAC.WorkloadManagementSystem.private.VMDirector import VMDirector
 from VMDIRAC.WorkloadManagementSystem.Client.OcciImage import OcciImage
 from VMDIRAC.WorkloadManagementSystem.Client.AmazonImage import AmazonImage
 from VMDIRAC.WorkloadManagementSystem.Client.CloudStackImage import CloudStackImage
+from VMDIRAC.WorkloadManagementSystem.Client.NovaImage import NovaImage
 # aqui conf automatica de modulos (adri)
 
 class CloudDirector( VMDirector ):
@@ -56,13 +57,27 @@ class CloudDirector( VMDirector ):
       idInstance = result['Value']
       return S_OK( idInstance )
 
-    # driver is occi like
-    instanceType = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, 'instanceType' ), "" )
-    imageDriver = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, 'imageDriver' ), "" )
-    oima = OcciImage( imageName, endpoint )
-    result = oima.startNewInstance( instanceType, imageDriver )
-    if not result[ 'OK' ]:
-      return result
-    idInstance = result['Value']
-    return S_OK( idInstance )
+
+    if ( driver == 'occi-0.9' or driver == 'occi-0.8'):
+      instanceType = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, 'instanceType' ), "" )
+      imageDriver = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, 'imageDriver' ), "" )
+      oima = OcciImage( imageName, endpoint )
+      result = oima.startNewInstance( instanceType, imageDriver )
+      if not result[ 'OK' ]:
+        return result
+      idInstance = result['Value']
+      return S_OK( idInstance )
+
+    if driver == 'nova-1.1':
+      instanceType = gConfig.getValue( "/Resources/VirtualMachines/Images/%s/%s" % ( imageName, 'instanceType' ), "" )
+      nima = NovaImage( imageName, endpoint )
+      result = nima.startNewInstance( instanceType )
+      if not result[ 'OK' ]:
+        return result
+      uniqueID = result['Value'].VMnode.id
+      publicIP = result['Value'].public_ip
+      return S_OK( [uniqueID, publicIP] )
+
+
+    return S_ERROR( 'Unknown DIRAC Cloud driver %s' % driver )
 

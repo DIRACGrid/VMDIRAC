@@ -35,6 +35,15 @@ class VirtualMachineMonitorAgent( AgentModule ):
     except Exception, e:
       return S_ERROR( "Could not retrieve occi instance id: %s" % str( e ) )
 
+  def getNovaVMId( self ):
+    try:
+      fd = open( os.path.join( '/etc', 'VMID' ), 'r' )
+      id = fd.read().strip()
+      fd.close()
+      return S_OK( id )
+    except Exception, e:
+      return S_ERROR( "Could not retrieve nova instance id: %s" % str( e ) )
+
   def getCloudStackVMId( self ):
     try:
       id = commands.getstatusoutput( '/bin/hostname' )
@@ -75,7 +84,6 @@ class VirtualMachineMonitorAgent( AgentModule ):
       return S_ERROR( "/LocalSite/VirtualMachineName is not defined" )
     #Variables coming from the vm 
     imgPath = "/Resources/VirtualMachines/Images/%s" % self.vmName
-    # temporal patch for occi until CS Endpoint implemented:
     for csOption, csDefault, varName in ( ( "MinWorkingLoad", 0.01, "vmMinWorkingLoad" ),
                                           ( "LoadAverageTimespan", 60, "vmLoadAvgTimespan" ),
                                           ( "JobWrappersLocation", "/opt/dirac/pro/job/Wrapper/", "vmJobWrappersLocation" ),
@@ -130,21 +138,20 @@ class VirtualMachineMonitorAgent( AgentModule ):
     self.vmId = ""
     self.am_setOption( "MaxCycles", 0 )
     self.am_setOption( "PollingTime", 60 )
-    #Discover id based on flavor
-    #flavor = gConfig.getValue( "/LocalSite/Flavor", "" ).lower()
-    # epilog.sh dirac-configure con /LocalSite/Contextualization
-    self.contextualization = gConfig.getValue( "/LocalSite/Contextualization", "" ).lower()
-    gLogger.info( "ID contextualization is %s" % self.contextualization )
-    if self.contextualization == 'generic':
+    self.cloudDriver = gConfig.getValue( "/LocalSite/CloudDriver", "" ).lower()
+    gLogger.info( "cloudDriver is %s" % self.cloudDriver )
+    if self.cloudDriver == 'generic':
       result = self.getGenericVMId()
-    elif self.contextualization == 'amazon':
+    elif self.cloudDriver == 'amazon':
       result = self.getAmazonVMId()
-    elif self.contextualization == 'occi':
+    elif (self.cloudDriver == 'occi-0.9-pic' or self.cloudDriver == 'occi-0.8-pic'):
       result = self.getOcciVMId()
-    elif self.contextualization == 'cloudstack':
+    elif self.cloudDriver == 'CloudStack':
       result = self.getCloudStackVMId()
+    elif self.cloudDriver == 'nova-1.1':
+      result = self.getNovaVMId()
     else:
-      return S_ERROR( "Unknown VM CloudEndpoint (%s)" % self.contextualization )
+      return S_ERROR( "Unknown cloudDriver %s" % self.cloudDriver )
     if not result[ 'OK' ]:
       return S_ERROR( "Could not generate VM id: %s" % result[ 'Message' ] )
     self.vmId = result[ 'Value' ]
@@ -278,7 +285,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
     retries = 3
     sleepTime = 10
     for i in range( retries ):
-      result = virtualMachineDB.declareInstanceHalting( self.vmId, avgLoad, self.contextualization )
+      result = virtualMachineDB.declareInstanceHalting( self.vmId, avgLoad, self.cloudDriver )
       if result[ 'OK' ]:
         gLogger.info( "Declared instance halting" )
         break
@@ -289,6 +296,6 @@ class VirtualMachineMonitorAgent( AgentModule ):
 
     #time.sleep( sleepTime )
 
-    # all endpoint:
+
     gLogger.info( "Executing system halt..." )
     os.system( "halt" )

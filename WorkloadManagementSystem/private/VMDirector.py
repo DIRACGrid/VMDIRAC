@@ -88,43 +88,66 @@ class VMDirector:
   def submitInstance( self, imageName, workDir, endpoint, runningPodName ):
     """
     """
+    # warning: instanceID is the DIRAC instance id, while uniqueID is unique for a particular endpoint
     self.log.info( '*** Preparint to submitting image: ', imageName )
     self.log.info( '******* of running pod: ', runningPodName )
     self.log.info( '******* destination: ', endpoint )
     if runningPodName not in self.runningPods:
       return DIRAC.S_ERROR( 'Unknown Running Pod: %s' % runningPodName )
-    retDict = virtualMachineDB.insertInstance( imageName, imageName, endpoint, runningPodName )
 
-    #########CloudStack2 adn CloudStack3 drivers have the bug of a single VM creation produces two VMs
-    #########To deal with this CloudStack preaty feature we first startNewInstance inside VMDIRECTOR._submitInstance, and second we declare two VMs (retDict and retDict2)
-    #########CloudStack check to preaty feature
-    driver = DIRAC.gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, "driver" ) )
-    if ( driver == "CloudStack" ):
-      retDict2 = virtualMachineDB.insertInstance( imageName, imageName, endpoint, runningPodName )
-
-    if not retDict['OK']:
-      return retDict
-    instanceID = retDict['Value']
     retDict = self._submitInstance( imageName, workDir, endpoint )
     if not retDict['OK']:
       return retDict
-    uniqueID = retDict[ 'Value' ]
+
+    retDict2 = virtualMachineDB.insertInstance( imageName, imageName, endpoint, runningPodName )
+    if not retDict2['OK']:
+      return retDict2
+    instanceID = retDict2['Value']
+
+    #########CloudStack2 adn CloudStack3 drivers have the bug of a single VM creation produces two VMs
+    #########To deal with this CloudStack preaty feature we first startNewInstance inside VMDIRECTOR._submitInstance, and second we declare two VMs 
+    #########CloudStack check to preaty feature
+    driver = DIRAC.gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, "driver" ) )
+    if ( driver == "CloudStack" ):
+      retDict3 = virtualMachineDB.insertInstance( imageName, imageName, endpoint, runningPodName )
+
+    if ( driver == "nova-1.1" ):
+      ( uniqueID, publicIP ) = retDict['Value']
+      retDict4 = virtualMachineDB.setPublicIP( instanceID, publicIP )
+      if not retDict4['OK']:
+        return retDict4
+    else: 
+      uniqueID = retDict['Value']
+
+
     retDict = virtualMachineDB.setInstanceUniqueID( instanceID, uniqueID )
+    if not retDict['OK']:
+      return retDict
 
     #########CloudStack check to preaty feature
     if ( driver == "CloudStack" ):
-      retDict2 = virtualMachineDB.setInstanceUniqueID( str( int( instanceID ) + 1 ), str( int( uniqueID ) - 1 ) )
+      retDict3 = virtualMachineDB.setInstanceUniqueID( str( int( instanceID ) + 1 ), str( int( uniqueID ) - 1 ) )
 
-    if not retDict['OK']:
-      return retDict
-    retDict = virtualMachineDB.declareInstanceSubmitted( uniqueID )
+    if not ( driver == "nova-1.1" ):
+      retDict = virtualMachineDB.declareInstanceSubmitted( uniqueID )
+      if not retDict['OK']:
+        return retDict
+    else:
+      # if nova driver then check contextMethod and update status if need ssh contextualization:
+      contextMethod = DIRAC.gConfig.getValue( "/Resources/VirtualMachines/Images/%s/%s" % ( imageName, "contextMethod" ) )
+      if contextMethod == 'ssh':
+        retDict = virtualMachineDB.declareInstanceWait_ssh_context( uniqueID )
+        if not retDict['OK']:
+          return retDict
+      else:
+        retDict = virtualMachineDB.declareInstanceSubmitted( uniqueID )
+        if not retDict['OK']:
+          return retDict
 
     #########CloudStack check to preaty feature
     if ( driver == "CloudStack" ):
       retDict2 = virtualMachineDB.declareInstanceSubmitted( str( int( uniqueID ) - 1 ) )
 
-    if not retDict['OK']:
-      return retDict
     return DIRAC.S_OK( imageName )
 
   def exceptionCallBack( self, threadedJob, exceptionInfo ):

@@ -3,10 +3,14 @@
 # File :   KVMDirector.py
 # Author : Ricardo Graciani
 ########################################################################
-__RCSID__ = "$Id: KVMDirector.py 16 2010-03-15 11:39:29Z ricardo.graciani@gmail.com $"
 
-from DIRAC import S_OK, S_ERROR
+# DIRAC
+from DIRAC import S_OK
+
+#VMDIRAC
 from VMDIRAC.WorkloadManagementSystem.private.VMDirector import VMDirector
+
+__RCSID__ = "$Id: KVMDirector.py 16 2010-03-15 11:39:29Z ricardo.graciani@gmail.com $"
 
 class KVMDirector( VMDirector ):
   def __init__( self, submitPool ):

@@ -82,26 +82,27 @@
 
 
 """
-__RCSID__ = "$Id$"
-
-from random import shuffle
-from DIRAC.Core.Base.AgentModule import AgentModule
-from DIRAC import gConfig
-
-
-from DIRAC.Resources.Computing.ComputingElement                 import getResourceDict
-
-from DIRAC.WorkloadManagementSystem.Client.ServerUtils          import taskQueueDB
-from VMDIRAC.WorkloadManagementSystem.Client.ServerUtils     import virtualMachineDB
-from VMDIRAC.WorkloadManagementSystem.private.CloudDirector import CloudDirector
-
-from VMDIRAC.WorkloadManagementSystem.private.KVMDirector    import KVMDirector
-
-from DIRAC.Core.Utilities.ThreadPool                            import ThreadPool
 
 import random, time
 import DIRAC
 
+from numpy.random import poisson
+from random       import shuffle
+
+# DIRAC
+from DIRAC                                             import gConfig
+from DIRAC.Core.Base.AgentModule                       import AgentModule
+from DIRAC.Core.Utilities.ThreadPool                   import ThreadPool
+from DIRAC.WorkloadManagementSystem.DB.TaskQueueDB     import maxCPUSegments
+from DIRAC.WorkloadManagementSystem.Client.ServerUtils import taskQueueDB
+
+from VMDIRAC.WorkloadManagementSystem.Client.ServerUtils    import virtualMachineDB
+from VMDIRAC.WorkloadManagementSystem.private.CloudDirector import CloudDirector
+#from VMDIRAC.WorkloadManagementSystem.private.KVMDirector   import KVMDirector
+
+__RCSID__ = "$Id: $"
+
+#FIXME: why do we need the random seed ?
 random.seed()
 
 class VirtualMachineScheduler( AgentModule ):
@@ -126,7 +127,7 @@ class VirtualMachineScheduler( AgentModule ):
     self.am_setOption( "totalThreadsInPool", 40 )
 
     self.directors = {}
-    self.pools = {}
+    self.pools     = {}
 
     self.directorDict = {}
 
@@ -165,7 +166,7 @@ class VirtualMachineScheduler( AgentModule ):
 
         endpointFound = False
         cloudEndpointsStr = runningPodDict['CloudEndpoints']
-	# random
+	      # random
         cloudEndpoints = [element for element in cloudEndpointsStr.split( ',' )]
         shuffle( cloudEndpoints )
         self.log.info( 'cloudEndpoints random failover: %s' % cloudEndpoints )
@@ -188,8 +189,8 @@ class VirtualMachineScheduler( AgentModule ):
             break
 
         if not endpointFound:
-            self.log.info( 'Skipping, from list %s; there is no endpoint with free slots found for image %s' % ( runningPodDict['CloudEndpoints'], imageName ) )
-            continue
+          self.log.info( 'Skipping, from list %s; there is no endpoint with free slots found for image %s' % ( runningPodDict['CloudEndpoints'], imageName ) )
+          continue
 
         imageRequirementsDict = runningPodDict['RequirementsDict']
         #self.log.info( 'Image Requirements Dict: ', imageRequirementsDict )
@@ -256,10 +257,7 @@ class VirtualMachineScheduler( AgentModule ):
 
     return DIRAC.S_OK()
 
-  def submitPilotsForTaskQueue( self, taskQueueDict, waitingPilots ):
-
-    from numpy.random import poisson
-    from DIRAC.WorkloadManagementSystem.DB.TaskQueueDB         import maxCPUSegments
+  def submitPilotsForTaskQueue( self, taskQueueDict, waitingPilots ):    
 
     taskQueueID = taskQueueDict['TaskQueueID']
     maxCPU = maxCPUSegments[-1]

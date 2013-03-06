@@ -3,11 +3,12 @@
 # File :   AmazonDirector.py
 # Author : Ricardo Graciani
 ########################################################################
-__RCSID__ = "$Id: AmazonDirector.py 16 2010-03-15 11:39:29Z ricardo.graciani@gmail.com $"
 
-from DIRAC import S_OK, S_ERROR
+from DIRAC import S_OK
 from VMDIRAC.WorkloadManagementSystem.private.VMDirector import VMDirector
 from VMDIRAC.WorkloadManagementSystem.Client.AmazonImage import AmazonImage
+
+__RCSID__ = "$Id: AmazonDirector.py 16 2010-03-15 11:39:29Z ricardo.graciani@gmail.com $"
 
 class AmazonDirector( VMDirector ):
   def __init__( self, submitPool ):

@@ -1,7 +1,4 @@
-########################################################################
 # $HeadURL$
-########################################################################
-
 """ VirtualMachineHandler provides remote access to VirtualMachineDB
 
     The following methods are available in the Service interface:
@@ -15,69 +12,95 @@
 
 """
 
-__RCSID__ = "$Id$"
+from types import DictType, FloatType, IntType, ListType, LongType, StringType, TupleType, UnicodeType
 
-from DIRAC.Core.DISET.RequestHandler import RequestHandler
-from DIRAC import S_OK, S_ERROR
-from DIRAC.Core.Utilities.ThreadScheduler              import gThreadScheduler
-from VMDIRAC.WorkloadManagementSystem.DB.VirtualMachineDB               import VirtualMachineDB
-from VMDIRAC.WorkloadManagementSystem.Client.OcciImage import OcciImage
-from VMDIRAC.WorkloadManagementSystem.Client.NovaImage import NovaImage
+# DIRAC
+from DIRAC                                import gLogger, S_ERROR, S_OK
+from DIRAC.Core.DISET.RequestHandler      import RequestHandler
+from DIRAC.Core.Utilities.ThreadScheduler import gThreadScheduler
 
-from types import *
+# VMDIRAC
+from VMDIRAC.WorkloadManagementSystem.Client.NovaImage    import NovaImage
+from VMDIRAC.WorkloadManagementSystem.Client.OcciImage    import OcciImage
+from VMDIRAC.WorkloadManagementSystem.DB.VirtualMachineDB import VirtualMachineDB
+
+__RCSID__ = '$Id: $'
 
 # This is a global instance of the VirtualMachineDB class
 gVirtualMachineDB = False
 
-def initializeVirtualMachineManagerHandler( serviceInfo ):
+def initializeVirtualMachineManagerHandler( _serviceInfo ):
 
   global gVirtualMachineDB
+  
   gVirtualMachineDB = VirtualMachineDB()
   gVirtualMachineDB.declareStalledInstances()
+  
   if gVirtualMachineDB._connected:
     gThreadScheduler.addPeriodicTask( 60 * 15, gVirtualMachineDB.declareStalledInstances )
     return S_OK()
+  
   return S_ERROR()
 
 class VirtualMachineManagerHandler( RequestHandler ):
 
   def initialize( self ):
-    credDict = self.getRemoteCredentials()
-    self.ownerDN = credDict[ 'DN' ]
-    self.ownerGroup = credDict[ 'group' ]
-    self.userProperties = credDict[ 'properties' ]
-    self.owner = credDict[ 'username' ]
-    self.peerUsesLimitedProxy = credDict[ 'isLimitedProxy' ]
-    self.diracSetup = self.serviceInfoDict[ 'clientSetup' ]
+
+# FIXME: is all this actually used ????       
+#    credDict = self.getRemoteCredentials()  
+#    self.ownerDN              = credDict[ 'DN' ]
+#    self.ownerGroup           = credDict[ 'group' ]
+#    self.userProperties       = credDict[ 'properties' ]
+#    self.owner                = credDict[ 'username' ]
+#    self.peerUsesLimitedProxy = credDict[ 'isLimitedProxy' ]
+#    
+#    self.diracSetup           = self.serviceInfoDict[ 'clientSetup' ]
+    pass
+
+  @staticmethod
+  def __logResult( methodName, result ):
+    '''
+    Method that writes to log error messages 
+    '''
+    if not result[ 'OK' ]:
+      gLogger.error( '%s%s' % ( methodName, result[ 'Message' ] ) )  
 
 
-  ###########################################################################
   types_insertInstance = [ StringType, ( StringType, UnicodeType ), ]
   def export_insertInstance( self, imageName, instanceName, endpoint, runningPodName ):
     """
     Check Status of a given image
     Will insert a new Instance in the DB
-    """
-    return gVirtualMachineDB.insertInstance( imageName, instanceName, endpoint, runningPodName )
+    """    
+    res = gVirtualMachineDB.insertInstance( imageName, instanceName, endpoint, runningPodName )
+    self.__logResult( 'insertInstance', res )
+    
+    return res
 
-  ###########################################################################
+
   types_setInstanceUniqueID = [ LongType, ( StringType, UnicodeType ) ]
   def export_setInstanceUniqueID( self, instanceID, uniqueID ):
     """
     Check Status of a given image
     Will insert a new Instance in the DB
-    """
-    return gVirtualMachineDB.setInstanceUniqueID( instanceID, uniqueID )
+    """    
+    res = gVirtualMachineDB.setInstanceUniqueID( instanceID, uniqueID )
+    self.__logResult( 'setInstanceUniqueID', res )
+    
+    return res
 
-  ###########################################################################
+  
   types_declareInstanceSubmitted = [ StringType ]
   def export_declareInstanceSubmitted( self, uniqueID ):
     """
     After submission of the instance the Director should declare the new Status
     """
-    return gVirtualMachineDB.declareInstanceSubmitted( uniqueID )
+    res = gVirtualMachineDB.declareInstanceSubmitted( uniqueID )
+    self.__logResult( 'declareInstanceSubmitted', res )
+    
+    return res
 
-  ###########################################################################
+
   types_declareInstanceRunning = [ StringType, StringType ]
   def export_declareInstanceRunning( self, uniqueID, privateIP ):
     """
@@ -86,10 +109,14 @@ class VirtualMachineManagerHandler( RequestHandler ):
       - instanceName does not have a "Submitted" entry 
       - uniqueID is not unique
     """
-    publicIP = self.getRemoteAddress()[0]
-    return gVirtualMachineDB.declareInstanceRunning( uniqueID, publicIP, privateIP )
+    publicIP = self.getRemoteAddress()[ 0 ]
+    
+    res = gVirtualMachineDB.declareInstanceRunning( uniqueID, publicIP, privateIP )
+    self.__logResult( 'declareInstanceRunning', res )
+    
+    return res
 
-  ###########################################################################
+
   types_instanceIDHeartBeat = [ StringType, FloatType, ( IntType, LongType ),
                                ( IntType, LongType ), ( IntType, LongType ) ]
   def export_instanceIDHeartBeat( self, uniqueID, load, jobs,
@@ -100,14 +127,19 @@ class VirtualMachineManagerHandler( RequestHandler ):
     Declares "Running" the instance and the image 
     It returns S_ERROR if the status is not OK
     """
+    #FIXME: do we really need the try / except. The type is fixed to int / long.
     try:
       uptime = int( uptime )
-    except:
+    except ValueError:
       uptime = 0
-    return gVirtualMachineDB.instanceIDHeartBeat( uniqueID, load, jobs,
-                                                  transferredFiles, transferredBytes, uptime )
+      
+    res = gVirtualMachineDB.instanceIDHeartBeat( uniqueID, load, jobs,
+                                                 transferredFiles, transferredBytes, uptime )
+    self.__logResult( 'instanceIDHeartBeat', res )
+    
+    return res
+    
 
-  ###########################################################################
   types_declareInstanceHalting = [ StringType, FloatType ]
   def export_declareInstanceHalting( self, vmId, load, cloudDriver ):
     """
@@ -115,101 +147,137 @@ class VirtualMachineManagerHandler( RequestHandler ):
     Declares "Halted" the instance and the image 
     It returns S_ERROR if the status is not OK
     """
-    result = gVirtualMachineDB.getEndpointFromInstance( vmId )
-    if not result[ 'OK' ]:
-      return result
-    endpoint = result[ 'Value' ]
+    endpoint = gVirtualMachineDB.getEndpointFromInstance( vmId )
+    if not endpoint[ 'OK' ]:
+      self.__logResult( 'declareInstanceHalting', endpoint )
+      return endpoint
+    endpoint = endpoint[ 'Value' ]
 
     result = gVirtualMachineDB.declareInstanceHalting( vmId, load )
     if not result[ 'OK' ]:
+      self.__logResult( 'declareInstanceHalting', result )
       return result
     
-    if (cloudDriver == 'occi-0.9' or cloudDriver == 'occi-0.8'):
-      result = gVirtualMachineDB.getImageNameFromInstance( vmId )
-      if not result[ 'OK' ]:
-        return result
-      imageName = result[ 'Value' ]
+    if ( cloudDriver == 'occi-0.9' or cloudDriver == 'occi-0.8' ):
+      imageName = gVirtualMachineDB.getImageNameFromInstance( vmId )
+      if not imageName[ 'OK' ]:
+        self.__logResult( 'declareInstanceHalting', imageName )
+        return imageName
+      imageName = imageName[ 'Value' ]
 
-      oima = OcciImage( imageName, endpoint )
+      oima   = OcciImage( imageName, endpoint )
       result = oima.stopInstance( vmId )
 
-    if cloudDriver == 'nova-1.1':
-      result = gVirtualMachineDB.getImageNameFromInstance( vmId )
-      if not result[ 'OK' ]:
-        return result
-      imageName = result[ 'Value' ]
+    elif cloudDriver == 'nova-1.1':
+      imageName = gVirtualMachineDB.getImageNameFromInstance( vmId )
+      if not imageName[ 'OK' ]:
+        self.__logResult( 'declareInstanceHalting', imageName )
+        return imageName
+      imageName = imageName[ 'Value' ]
 
       nima = NovaImage( imageName, endpoint )
-      result = gVirtualMachineDB.getPublicIpFromInstance ( vmId )
-      if not result[ 'OK' ]:
-        return result
+      
+      publicIP = gVirtualMachineDB.getPublicIpFromInstance ( vmId )
+      if not publicIP[ 'OK' ]:
+        self.__logResult( 'declareInstanceHalting', publicIP )
+        return publicIP
+      publicIP = publicIP[ 'Value' ]
+      
+      result = nima.stopInstance( vmId, publicIP )
 
-      public_ip = result[ 'Value' ]
-      result = nima.stopInstance( vmId, public_ip )
+    else:
+      gLogger.warn( 'Unexpected cloud driver is %s' % cloudDriver )
 
+    self.__logResult( 'declareInstanceHalting', result )
     return result
 
-  ###########################################################################
   types_getInstancesByStatus = [ StringType ]
   def export_getInstancesByStatus( self, status ):
     """
     Get dictionary of Image Names with InstanceIDs in given status 
     """
-    return gVirtualMachineDB.getInstancesByStatus( status )
+    
+    res = gVirtualMachineDB.getInstancesByStatus( status )
+    self.__logResult( 'getInstancesByStatus', res )
+    return res
 
-  ###########################################################################
+
   types_getAllInfoForUniqueID = [ StringType ]
   def export_getAllInfoForUniqueID( self, uniqueID ):
     """
     Get all the info for a UniqueID
     """
-    return gVirtualMachineDB.getAllInfoForUniqueID( uniqueID )
+    res = gVirtualMachineDB.getAllInfoForUniqueID( uniqueID )
+    self.__logResult( 'getAllInfoForUniqueID', res )
+    
+    return res
 
-  ###########################################################################
+
   types_getInstancesContent = [ DictType, ( ListType, TupleType ),
                                 ( IntType, LongType ), ( IntType, LongType ) ]
   def export_getInstancesContent( self, selDict, sortDict, start, limit ):
     """
     Retrieve the contents of the DB
     """
-    return gVirtualMachineDB.getInstancesContent( selDict, sortDict, start, limit )
+    res = gVirtualMachineDB.getInstancesContent( selDict, sortDict, start, limit )
+    self.__logResult( 'getInstancesContent', res )
+    
+    return res
 
-  ###########################################################################
+
   types_getHistoryForInstanceID = [ ( IntType, LongType ) ]
   def export_getHistoryForInstanceID( self, instanceId ):
     """
     Retrieve the contents of the DB
     """
-    return gVirtualMachineDB.getHistoryForInstanceID( instanceId )
+    res = gVirtualMachineDB.getHistoryForInstanceID( instanceId )
+    self.__logResult( 'getHistoryForInstanceID', res )
+    
+    return res
 
-  ###########################################################################
+
   types_getInstanceCounters = []
   def export_getInstanceCounters( self ):
     """
     Retrieve the contents of the DB
     """
-    return gVirtualMachineDB.getInstanceCounters()
+    res = gVirtualMachineDB.getInstanceCounters()
+    self.__logResult( 'getInstanceCounters', res )
+    
+    return res
 
-  ###########################################################################
+  
   types_getHistoryValues = [ IntType, DictType  ]
   def export_getHistoryValues( self, averageBucket, selDict, fields2Get = [], timespan = 0 ):
     """
     Retrieve the contents of the DB
     """
-    return gVirtualMachineDB.getHistoryValues( averageBucket, selDict, fields2Get, timespan )
+    res = gVirtualMachineDB.getHistoryValues( averageBucket, selDict, fields2Get, timespan )
+    self.__logResult( 'getHistoryValues', res )
+    
+    return res
 
-  ###########################################################################
+
   types_getRunningInstancesHistory = [ IntType, IntType ]
   def export_getRunningInstancesHistory( self, timespan, bucketSize ):
     """
     Retrieve number of running instances in each bucket
     """
-    return gVirtualMachineDB.getRunningInstancesHistory( timespan, bucketSize )
+    res = gVirtualMachineDB.getRunningInstancesHistory( timespan, bucketSize )
+    self.__logResult( 'getRunningInstancesHistory', res )
+    
+    return res
 
-  ###########################################################################
+
   types_getRunningInstancesBEPHistory = [ IntType, IntType ]
   def export_getRunningInstancesBEPHistory( self, timespan, bucketSize ):
     """
     Retrieve number of running instances in each bucket
     """
-    return gVirtualMachineDB.getRunningInstancesBEPHistory( timespan, bucketSize )
+    res = gVirtualMachineDB.getRunningInstancesBEPHistory( timespan, bucketSize )
+    self.__logResult( 'getRunningInstancesBEPHistory', res )
+    
+    return res
+
+#...............................................................................
+#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF

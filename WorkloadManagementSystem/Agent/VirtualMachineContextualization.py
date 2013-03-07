@@ -13,19 +13,20 @@
         then requesting the VM contextualization and
         changing the status on the corresponding entry of VirtualMachineDB.vm_SshContextualize
 """
-__RCSID__ = "$Id$"
 
-from random import shuffle
+import random
+
+# DIRAC
+from DIRAC                       import S_OK 
 from DIRAC.Core.Base.AgentModule import AgentModule
-from DIRAC import gConfig
 
+# VMDIRAC
+from VMDIRAC.WorkloadManagementSystem.Client.NovaImage   import NovaImage
+from VMDIRAC.WorkloadManagementSystem.Client.ServerUtils import virtualMachineDB
 
-from VMDIRAC.WorkloadManagementSystem.Client.ServerUtils     import virtualMachineDB
-from VMDIRAC.WorkloadManagementSystem.Client.NovaImage import NovaImage
+__RCSID__ = "$Id: $"
 
-import random, time
-import DIRAC
-
+#FIXME: why do we need the random seed ?
 random.seed()
 
 class VirtualMachineContextualization( AgentModule ):
@@ -33,40 +34,39 @@ class VirtualMachineContextualization( AgentModule ):
   def initialize( self ):
     """ Standard constructor
     """
-    import threading
 
     self.am_setOption( "PollingTime", 60.0 )
 
-    return DIRAC.S_OK()
+    return S_OK()
 
   def execute( self ):
     """ Agent executor
     """
     result = virtualMachineDB.getInstancesInfoByStatus ( 'Wait_ssh_context' )
     if not result['OK']:
-        return result
+      return result
 
     for uniqueId, endpoint, publicIP in result['Value']:
 
-        retDict = virtualMachineDB.getImageNameFromInstance ( uniqueId )
-        if not retDict['OK']:
-           return retDict
+      retDict = virtualMachineDB.getImageNameFromInstance ( uniqueId )
+      if not retDict['OK']:
+        return retDict
 
-        diracImageName = retDict['Value']
-        nima = NovaImage( diracImageName, endpoint )
+      diracImageName = retDict['Value']
+      nima = NovaImage( diracImageName, endpoint )
 
-        result = nima.getInstanceStatus( uniqueId )
+      result = nima.getInstanceStatus( uniqueId )
+      if not result[ 'OK' ]:
+        return result
+
+      if result['Value'] == 'ACTIVE':
+        result = nima.contextualizeInstance( uniqueId, publicIP )
+        self.log.info( "result of contextualize:" )
+        self.log.info( result )
         if not result[ 'OK' ]:
           return result
+        retDict = virtualMachineDB.declareInstanceContextualizing( uniqueId )
+        if not retDict['OK']:
+          return retDict
 
-        if result['Value'] == 'ACTIVE':
-          result = nima.contextualizeInstance( uniqueId, publicIP )
-          print "result of contextualize:"
-          print result
-          if not result[ 'OK' ]:
-            return result
-          retDict = virtualMachineDB.declareInstanceContextualizing( uniqueId )
-          if not retDict['OK']:
-            return retDict
-
-    return DIRAC.S_OK() 
+    return S_OK() 

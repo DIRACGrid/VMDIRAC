@@ -4,8 +4,6 @@
 # Author : Victor Mendez ( vmendez.tic@gmail.com )
 ########################################################################
 
-
-import time
 from DIRAC import gLogger, gConfig, S_OK, S_ERROR
 
 #VMInstance operations is from VirtualMachineDB.Instances, instead of endpoint interfaced
@@ -13,6 +11,8 @@ from DIRAC import gLogger, gConfig, S_OK, S_ERROR
 #from VMDIRAC.WorkloadManagementSystem.Client.OcciVMInstance import OcciVMInstance
 #occiClient dynamically below, depending on the driver
 #from VMDIRAC.WorkloadManagementSystem.Client.OcciClient import OcciClient
+
+__RCSID__ = '$Id: $'
 
 class OcciImage:
 
@@ -64,7 +64,7 @@ class OcciImage:
     if self.__driver == "occi-0.8":
       from VMDIRAC.WorkloadManagementSystem.Client.Occi08 import OcciClient
       self.__cliocci = OcciClient(self.__occiURI, self.__occiUser, self.__occiPasswd)
-    if self.__driver == "occi-0.9":
+    elif self.__driver == "occi-0.9":
       from VMDIRAC.WorkloadManagementSystem.Client.Occi09 import OcciClient
       self.__cliocci = OcciClient(self.__occiURI, self.__occiUser, self.__occiPasswd)
     else:
@@ -108,26 +108,26 @@ class OcciImage:
 
     if self.__iface == 'static': 
 
-        # dns1
-        self.__DNS1 = self.__getCSCloudEndpointOption( "DNS1" )
-        if not self.__DNS1:
-          self.__errorStatus = "Can't find the DNS1 for endpoint %s" % self.__endpoint
-          self.log.error( self.__errorStatus )
-          return
+      # dns1
+      self.__DNS1 = self.__getCSCloudEndpointOption( "DNS1" )
+      if not self.__DNS1:
+        self.__errorStatus = "Can't find the DNS1 for endpoint %s" % self.__endpoint
+        self.log.error( self.__errorStatus )
+        return
 
-        # dns2
-        self.__DNS2 = self.__getCSCloudEndpointOption( "DNS2" )
-        if not self.__DNS2:
-          self.__errorStatus = "Can't find the DNS2 for endpoint %s" % self.__endpoint
-          self.log.error( self.__errorStatus )
-          return
+      # dns2
+      self.__DNS2 = self.__getCSCloudEndpointOption( "DNS2" )
+      if not self.__DNS2:
+        self.__errorStatus = "Can't find the DNS2 for endpoint %s" % self.__endpoint
+        self.log.error( self.__errorStatus )
+        return
 
-        # domain
-        self.__Domain = self.__getCSCloudEndpointOption( "Domain" )
-        if not self.__Domain:
-          self.__errorStatus = "Can't find the Domain for endpoint %s" % self.__endpoint
-          self.log.error( self.__errorStatus )
-          return
+      # domain
+      self.__Domain = self.__getCSCloudEndpointOption( "Domain" )
+      if not self.__Domain:
+        self.__errorStatus = "Can't find the Domain for endpoint %s" % self.__endpoint
+        self.log.error( self.__errorStatus )
+        return
 
     # cvmfs http proxy:
     self.__CVMFS_HTTP_PROXY = self.__getCSCloudEndpointOption( "CVMFS_HTTP_PROXY" )
@@ -139,7 +139,7 @@ class OcciImage:
     # URL context files:
     self.__URLcontextfiles = self.__getCSImageOption( "URLcontextfiles" )
     if not self.__URLcontextfiles:
-    	self.__URLcontextfiles = "http://lhcweb.pic.es/vmendez/context/root.pub"
+      self.__URLcontextfiles = "http://lhcweb.pic.es/vmendez/context/root.pub"
 
     # Network id
     self.__NetId = self.__getCSCloudEndpointOption( "NetId" )

@@ -1,0 +1,256 @@
+#!/bin/sh
+
+# User data script
+
+echo "*********************************************************************"
+echo "User data : $0"
+echo "*********************************************************************"
+
+# This script exits on an error so that errors don't compound and you see
+# only the first error that occured.
+set -o errexit
+
+# Print the commands being run so that we can see the command that triggers
+# an error. It is also useful for following allowing as the install occurs.
+# Disabled ( if using logger )
+set -o xtrace
+
+# Set MoTD message
+echo 'LHCb(Dirac) CernVM contextualized instance' > /etc/motd
+
+  #.............................................................................
+  # logger
+  #
+  #.............................................................................
+  
+  #loggerFile=/var/log/user-data-script.log
+
+  #.............................................................................
+  # installRunit
+  #
+  # Conary does not provide a runit pacakge. We have to get it from our
+  # repository and compile it. Last step requires copying over the commands to
+  # /usr/bin so that they are on the PATH. 
+  #.............................................................................
+
+  installRunit() {
+  
+    runitURL=http://lhcbproject.web.cern.ch/lhcbproject/dist/DIRAC3/Externals/runit/runit-2.1.1.tar.gz
+    (
+      cd /tmp
+      wget $runitURL
+      tar -xvf runit-2.1.1.tar.gz
+      cd admin/runit-2.1.1
+      echo runsvctrl >> package/commands
+      echo runsvstat >> package/commands
+      sed -i -e 's/IT=/IT=runsvstat runsvctrl /g' src/Makefile
+      # We know this bastard fails..
+      set +o errexit
+      package/install
+      set -o errexit
+      cp command/* /usr/bin
+    )
+    RETVAL=$?
+    return $RETVAL
+  
+  }
+
+
+  #.............................................................................
+  # installCertificate
+  #
+  # The VM needs a ( service ) certificate to authenticate against the DIRAC
+  # services. It is stored on /opt/dirac/etc/grid-security/hostcert.pem 
+  #.............................................................................
+
+  installCertificateAndKey(){
+  
+    mkdir -p etc/grid-security    
+    # Certificate
+    cat <<EOF>etc/grid-security/hostcert.pem
+    ##_hostcert.pem_##
+    
+EOF
+    chmod 644 etc/grid-security/hostcert.pem
+    # Key
+    cat <<EOF>etc/grid-security/hostkey.pem
+    ##_hostkey.pem_##
+    
+EOF
+    chmod 644 etc/grid-security/hostkey.pem
+    return $?
+
+  }
+
+  
+  #.............................................................................
+  # installConfiguration
+  #
+  # Copy the DIRAC configuration to /opt/dirac/etc/dirac.cfg
+  #.............................................................................
+  
+  installConfiguration(){
+    
+    cat <<EOF>etc/dirac.cfg
+    ##_dirac.cfg_##
+    
+EOF
+    chmod 644 etc/dirac.cfg
+    return $?    
+
+  }
+
+  #.............................................................................
+  # installAgent
+  #
+  #
+  #.............................................................................
+  
+  installAgent(){
+  
+    # Create agent runit directory if it does not exist
+    agentDir=runit/$1/$2
+    mkdir -p $agentDir/log
+      
+    # Create run files ( log and agent )
+    cat <<EOF>$agentDir/log/run
+    ##_log.run_##
+    
+EOF
+    cat <<EOF>$agentDir/run
+    ##_agent.run_##
+    
+EOF
+      
+    # Customize agent.run file with the System/Agent parameters ( $1/$2 )
+    sed -i -e "s/##_system_##/$1/g" $agentDir/run
+    sed -i -e "s/##_agent_##/$2/g" $agentDir/run 
+      
+    # Set proper permissions
+    chmod 755 $agentDir/{run,log/run}
+      
+    # Create control and work directories
+    mkdir -p {control,work}/$1/$2
+    # Changed to root:dirac so that runsvdir can create the lock files
+    chown root:dirac {control,work}/$1/$2
+  
+    ln -s /opt/dirac/runit/$1/$2 startup/$1_$2
+    
+    RETVAL=$?
+    return $RETVAL  
+  
+  }
+  
+  
+  #.............................................................................
+  # installDirac
+  #
+  #
+  #.............................................................................
+  function installDirac(){
+
+    /usr/sbin/useradd -d /opt/dirac dirac
+    (  
+      cd /opt/dirac
+      installCertificateAndKey
+      installConfiguration
+      mkdir startup
+      installAgent WorkloadManagement JobAgent
+      # Change owner of /opt/dirac to dirac:dirac
+      chown -R dirac:dirac .
+    )
+    RETVAL=$?
+    return $RETVAL      
+
+  }
+
+
+  #.............................................................................
+  # installLHCbDiracService
+  #
+  #
+  #.............................................................................
+  function installLHCbDiracService(){
+
+    cat <<EOF>/etc/init.d/lhcbdirac
+    ##_lhcbdirac.sh_##
+    
+EOF
+    chmod 755 /etc/init.d/lhcbdirac
+    return $?     
+
+  }
+
+
+  #.............................................................................
+  # installEpilog
+  #
+  #
+  #.............................................................................
+  function installEpilog(){
+
+    epilog=/var/lib/hepix/context/epilog.sh
+
+    # Create epilog file ( log and agent )
+    cat <<EOF>$epilog
+    ##_epilog.sh_##
+    
+EOF
+
+    return $?     
+
+  }
+
+  #.............................................................................
+  # installEpilog
+  #
+  #
+  #.............................................................................
+  function installEpilogOld(){
+
+    echo '#!/bin/bash' > /var/lib/hepix/context/epilog.sh
+    echo 'set -o xtrace' >> /var/lib/hepix/context/epilog.sh
+    echo 'echo Running epilog.sh' >> /var/lib/hepix/context/epilog.sh
+    echo 'logger -t $0 "epilog running"' >> /var/lib/hepix/context/epilog.sh
+    
+    echo 'service cvmfs probe' >> /var/lib/hepix/context/epilog.sh
+    echo 'logger -t $0 "cvmfs probed"' >> /var/lib/hepix/context/epilog.sh
+       
+    echo 'logger -t $0 "installing runsvdir-start"' >> /var/lib/hepix/context/epilog.sh
+    echo 'install -m0750 /tmp/admin/runit*/etc/2 /sbin/runsvdir-start' >> /var/lib/hepix/context/epilog.sh 
+    echo 'ln -s /opt/dirac/startup /service' >> /var/lib/hepix/context/epilog.sh
+    
+#    echo 'echo #Adding runsvdir startup >> /etc/inittab' >> /var/lib/hepix/context/epilog.sh
+    echo 'echo SV:123456:respawn:/sbin/runsvdir-start >> /etc/inittab' >>/var/lib/hepix/context/epilog.sh
+    
+#    echo 'env > /root/pr' >> /var/lib/hepix/context/epilog.sh
+#    echo 'logger -t $0 "env $?"' >> /var/lib/hepix/context/epilog.sh
+    
+    echo '#Re-evaluating inittab' >> /var/lib/hepix/context/epilog.sh
+    echo 'init q' >> /var/lib/hepix/context/epilog.sh
+#    echo 'exit $RETVAL' >> /var/lib/hepix/context/epilog.sh
+
+    return 0     
+
+  }
+
+#...............................................................................
+#...............................................................................
+#...............................................................................
+
+
+installRunit
+installDirac
+installLHCbDiracService
+installEpilog
+
+RETVAL=$?
+
+# Disabled ( if using logger )
+set +o xtrace
+echo "*********************************************************************"
+echo "SUCCESS: User data: $0"
+echo "*********************************************************************"
+
+# Bye ! Be careful, we need last line empty !!
+exit $RETVAL

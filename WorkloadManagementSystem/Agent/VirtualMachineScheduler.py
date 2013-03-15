@@ -96,8 +96,8 @@ from DIRAC.Core.Utilities.ThreadPool                   import ThreadPool
 from DIRAC.WorkloadManagementSystem.DB.TaskQueueDB     import maxCPUSegments
 from DIRAC.WorkloadManagementSystem.Client.ServerUtils import taskQueueDB
 
-from VMDIRAC.WorkloadManagementSystem.Client.ServerUtils    import virtualMachineDB
-from VMDIRAC.WorkloadManagementSystem.private.CloudDirector import CloudDirector
+from VMDIRAC.Resources.Cloud.CloudDirector               import CloudDirector
+from VMDIRAC.WorkloadManagementSystem.Client.ServerUtils import virtualMachineDB
 #from VMDIRAC.WorkloadManagementSystem.private.KVMDirector   import KVMDirector
 
 __RCSID__ = "$Id: $"

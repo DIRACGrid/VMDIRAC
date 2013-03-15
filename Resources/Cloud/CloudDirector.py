@@ -8,11 +8,11 @@
 from DIRAC import S_OK, S_ERROR, gConfig
 
 #VMDIRAC
+from VMDIRAC.Resources.Cloud.VMDirector                      import VMDirector
 from VMDIRAC.WorkloadManagementSystem.Client.AmazonImage     import AmazonImage
 from VMDIRAC.WorkloadManagementSystem.Client.CloudStackImage import CloudStackImage
 from VMDIRAC.WorkloadManagementSystem.Client.NovaImage       import NovaImage
 from VMDIRAC.WorkloadManagementSystem.Client.OcciImage       import OcciImage
-from VMDIRAC.WorkloadManagementSystem.private.VMDirector     import VMDirector
 # aqui conf automatica de modulos (adri)
 
 __RCSID__ = '$Id: $'

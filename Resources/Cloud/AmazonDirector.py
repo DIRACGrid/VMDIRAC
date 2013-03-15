@@ -1,25 +1,23 @@
 ########################################################################
 # $HeadURL$
-# File :   KVMDirector.py
+# File :   AmazonDirector.py
 # Author : Ricardo Graciani
 ########################################################################
 
-# DIRAC
 from DIRAC import S_OK
+from VMDIRAC.Resources.Cloud.VMDirector                  import VMDirector
+from VMDIRAC.WorkloadManagementSystem.Client.AmazonImage import AmazonImage
 
-#VMDIRAC
-from VMDIRAC.WorkloadManagementSystem.private.VMDirector import VMDirector
+__RCSID__ = "$Id: AmazonDirector.py 16 2010-03-15 11:39:29Z ricardo.graciani@gmail.com $"
 
-__RCSID__ = "$Id: KVMDirector.py 16 2010-03-15 11:39:29Z ricardo.graciani@gmail.com $"
-
-class KVMDirector( VMDirector ):
+class AmazonDirector( VMDirector ):
   def __init__( self, submitPool ):
-    self.Flavor = 'KVM'
+    self.Flavor = 'Amazon'
     VMDirector.__init__( self, submitPool )
 
   def configure( self, csSection, submitPool ):
     """
-     Here goes common configuration for KVM Director
+     Here goes common configuration for Amazon Director
     """
 
     VMDirector.configure( self, csSection, submitPool )
@@ -35,4 +33,8 @@ class KVMDirector( VMDirector ):
     """
       Real backend method to submit a new Instance of a given Image
     """
-    return S_OK()
+    ami = AmazonImage( imageName )
+    result = ami.startNewInstances()
+    if not result[ 'OK' ]:
+      return result
+    return S_OK( result[ 'Value' ][0] )

@@ -4,15 +4,20 @@
 # Author : Victor Fernandez ( victormanuel.fernandez@usc.es )
 ########################################################################
 
-import time
-from DIRAC import gLogger, gConfig, S_OK, S_ERROR
+# DIRAC
+from DIRAC import gLogger, S_ERROR, S_OK
+
+# VMDIRAC
 from VMDIRAC.WorkloadManagementSystem.Client.CloudStackClient import CloudStackClient
+
+__RCSID__ = '$Id: $'
 
 class CloudStackInstance:
 
   def __init__( self, instanceId, URL, accessKey, secretKey ):
-    self.__errorStatus = ""
+
     self.log = gLogger.getSubLogger( "CloudStackInstance id:%s" % instanceId )
+    self.__errorStatus = ""
     self.__instanceId = instanceId
     self.__csInstance = False
     self.__imageId = "unknown"
@@ -62,3 +67,5 @@ class CloudStackInstance:
 
     return S_OK( request.stdout )
 
+#...............................................................................
+#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF

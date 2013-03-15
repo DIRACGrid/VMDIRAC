@@ -1,0 +1,87 @@
+#!/bin/bash -
+#-------------------------------------------------------------------------------#
+# user_data_generator
+#  
+# : Writes down epilog.sh for S99vmcontext_epilog
+#  
+# @ubeda  
+# 18/II/2013
+#-------------------------------------------------------------------------------
+
+HOSTCERTPATH=~/hostcert.pem
+HOSTKEYPATH=~/hostkey.pem
+
+[ ! -e $HOSTCERTPATH ] && exit "$HOSTCERTPATH does not exist"
+[ ! -e $HOSTKEYPATH ] && exit "$HOSTKEYPATH does not exist"
+
+if [ -z $1 ]
+then
+  echo no given IMAGEID, setting default
+  #IMAGEID=483daf68-33ce-460f-9cb7-1440d091bf53
+  #ibex image
+  IMAGEID=2c7693d9-3e3f-4d86-a867-ca3c20cd1adb
+else
+  IMAGEID=$1
+fi
+
+if [ -z $2 ]
+then
+  echo no given FLAVORID, setting default
+  FLAVORID=1
+else
+  FLAVORID=$2
+fi
+
+if [ -z $3 ]
+then
+  echo no given KEYNAME, setting default
+  #KEYNAME=cloudone
+  KEYNAME=lhcbdiractest
+else
+  KEYNAME=$3
+fi
+
+#a=`nova image-show 483daf68-33ce-460f-9cb7-1440d091bf53 | grep id`
+#echo $a | tr -d ' ' | awk -F'|' '{print $3}'
+
+#-------------------------------------------------------------------------------
+
+user_data=`mktemp -d`/user_data
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+(
+  cd $DIR
+  
+  # Copy to local so that they are picked by the sed command
+  cp $HOSTCERTPATH $HOSTKEYPATH .
+  
+  # Merge UserData and AmiConfig in one single file: user_data 
+  cat user_data_script amiconfig > $user_data
+  # Replace ##_dirac.cfg_## by our log.run file
+  sed -i -e '/^.*##_dirac.cfg_##/{r dirac.cfg' -e ';d}' $user_data
+  # Replace ##_log.run_## by our log.run file
+  sed -i -e '/^.*##_log.run_##/{r log.run' -e ';d}' $user_data 
+  # Replace ##_agent.run_## by our log.run file
+  sed -i -e '/^.*##_agent.run_##/{r agent.run' -e ';d}' $user_data
+  # Replace ##_hostcert.pem_## by our log.run file
+  sed -i -e '/^.*##_hostcert.pem_##/{r hostcert.pem' -e ';d}' $user_data
+  # Replace ##_hostkey.pem_## by our log.run file
+  sed -i -e '/^.*##_hostkey.pem_##/{r hostkey.pem' -e ';d}' $user_data
+  # Replace ##_lhcbdirac.sh_## by our lhcbdirac.sh
+  sed -i -e '/^.*##_lhcbdirac.sh_##/{r lhcbdirac.sh' -e ';d}' $user_data
+  # Replace ##_epilog.sh_## by our epilog.sh
+  sed -i -e '/^.*##_epilog.sh_##/{r epilog.sh' -e ';d}' $user_data
+  
+  rm host{cert,key}.pem
+)
+
+#-------------------------------------------------------------------------------
+
+echo "Please, run:"
+echo "nova boot --image $IMAGEID --flavor $FLAVORID --user_data $user_data --key_name $KEYNAME --meta landb_update_hostname=false --availability_zone nova lhcbDiracTest"
+
+#-------------------------------------------------------------------------------
+
+exit
+#EOF

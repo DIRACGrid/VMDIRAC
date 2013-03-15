@@ -1,0 +1,10 @@
+#!/bin/bash
+#
+export HOME=/root
+export USER=root
+rcfile=/cvmfs/lhcb.cern.ch/lib/LbLogin.sh
+[ -e \$rcfile ] && . \$rcfile && . SetupProject.sh LHCbDirac
+# We force DIRAC to pick our custom dirac.cfg
+export DIRACSYSCONFIG=/opt/dirac/etc/dirac.cfg
+#
+exec svlogd .

@@ -1,0 +1,5 @@
+[amiconfig]
+plugins = cernvm rootsshkeys disablesshpasswdauth
+[cernvm]
+organisations = lhcb
+repositories = lhcb,grid

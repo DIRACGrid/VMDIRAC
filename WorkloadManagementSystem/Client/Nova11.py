@@ -126,7 +126,7 @@ class NovaClient:
             mykey = paramiko.RSAKey.from_private_key_file(privatekeyfile)
             sshusername =  getpass.getuser()
             transport = paramiko.Transport((public_ip, 22))
-            transport.connect(username = sshusername, pkey = mykey)
+            transport.connect(username = sshusername, pkey = mykey, timeout = 10)
             sftp = paramiko.SFTPClient.from_transport(transport)
         except Exception, errmsg:
             request.stderr = "Can't open sftp conection to %s: %s" % (public_ip,errmsg)
@@ -154,7 +154,7 @@ class NovaClient:
         try:
             ssh = paramiko.SSHClient()
             ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            ssh.connect(public_ip, username=sshusername, port=22, pkey=mykey)
+            ssh.connect(public_ip, username=sshusername, port=22, pkey=mykey, timeout=10 )
         except Exception, errmsg:
             request.stderr = "Can't open ssh conection to %s: %s" % (public_ip,errmsg)
             request.returncode = -1

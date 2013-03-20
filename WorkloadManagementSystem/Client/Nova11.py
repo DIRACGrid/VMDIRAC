@@ -104,7 +104,7 @@ class NovaClient:
             request.returncode = -1
 	    return request
       else:
-        request.public_ip = VMnode.ip
+        request.public_ip = request.VMnode.ip
 
       return request
 

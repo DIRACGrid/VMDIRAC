@@ -9,6 +9,7 @@
 import os
 import sys
 import time
+import signal
 
 import libcloud.security
 
@@ -22,6 +23,10 @@ import getpass
 
 # Classes
 ###################
+
+def timeout(signum, frame):
+    raise TimeExceededError, "Timed Out"
+
 
 class Request():
       image = None
@@ -120,6 +125,12 @@ class NovaClient:
 
         # 1) copy the necesary files
 
+	#SIGALRM is only usable on a unix platform
+	signal.signal(signal.SIGALRM, timeout)
+
+	#change 10 to however many seconds you need
+	signal.alarm(10)
+
         # prepare paramiko sftp client
         try:
             privatekeyfile = os.path.expanduser('~/.ssh/id_rsa')
@@ -130,6 +141,10 @@ class NovaClient:
             sftp = paramiko.SFTPClient.from_transport(transport)
         except Exception, errmsg:
             request.stderr = "Can't open sftp conection to %s: %s" % (public_ip,errmsg)
+            request.returncode = -1
+	    return request
+        except TimeExceededError:
+            request.stderr = "DIRAC ssh limit expired"
             request.returncode = -1
 	    return request
 

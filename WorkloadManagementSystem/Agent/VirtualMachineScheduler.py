@@ -274,8 +274,10 @@ class VirtualMachineScheduler( AgentModule ):
     self.log.verbose( 'Jobs in TaskQueue %s:' % taskQueueID, taskQueueJobs )
 
     # Determine number of pilots to submit, boosting TaskQueues with low CPU requirements
-    pilotsToSubmit = poisson( ( self.pilotsPerPriority * taskQueuePriority +
-                                self.pilotsPerJob * taskQueueJobs ) * maxCPU / taskQueueCPU )
+    #pilotsToSubmit = poisson( ( self.pilotsPerPriority * taskQueuePriority +
+    #                            self.pilotsPerJob * taskQueueJobs ) * maxCPU / taskQueueCPU )
+    pilotsToSubmit = poisson( ( taskQueuePriority +
+                                taskQueueJobs ) * maxCPU / taskQueueCPU )
     # limit the number of pilots according to the number of waiting job in the TaskQueue
     # and the number of already submitted pilots for that TaskQueue
     pilotsToSubmit = min( pilotsToSubmit, int( ( 1 + extraPilotFraction ) * taskQueueJobs ) + extraPilots - waitingPilots )

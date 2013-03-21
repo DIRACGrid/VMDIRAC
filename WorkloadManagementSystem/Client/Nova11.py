@@ -24,10 +24,6 @@ import getpass
 # Classes
 ###################
 
-def timeout(signum, frame):
-    raise TimeExceededError, "Timed Out"
-
-
 class Request():
       image = None
       VMnode = None
@@ -125,26 +121,16 @@ class NovaClient:
 
         # 1) copy the necesary files
 
-	#SIGALRM is only usable on a unix platform
-	signal.signal(signal.SIGALRM, timeout)
-
-	#change 10 to however many seconds you need
-	signal.alarm(10)
-
         # prepare paramiko sftp client
         try:
             privatekeyfile = os.path.expanduser('~/.ssh/id_rsa')
             mykey = paramiko.RSAKey.from_private_key_file(privatekeyfile)
-            sshusername =  getpass.getuser()
+            sshusername = 'root'
             transport = paramiko.Transport((public_ip, 22))
-            transport.connect(username = sshusername, pkey = mykey, timeout = 10)
+            transport.connect(username = sshusername, pkey = mykey0)
             sftp = paramiko.SFTPClient.from_transport(transport)
         except Exception, errmsg:
             request.stderr = "Can't open sftp conection to %s: %s" % (public_ip,errmsg)
-            request.returncode = -1
-	    return request
-        except TimeExceededError:
-            request.stderr = "DIRAC ssh limit expired"
             request.returncode = -1
 	    return request
 
@@ -169,7 +155,7 @@ class NovaClient:
         try:
             ssh = paramiko.SSHClient()
             ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            ssh.connect(public_ip, username=sshusername, port=22, pkey=mykey, timeout=10 )
+            ssh.connect(public_ip, username=sshusername, port=22, pkey=mykey )
         except Exception, errmsg:
             request.stderr = "Can't open ssh conection to %s: %s" % (public_ip,errmsg)
             request.returncode = -1

@@ -53,7 +53,10 @@ class VirtualMachineContextualization( AgentModule ):
         return retDict
 
       diracImageName = retDict['Value']
-      nima = NovaImage( diracImageName, endpoint )
+      nima     = NovaImage( diracImageName, endpoint )
+      connNova = nima.connectNova()
+      if not connNova[ 'OK' ]:
+        return connNova
 
       result = nima.getInstanceStatus( uniqueId )
       if not result[ 'OK' ]:

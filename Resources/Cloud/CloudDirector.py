@@ -78,7 +78,10 @@ class CloudDirector( VMDirector ):
 
     if driver == 'nova-1.1':
       instanceType = gConfig.getValue( "/Resources/VirtualMachines/Images/%s/%s" % ( imageName, 'instanceType' ), "" )
-      nima = NovaImage( imageName, endpoint )
+      nima     = NovaImage( imageName, endpoint )
+      connNova = nima.connectNova()
+      if not connNova[ 'OK' ]:
+        return connNova
       result = nima.startNewInstance( instanceType )
       if not result[ 'OK' ]:
         return result

@@ -77,6 +77,7 @@ class CloudDirector( VMDirector ):
       return S_OK( idInstance )
 
     if driver == 'nova-1.1':
+      #FIXME: getting instanceType here is a nonsense... we have it on the Context
       instanceType = gConfig.getValue( "/Resources/VirtualMachines/Images/%s/%s" % ( imageName, 'instanceType' ), "" )
       nima     = NovaImage( imageName, endpoint )
       connNova = nima.connectNova()

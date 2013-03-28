@@ -7,7 +7,7 @@
 # TODO: frist release only with user/passd, to implement proxy auth with VOMS
 
 import getpass
-import libcloud.security
+#import libcloud.security
 import os
 import paramiko 
 import time 
@@ -17,6 +17,10 @@ from libcloud.compute.providers import get_driver
 from novaclient.v1_1            import client
 
 __RCSID__ = '$Id: $'
+
+#FIXME: where to find it ?
+#libcloud.security.CA_CERTS_PATH =[ '/etc/pki/tls/certs/CERN-bundle.pem' ]
+# osServiceRegion = 'cern-geneva'
 
 # Classes
 ###################
@@ -30,23 +34,34 @@ class Request():
   returncode = 0
 
 class NovaClient:
-  def __init__( self, osAuthURL=None , osUserName = None, osPasswd = None, 
-                osTenantName = None , osBaseURL = None, osServiceRegion = None):
+#  def __init__( self, osAuthURL=None , osUserName = None, osPasswd = None, 
+#                osTenantName = None , osBaseURL = None, osServiceRegion = None,
+#                osCaCert = None ):  
+  def __init__( self, user, secret, **kwargs ):
     
-    self.osServiceRegion = osServiceRegion    
-    cloudManagerAPI = get_driver(Provider.OPENSTACK)
-    self.driver = cloudManagerAPI(osUserName, osPasswd,
-                                  ex_force_auth_url=osAuthURL,
-                                  ex_force_service_region=osServiceRegion,
-                                  ex_force_auth_version='2.0_password',
-                                  ex_tenant_name=osTenantName)
+    cloudManagerAPI = get_driver( Provider.OPENSTACK )   
+    
+    ex_force_auth_url       = kwargs.get( 'ex_force_auth_url', None )
+    ex_force_service_region = kwargs.get( 'ex_force_service_region', None ) 
+    ex_force_auth_version   = kwargs.get( 'ex_force_auth_version', '2.0_password' )
+    ex_tenant_name          = kwargs.get( 'ex_tenant_name', None )
+    
+    # The driver has the access secret, we do not want it to be public at all.    
+    self.__driver = cloudManagerAPI( user, secret = secret,
+                                     ex_force_auth_url = ex_force_auth_url,
+                                     ex_force_service_region = ex_force_service_region,
+                                     ex_force_auth_version = ex_force_auth_version,
+                                     ex_tenant_name = ex_tenant_name,
+                                    )
      
     # mofify to insecure=False when ca cert ready
-    self.pynovaclient = client.Client( username=osUserName, api_key=osPasswd, 
-                                       project_id=osTenantName, auth_url=osAuthURL, 
-                                       insecure=True, region_name=osServiceRegion, 
-                                       auth_system='keystone')
-
+    # The client has the access secret, we do not want it to be public at all.    
+    self.__pynovaclient = client.Client( username = user, api_key = secret, 
+                                         project_id = ex_tenant_name, 
+                                         auth_url = ex_force_auth_url, 
+                                         insecure = True, 
+                                         region_name = ex_force_service_region, 
+                                         auth_system = 'keystone' )
 
   def check_connection(self):
     """
@@ -55,7 +70,7 @@ class NovaClient:
     """
     request = Request()
     try:
-      images = self.driver.list_images()
+      _ = self.__driver.list_images()
       #FIXME: what do we do with them ?
     except Exception, errmsg:
       request.stderr = errmsg
@@ -70,7 +85,7 @@ class NovaClient:
 
     request = Request()
     try:
-      images = self.driver.list_images()
+      images = self.__driver.list_images()
       request.image = [i for i in images if i.name == imageName ][0]
     except Exception, errmsg:
       request.stderr = errmsg
@@ -78,7 +93,8 @@ class NovaClient:
 
     return request
 
-  def create_VMInstance( self, bootImageName, contextMethod, flavorName, bootImage, ipPool ):
+  def create_VMInstance( self, bootImageName, contextMethod, flavorName, bootImage, ipPool,
+                         userdata = None, keyname = None, metadata = None ):
     """
     This creates a VM instance for the given boot image 
     and creates a context script, taken the given parameters.
@@ -87,11 +103,16 @@ class NovaClient:
     request = Request()
     vm_name = bootImageName + '+' + contextMethod + '+' + str(time.time())[0:10] 
 
-    flavors = self.driver.list_sizes()
+    flavors = self.__driver.list_sizes()
     flavor = [s for s in flavors if s.name == flavorName][0]
 
     try:
-      request.VMnode = self.driver.create_node(name= vm_name, image=bootImage, size=flavor)
+      request.VMnode = self.__driver.create_node( name        = vm_name, 
+                                                  image       = bootImage, 
+                                                  size        = flavor,
+                                                  ex_keyname  = keyname,
+                                                  ex_userdata = userdata,
+                                                  ex_metadata = metadata )
     except Exception, errmsg:
       request.stderr = errmsg
       request.returncode = -1
@@ -100,8 +121,8 @@ class NovaClient:
     if not ipPool=='NO':
       # getting a floating IP and asign to the node:
       try:
-        address=self.pynovaclient.floating_ips.create(pool=ipPool)
-        self.pynovaclient.servers.add_floating_ip(request.VMnode.id, address.ip)
+        address=self.__pynovaclient.floating_ips.create(pool=ipPool)
+        self.__pynovaclient.servers.add_floating_ip(request.VMnode.id, address.ip)
         request.public_ip = address.ip
       except Exception, errmsg:
         request.stderr = errmsg
@@ -189,7 +210,7 @@ class NovaClient:
     """
     request = Request()
     try:
-      infonode = self.pynovaclient.servers.list(uniqueId)
+      infonode = self.__pynovaclient.servers.list(uniqueId)
     except Exception, errmsg:
       request.stderr = "Can't get status of VMinstance uniqueId %s; %s:" % (uniqueId,errmsg)
       request.returncode = -1
@@ -213,17 +234,17 @@ class NovaClient:
     request.stderr = ""
 
     try:
-      infonode = self.pynovaclient.servers.delete(uniqueId)
+      infonode = self.__pynovaclient.servers.delete(uniqueId)
     except Exception, errmsg:
       request.stderr = "Can't stop VMinstance uniqueId %s; %s:" % (uniqueId,errmsg)
       request.returncode = -1
 
     if not ipPool=='NONE':
       try:
-        floating_ips = self.pynovaclient.floating_ips.list()
+        floating_ips = self.__pynovaclient.floating_ips.list()
         for floating_ip in floating_ips:
           if floating_ip.ip == public_ip:
-            self.pynovaclient.floating_ips.delete(floating_ip.id)
+            self.__pynovaclient.floating_ips.delete(floating_ip.id)
       except Exception, errmsg:
         request.stderr = "%s /n Can't delete floating ip %s of VMinstance uniqueId %s; %s:" % (request.stderr, public_ip, uniqueId,errmsg)
         request.returncode = -1

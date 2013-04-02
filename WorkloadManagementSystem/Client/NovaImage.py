@@ -1,6 +1,10 @@
 # $HeadURL$
 """
   NovaImage
+  
+  The NovaImage provides the functionality required to use
+  a OpenStack cloud infrastructure, with NovaAPI DIRAC driver
+  Authentication is provided by user/password attributes
 """
 # File   :   NovaImage.py
 # Author : Victor Mendez ( vmendez.tic@gmail.com )
@@ -16,24 +20,44 @@ __RCSID__ = '$Id: $'
 
 class NovaImage:
 
-  def __init__( self, imageName, endpoint ):
+  def __init__( self, imageName, endPoint ):
     """
-    The NovaImage provides the functionality required to use
-    a OpenStack cloud infrastructure, with NovaAPI DIRAC driver
-    Authentication is provided by user/password attributes
+    Constructor: uses NovaConfiguration to parse the endPoint CS configuration
+    and ImageConfiguration to parse the imageName CS configuration. 
+    
+    :Parameters:
+      **imageName** - `string`
+        imageName as defined on CS:/Resources/VirtualMachines/Images
+        
+      **endPoint** - `string`
+        endPoint as defined on CS:/Resources/VirtualMachines/CloudEndpoint 
+    
     """
     
+    # logger
     self.log       = gLogger.getSubLogger( 'NovaImage %s: ' % imageName )
+    
     self.imageName = imageName
-    self.endpoint  = endpoint 
-        
-    self.__novaConfig  = NovaConfiguration( endpoint )
-    self.__imageConfig = ImageConfiguration( imageName )      
-           
+    self.endPoint  = endPoint 
+    
+    # their config() method returns a dictionary with the parsed configuration
+    # they also provide a validate() method to make sure it is correct 
+    self.__imageConfig = ImageConfiguration( imageName )    
+    self.__novaConfig  = NovaConfiguration( endPoint )
+    
+    # this object will connect to the server. Better keep it private.                 
     self.__clinova   = None
 
   def connectNova( self ):
-
+    """
+    Method that issues the connection with the OpenStack server. In order to do
+    it, validates the CS configurations. For the time being, we authenticate
+    with user / password. It gets it and passes all information to the NovaClient
+    which will check the connection.
+     
+    :return: S_OK | S_ERROR
+    """
+    
     # Before doing anything, make sure the configurations make sense
     # ImageConfiguration
     validImage = self.__imageConfig.validate()
@@ -47,8 +71,10 @@ class NovaImage:
     # Get authentication configuration
     user, secret = self.__novaConfig.authConfig()
 
+    # Create the libcloud and novaclient objects in NovaClient.Nova11
     self.__clinova = NovaClient( user, secret, self.__novaConfig.config(), self.__imageConfig.config() )
 
+    # Check connection to the server
     result = self.__clinova.check_connection()
     if not result[ 'OK' ]:
       self.log.error( "connectNova" )
@@ -58,37 +84,33 @@ class NovaImage:
    
   def startNewInstance( self ):
     """
-    Wrapping the image creation
+    Once the connection is stablished using the `connectNova` method, we can boot
+    nodes. To do so, the config in __imageConfig and __novaConfig applied to
+    NovaClient initialization is applied.
+    
+    :return: S_OK | S_ERROR
     """
     
-    _msg = "Starting new instance for image: %s; to endpoint %s DIRAC driver of nova endpoint"
-    self.log.info( _msg % ( self.__imageConfig[ 'bootImageName' ], self.endpoint ) )
-    
-    result = self.__clinova.create_VMInstance( self.__imageConfig.config() )
+    self.log.info( "Booting %s / %s" % ( self.__imageConfig.config()[ 'bootImageName' ],
+                                         self.__novaConfig.config()[ 'ex_force_auth_url' ] ) )
+    result = self.__clinova.create_VMInstance()
 
     if not result[ 'OK' ]:
       self.log.error( "startNewInstance" )
       self.log.error( result[ 'Message' ] )
     return result
 
-  def contextualizeInstance( self, uniqueId, public_ip ):
-    """
-    Wrapping the contextualization
-    With ssh method, contextualization is asyncronous operation
-    """
-
-    result = self.__clinova.contextualize_VMInstance( uniqueId, public_ip )
-    
-    if not result[ 'OK' ]:
-      self.log.error( "contextualizeInstance: %s, %s" % ( uniqueId, public_ip ) )
-      self.log.error( result[ 'Message' ] )
-      return result
-
-    return S_OK( uniqueId )
-
   def getInstanceStatus( self, uniqueId ):
     """
-    Wrapping the get status of the uniqueId VM from the endpoint
+    Given the node ID, returns the status. Bear in mind, is the translation of
+    the status done by libcloud and then reversed to a string. Its possible values
+    are: RUNNING, REBOOTING, TERMINATED, PENDING, UNKNOWN.
+    
+    :Parameters:
+      **uniqueId** - `string`
+        node ID, given by the OpenStack service       
+    
+    :return: S_OK | S_ERROR
     """
     
     result = self.__clinova.getStatus_VMInstance( uniqueId )
@@ -101,10 +123,21 @@ class NovaImage:
     
   def stopInstance( self, uniqueId, public_ip ):
     """
-    Simple call to terminate a VM based on its id
+    Method that destroys the node and if using floating IPs and frees the floating
+    IPs if any.
+    
+    :Parameters:
+      **uniqueId** - `string`
+        node ID, given by the OpenStack service   
+      **public_ip** - `string`
+        public IP of the VM, needed for some setups ( floating IP ).   
+    
+    :return: S_OK | S_ERROR
     """
 
-    #request = self.__clinova.terminate_VMinstance( uniqueId, self.cloudEndpointDict[ 'osIpPool' ], public_ip )
+    # FIXME: maybe it makes sense to get the public_ip in Nova11 and encapsulate it.
+    # FIXME: after all, is an implementation detail.
+
     result = self.__clinova.terminate_VMinstance( uniqueId, public_ip )
     
     if not result[ 'OK' ]:
@@ -112,15 +145,34 @@ class NovaImage:
       self.log.error( result[ 'Message' ] )
     
     return result
-      
-#    if request.returncode != 0:
-#      __errorStatus = "Can't delete VM instance %s, IP %s, from endpoint %s: %s"
-#      __errorStatus = __errorStatus % ( uniqueId, public_ip, 
-#                                        self.endpoint, request.stderr )
-#      self.log.error( __errorStatus )
-#      return S_ERROR( __errorStatus )
-#
-#    return S_OK( request.stderr )
 
+  def contextualizeInstance( self, uniqueId, public_ip ):
+    """
+    This method is not a regular method in the sense that is not generic at all.
+    It will be called only of those VMs which need after-booting contextualisation,
+    for the time being, just ssh contextualisation.
+        
+    :Parameters:
+      **uniqueId** - `string`
+        node ID, given by the OpenStack service   
+      **public_ip** - `string`
+        public IP of the VM, needed for asynchronous contextualisation
+        
+    
+    :return: S_OK | S_ERROR
+    """
+
+    # FIXME: maybe is worth hiding the public_ip attribute and getting it on
+    # FIXME: the contextualize step. 
+
+    result = self.__clinova.contextualize_VMInstance( uniqueId, public_ip )
+    
+    if not result[ 'OK' ]:
+      self.log.error( "contextualizeInstance: %s, %s" % ( uniqueId, public_ip ) )
+      self.log.error( result[ 'Message' ] )
+      return result
+
+    return S_OK( uniqueId )
+      
 #...............................................................................
 #EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF

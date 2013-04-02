@@ -41,7 +41,7 @@ class Request:
         gLogger.info( "Cloud signature:", urllib2.quote( base64.encodestring( digest )[:-1], "" ) )
         return urllib2.quote( base64.encodestring( digest )[:-1], "" )
 
-    def callHttpCloudServer( self, cloudserver, signature, options ):
+    def callHttpCloudServer( self, cloudserver, signature, options='' ):
         url = 'http://' + cloudserver + ':80/client/api?apikey=' + self.apiKey + options + '&signature=' + signature
         gLogger.info( "Request:", url )
         req = urllib2.Request( url )

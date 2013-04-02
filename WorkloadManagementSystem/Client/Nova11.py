@@ -127,7 +127,7 @@ class NovaClient:
             mykey = paramiko.RSAKey.from_private_key_file(privatekeyfile)
             sshusername = 'root'
             transport = paramiko.Transport((public_ip, 22))
-            transport.connect(username = sshusername, pkey = mykey0)
+            transport.connect(username = sshusername, pkey = mykey)
             sftp = paramiko.SFTPClient.from_transport(transport)
         except Exception, errmsg:
             request.stderr = "Can't open sftp conection to %s: %s" % (public_ip,errmsg)

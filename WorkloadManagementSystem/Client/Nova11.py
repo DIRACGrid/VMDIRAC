@@ -6,10 +6,14 @@
 # DIRAC driver to nova v_1.1 endpoint using libcloud and pyton-novaclient
 # TODO: frist release only with user/passd, to implement proxy auth with VOMS
 
-import getpass
+import os
+import sys
+import time
+import signal
+
 import libcloud.security
 import os
-import paramiko 
+import paramiko
 import time 
 
 from libcloud.compute.types     import Provider
@@ -106,9 +110,9 @@ class NovaClient:
       except Exception, errmsg:
         request.stderr = errmsg
         request.returncode = -1
-      return request
+        return request
     else:
-      request.public_ip = VMnode.ip
+      request.public_ip = request.VMnode.ip
 
     return request
 
@@ -134,9 +138,9 @@ class NovaClient:
       try:
         privatekeyfile = os.path.expanduser('~/.ssh/id_rsa')
         mykey = paramiko.RSAKey.from_private_key_file(privatekeyfile)
-        username =  getpass.getuser()
+        sshusername = 'root'
         transport = paramiko.Transport((public_ip, 22))
-        transport.connect(username = username, pkey = mykey)
+        transport.connect(username = sshusername, pkey = mykey)
         sftp = paramiko.SFTPClient.from_transport(transport)
       except Exception, errmsg:
         request.stderr = "Can't open sftp conection to %s: %s" % (public_ip,errmsg)
@@ -163,7 +167,7 @@ class NovaClient:
       try:
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        ssh.connect(public_ip, username=username, port=22, pkey=mykey)
+        ssh.connect(public_ip, username=sshusername, port=22, pkey=mykey)
       except Exception, errmsg:
         request.stderr = "Can't open ssh conection to %s: %s" % (public_ip,errmsg)
         request.returncode = -1

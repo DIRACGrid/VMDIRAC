@@ -62,7 +62,7 @@ class VirtualMachineContextualization( AgentModule ):
       if not result[ 'OK' ]:
         return result
 
-      if result['Value'] == 'ACTIVE':
+      if result['Value'] == 'RUNNING':
         result = nima.contextualizeInstance( uniqueId, publicIP )
         self.log.info( "result of contextualize:" )
         self.log.info( result )

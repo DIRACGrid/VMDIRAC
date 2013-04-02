@@ -6,7 +6,7 @@
 # Author : Victor Mendez ( vmendez.tic@gmail.com )
 
 # DIRAC
-from DIRAC import gLogger, S_OK, S_ERROR
+from DIRAC import gLogger, S_OK
 
 # VMDIRAC
 from VMDIRAC.WorkloadManagementSystem.Client.Nova11           import NovaClient
@@ -14,15 +14,7 @@ from VMDIRAC.WorkloadManagementSystem.Utilities.Configuration import NovaConfigu
 
 __RCSID__ = '$Id: $'
 
-class NovaImage( NovaConfiguration, ImageConfiguration ):
-
-  #FIXME: mixture of upper and lower case keys.. not good at all
-#  NOVA_ENDPOINT_KEYS = [ 'driver', 'siteName', 'MaxEndpointInstances',
-#                         'osBaseURL', 'osAuthURL', 'osUserName', 'osPasswd',
-#                         'osTenantName', 'osServiceRegion', 'osCaCert', 
-#                         'CVMFS_HTTP_PROXY' ]
-
-  #FIXME: added osCaCert
+class NovaImage:
 
   def __init__( self, imageName, endpoint ):
     """
@@ -31,121 +23,66 @@ class NovaImage( NovaConfiguration, ImageConfiguration ):
     Authentication is provided by user/password attributes
     """
     
-    self.log = gLogger.getSubLogger( 'NovaImage %s: ' % imageName )
-    
-    NovaImage.__init__( endpoint )
-    ImageConfiguration.__init__( imageName )
-    
+    self.log       = gLogger.getSubLogger( 'NovaImage %s: ' % imageName )
     self.imageName = imageName
-    self.endpoint  = endpoint        
+    self.endpoint  = endpoint 
+        
+    self.__novaConfig  = NovaConfiguration( endpoint )
+    self.__imageConfig = ImageConfiguration( imageName )      
            
     self.__clinova   = None
-    self.__bootImage = None
-    
-    #...........................................................................
-    #...........................................................................
-    #...........................................................................       
-
-#    if self.__contextMethod == 'ssh':
-
-      #FIXME: isn't this on the CloudEndpoint ! ??
-      # cvmfs http proxy:
-      #self.__cvmfs_http_proxy = self.__getCSImageOption( "CVMFS_HTTP_PROXY" )
-#      self.__cvmfs_http_proxy = self.__getCSCloudEndpointOption( "CVMFS_HTTP_PROXY" )
-#      if not self.__cvmfs_http_proxy:
-#        self.__errorStatus = "Can't find the CVMFS_HTTP_PROXY for endpoint %s" % self.__endpoint
-#        self.log.error( self.__errorStatus )
-#        return
-
-    ## Additional Network pool
-    #self.__osIpPool = self.__getCSImageOption( "vmOsIpPool" )
-
-# FIXME: WE DO NOT WANT DEFAULTS ??
-#    self.__osIpPool = self.imageOptions.contextDict.get( 'vmOsIpPool', '' )
-#    if not self.__osIpPool:
-#      self.__osIpPool = 'NO'
 
   def connectNova( self ):
 
     # Before doing anything, make sure the configurations make sense
     # ImageConfiguration
-    validImage = self.validateImageConfig()
+    validImage = self.__imageConfig.validate()
     if not validImage[ 'OK' ]:
       return validImage
     # EndpointConfiguration
-    validNova = self.validateEndpointConfig()
+    validNova = self.__novaConfig.validate()
     if not validNova[ 'OK' ]:
       return validNova
     
     # Get authentication configuration
-    user, secret = self.authConfig()
+    user, secret = self.__novaConfig.authConfig()
 
-    self.__clinova = NovaClient( user, secret, **self.endpointConfig )
+    self.__clinova = NovaClient( user, secret, self.__novaConfig.config(), self.__imageConfig.config() )
 
-    request = self.__clinova.check_connection()
-    if request.returncode != 0:
-      self.log.error( "NovaClient returned code %s checking connection" % request.returncode )
-      return S_ERROR( "NovaClient returned code %s checking connection" % request.returncode )
-
-#    _msg = "Available OpenStack nova endpoint  %s and Auth URL: %s"
-#    self.log.info( _msg % ( self.cloudEndpointDict[ 'osBaseURL' ], self.cloudEndpointDict[ 'osAuthURL' ] ) )
-     
-    request = self.__clinova.get_image( self.imageDict[ 'bootImageName' ] )
-    if request.returncode != 0:
-      _msg      = "Can't get the boot image for %s: \n%s" % ( self.imageDict[ 'bootImageName' ], request.stderr )
-      self.log.error( _msg )
-      return S_ERROR( _msg )
+    result = self.__clinova.check_connection()
+    if not result[ 'OK' ]:
+      self.log.error( "connectNova" )
+      self.log.error( result[ 'Message' ] )
       
-    self.__bootImage = request.image
-    return S_OK()    
-
-  def startNewInstance( self, instanceType ):
+    return result
+   
+  def startNewInstance( self ):
     """
     Wrapping the image creation
     """
     
     _msg = "Starting new instance for image: %s; to endpoint %s DIRAC driver of nova endpoint"
-    self.log.info( _msg % ( self.imageDict[ 'bootImageName' ], self.endpoint ) )
+    self.log.info( _msg % ( self.__imageConfig[ 'bootImageName' ], self.endpoint ) )
     
-    request = self.__clinova.create_VMInstance( self.imageDict[ 'bootImageName' ], 
-                                                self.imageDict[ 'contextMethod' ], 
-                                                instanceType, 
-                                                self.__bootImage, 
-                                                self.imageDict[ 'osIpPool' ] )
-    if request.returncode != 0:
-      _errMsg = "Can't create instance for boot image: %s at server %s and Auth URL: %s \n%s"
-      _errMsg = _errMsg % ( self.imageDict[ 'bootImageName' ], self.cloudEndpointDict[ 'osBaseURL' ], 
-                            self.cloudEndpointDict[ 'osAuthURL' ], request.stderr )
-      self.log.error( _errMsg )
-      return S_ERROR( _errMsg )
+    result = self.__clinova.create_VMInstance( self.__imageConfig.config() )
 
-    return S_OK( request )
+    if not result[ 'OK' ]:
+      self.log.error( "startNewInstance" )
+      self.log.error( result[ 'Message' ] )
+    return result
 
   def contextualizeInstance( self, uniqueId, public_ip ):
     """
     Wrapping the contextualization
     With ssh method, contextualization is asyncronous operation
     """
-    if self.imageDict[ 'contextMethod' ] =='ssh':
-      
-      self.log.verbose( 'Contextualising %s with ssh' % uniqueId )
-      request = self.__clinova.contextualize_VMInstance( uniqueId, public_ip, self.imageDict[ 'contextMethod' ], 
-                                                         self.imageDict[ 'vmCertPath' ], 
-                                                         self.imageDict[ 'vmKeyPath' ], 
-                                                         self.imageDict[ 'vmContextualizeScriptPath' ], 
-                                                         self.imageDict[ 'vmRunJobAgentURL' ], 
-                                                         self.imageDict[ 'vmRunVmMonitorAgentURL' ], 
-                                                         self.imageDict[ 'vmRunLogJobAgentURL' ], 
-                                                         self.imageDict[ 'vmRunLogVmMonitorAgentURL' ],
-                                                         self.imageDict[ 'vmCvmfsContextURL' ], 
-                                                         self.imageDict[ 'vmDiracContextURL' ] , 
-                                                         self.imageDict[ 'CVMFS_HTTP_PROXY' ], 
-                                                         self.cloudEndpointDict[ 'siteName' ], 
-                                                         self.cloudEndpointDict[ 'cloudDriver' ] )
-      if request.returncode != 0:
-        __errorStatus = "Can't contextualize VM id %s at endpoint %s: %s" % ( uniqueId, self.endpoint, request.stderr )
-        self.log.error( __errorStatus )
-        return S_ERROR( __errorStatus )
+
+    result = self.__clinova.contextualize_VMInstance( uniqueId, public_ip )
+    
+    if not result[ 'OK' ]:
+      self.log.error( "contextualizeInstance: %s, %s" % ( uniqueId, public_ip ) )
+      self.log.error( result[ 'Message' ] )
+      return result
 
     return S_OK( uniqueId )
 
@@ -153,28 +90,37 @@ class NovaImage( NovaConfiguration, ImageConfiguration ):
     """
     Wrapping the get status of the uniqueId VM from the endpoint
     """
-    request = self.__clinova.getStatus_VMInstance( uniqueId )
-    if request.returncode != 0:
-      __errorStatus = "Can't get status %s at endpoint %s: %s" % (uniqueId, self.endpoint, request.stderr)
-      self.log.error( __errorStatus )
-      return S_ERROR( __errorStatus )
-
-    return S_OK( request.status )
-
+    
+    result = self.__clinova.getStatus_VMInstance( uniqueId )
+    
+    if not result[ 'OK' ]:
+      self.log.error( "getInstanceStatus: %s" % uniqueId )
+      self.log.error( result[ 'Message' ] )
+    
+    return result  
+    
   def stopInstance( self, uniqueId, public_ip ):
     """
     Simple call to terminate a VM based on its id
     """
 
-    request = self.__clinova.terminate_VMinstance( uniqueId, self.cloudEndpointDict[ 'osIpPool' ], public_ip )
-    if request.returncode != 0:
-      __errorStatus = "Can't delete VM instance %s, IP %s, IpPool %s, from endpoint %s: %s"
-      __errorStatus = __errorStatus % ( uniqueId, public_ip, self.cloudEndpointDict[ 'osIpPool' ], 
-                                        self.endpoint, request.stderr )
-      self.log.error( __errorStatus )
-      return S_ERROR( __errorStatus )
-
-    return S_OK( request.stderr )
+    #request = self.__clinova.terminate_VMinstance( uniqueId, self.cloudEndpointDict[ 'osIpPool' ], public_ip )
+    result = self.__clinova.terminate_VMinstance( uniqueId, public_ip )
+    
+    if not result[ 'OK' ]:
+      self.log.error( "stopInstance: %s, %s" % ( uniqueId, public_ip ) )
+      self.log.error( result[ 'Message' ] )
+    
+    return result
+      
+#    if request.returncode != 0:
+#      __errorStatus = "Can't delete VM instance %s, IP %s, from endpoint %s: %s"
+#      __errorStatus = __errorStatus % ( uniqueId, public_ip, 
+#                                        self.endpoint, request.stderr )
+#      self.log.error( __errorStatus )
+#      return S_ERROR( __errorStatus )
+#
+#    return S_OK( request.stderr )
 
 #...............................................................................
 #EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF

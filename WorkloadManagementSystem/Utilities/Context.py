@@ -81,7 +81,7 @@ class ContextConfig( object ):
     
     self.__context = contextOptions
     
-  def contextConfig( self ):
+  def config( self ):
     """
     Method that returns a copy of the context dictionary.
     
@@ -90,7 +90,7 @@ class ContextConfig( object ):
     # A copy instead of the original one, just in case.
     return self.__context.copy()
 
-  def validateContextConfig( self ):
+  def validate( self ):
     """
     Method that validates the context configuration obtained from the CS. If 
     <MANDATORY_KEYS> are not present in the context configuration dictionary
@@ -99,15 +99,18 @@ class ContextConfig( object ):
     :return: S_OK | S_ERROR  
     """
    
-    contextConfig = self.contextConfig()
+    contextConfig = self.config()
     
     missingKeys = set( self.MANDATORY_KEYS ).difference( set( contextConfig.keys() ) ) 
     if missingKeys:
       return S_ERROR( 'Missing mandatory keys on endpointConfig %s' % str( missingKeys ) )
-    
-    self.log.info( 'Validating endpoint required info' )
-    for key in self.MANDATORY_KEYS:
-      self.log.info( '%s : %s' % ( key, contextConfig[ key ] ) )
+
+#    self.log.info( '*' * 50 )
+#    self.log.info( 'Displaying context info' )
+#    for key, value in self.contextConfig.iteritems:
+#      self.log.info( '%s : %s' % ( key, value ) )
+#    self.log.info( 'User and Password are NOT printed.')
+#    self.log.info( '*' * 50 )
     
     return S_OK()  
     
@@ -119,7 +122,7 @@ class SSHContext( ContextConfig ):
   SSHContext defines the following mandatory keys:
   
   * hdcImageName
-  * instanceType
+  * flavorName
   * vmOsIpPool
   * vmCertPath : the virtualmachine cert to be copied on the VM of a specific endpoint
   * vmKeyPath  : the virtualmachine key to be copied on the VM of a specific endpoint
@@ -132,7 +135,7 @@ class SSHContext( ContextConfig ):
   * vmRunLogVmMonitorAgentURL : the runsvdir run.log file vmMonitorAgent
   
   """
-  MANDATORY_KEYS = [ 'hdcImageName', 'instanceType', 'vmOsIpPool', 'vmCertPath', 
+  MANDATORY_KEYS = [ 'hdcImageName', 'flavorName', 'vmOsIpPool', 'vmCertPath', 
                      'vmKeyPath', 'vmContextualizeScriptPath', 'vmCvmfsContextURL', 
                      'vmDiracContextURL', 'vmRunJobAgentURL', 'vmRunVmMonitorAgentURL', 
                      'vmRunLogJobAgentURL', 'vmRunLogVmMonitorAgentURL' ]     
@@ -153,7 +156,7 @@ class AmiconfigContext( ContextConfig ):
   """
   AmiconfigContext defines the following mandatory keys:
   
-  * instanceType
+  * flavorName
   * ex_size
   * ex_image
   * ex_keyname
@@ -161,8 +164,7 @@ class AmiconfigContext( ContextConfig ):
   
   """
 
-  #FIXME: rename instanceType to instanceFlavor !!
-  MANDATORY_KEYS = [ 'instanceType', 'ex_size', 'ex_image', 'ex_keyname', 
+  MANDATORY_KEYS = [ 'flavorName', 'ex_size', 'ex_image', 'ex_keyname', 
                      'ex_userdata' ]
 
 #...............................................................................

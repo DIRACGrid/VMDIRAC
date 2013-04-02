@@ -4,13 +4,18 @@
 # Author : Victor Mendez
 ########################################################################
 
-from DIRAC import gLogger, S_OK, S_ERROR, gConfig, rootPath
-from VMDIRAC.WorkloadManagementSystem.private.VMDirector import VMDirector
-from VMDIRAC.WorkloadManagementSystem.Client.OcciImage import OcciImage
-from VMDIRAC.WorkloadManagementSystem.Client.AmazonImage import AmazonImage
+#DIRAC
+from DIRAC import S_OK, S_ERROR, gConfig
+
+#VMDIRAC
+from VMDIRAC.Resources.Cloud.VMDirector                      import VMDirector
+from VMDIRAC.WorkloadManagementSystem.Client.AmazonImage     import AmazonImage
 from VMDIRAC.WorkloadManagementSystem.Client.CloudStackImage import CloudStackImage
-from VMDIRAC.WorkloadManagementSystem.Client.NovaImage import NovaImage
+from VMDIRAC.WorkloadManagementSystem.Client.NovaImage       import NovaImage
+from VMDIRAC.WorkloadManagementSystem.Client.OcciImage       import OcciImage
 # aqui conf automatica de modulos (adri)
+
+__RCSID__ = '$Id: $'
 
 class CloudDirector( VMDirector ):
   def __init__( self, submitPool ):
@@ -39,7 +44,9 @@ class CloudDirector( VMDirector ):
       It checks wether are free slots by requesting status of sended VM to a cloud endpoint
     """
 
-    driver = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, 'driver' ), "" )
+    endpointsPath = "/Resources/VirtualMachines/CloudEndpoints"
+
+    driver = gConfig.getValue( "%s/%s/%s" % ( endpointsPath, endpoint, 'driver' ), "" )
 
     if driver == 'Amazon':
       ami = AmazonImage( imageName, endpoint )
@@ -59,9 +66,10 @@ class CloudDirector( VMDirector ):
 
 
     if ( driver == 'occi-0.9' or driver == 'occi-0.8'):
-      instanceType = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, 'instanceType' ), "" )
-      imageDriver = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, 'imageDriver' ), "" )
-      oima = OcciImage( imageName, endpoint )
+      instanceType = gConfig.getValue( "%s/%s/%s" % ( endpointsPath, endpoint, 'instanceType' ), "" )
+      imageDriver  = gConfig.getValue( "%s/%s/%s" % ( endpointsPath, endpoint, 'imageDriver' ), "" )
+      
+      oima   = OcciImage( imageName, endpoint )
       result = oima.startNewInstance( instanceType, imageDriver )
       if not result[ 'OK' ]:
         return result

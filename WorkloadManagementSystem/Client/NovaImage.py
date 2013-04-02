@@ -4,10 +4,13 @@
 # Author : Victor Mendez ( vmendez.tic@gmail.com )
 ########################################################################
 
-
-import time
+# DIRAC
 from DIRAC import gLogger, gConfig, S_OK, S_ERROR
+
+# VMDIRAC
 from VMDIRAC.WorkloadManagementSystem.Client.Nova11 import NovaClient
+
+__RCSID__ = '$Id: $'
 
 class NovaImage:
 
@@ -173,7 +176,7 @@ class NovaImage:
     ## Additional Network pool
     self.__osIpPool = self.__getCSImageOption( "vmOsIpPool" )
     if not self.__osIpPool:
-       self.__osIpPool = 'NO'
+      self.__osIpPool = 'NO'
 
   def __getCSImageOption( self, option, defValue = "" ):
     """

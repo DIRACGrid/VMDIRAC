@@ -1,20 +1,26 @@
-#!/usr/bin/env python
+# $HeadURL$
 
 import boto
-import time
-from DIRAC import gLogger, gConfig, S_OK, S_ERROR
+
+# DIRAC
+from DIRAC import gLogger
+
+__RCSID__ = '$Id: $'
 
 class AmazonInstance:
 
   def __init__( self, instanceId, accessKey, secretKey ):
-    self.__errorStatus = ""
+    
     self.log = gLogger.getSubLogger( "AIN:%s" % instanceId )
-    self.__instanceId = instanceId
-    self.__amInstance = False
-    self.__amReservation = False
-    self.__imageId = "unknown"
-    self.__amAccessKey = accessKey
-    self.__amSecretKey = secretKey
+    
+    self.__errorStatus   = ""
+    self.__instanceId    = instanceId
+    self.__amInstance    = None
+    self.__amReservation = None
+    self.__imageId       = "unknown"
+    self.__amAccessKey   = accessKey
+    self.__amSecretKey   = secretKey
+    
     #Try connection
     try:
       self.__conn = boto.connect_ec2( self.__amAccessKey, self.__amSecretKey )
@@ -27,7 +33,7 @@ class AmazonInstance:
     for res in reservations:
       for instance in res.instances:
         if instance.id == self.__instanceId:
-          self.__amInstance = instance
+          self.__amInstance    = instance
           self.__amReservation = res
 
     if not self.__amInstance:

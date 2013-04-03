@@ -19,6 +19,9 @@ from VMDIRAC.WorkloadManagementSystem.Utilities.Configuration import NovaConfigu
 __RCSID__ = '$Id: $'
 
 class NovaImage:
+  """
+  NovaImage class.
+  """
 
   def __init__( self, imageName, endPoint ):
     """

@@ -167,7 +167,7 @@ class NovaImage:
         return
 
       # cvmfs http proxy:
-      self.__cvmfs_http_proxy = self.__getCSImageOption( "CVMFS_HTTP_PROXY" )
+      self.__cvmfs_http_proxy = self.__getCSCloudEndpointOption( "CVMFS_HTTP_PROXY" )
       if not self.__cvmfs_http_proxy:
         self.__errorStatus = "Can't find the CVMFS_HTTP_PROXY for endpoint %s" % self.__endpoint
         self.log.error( self.__errorStatus )

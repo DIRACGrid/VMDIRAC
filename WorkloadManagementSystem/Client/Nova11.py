@@ -104,11 +104,11 @@ class NovaClient:
         self.pynovaclient.servers.add_floating_ip(request.VMnode.id, address.ip)
         request.public_ip = address.ip
       except Exception, errmsg:
-        request.stderr = errmsg
-        request.returncode = -1
-      return request
+          request.stderr = errmsg
+          request.returncode = -1
+	  return request
     else:
-      request.public_ip = VMnode.ip
+      request.public_ip = request.VMnode.ip
 
     return request
 
@@ -118,11 +118,8 @@ class NovaClient:
                                 vmRunLogVmMonitorAgentURL, cvmfsContextURL, diracContextURL, 
                                 cvmfs_http_proxy, siteName, cloudDriver ):
     """ 
-    Conextualize an active instance
-    This is necesary because the libcloud deploy_node, including key/cert copy and ssh run, 
-    based on amiconfig, are sychronous operations which can not scale
+    Conextualize an active instance by ssh connection
     """
-
     request = Request()
 
     if contextMethod == 'ssh': 
@@ -132,55 +129,56 @@ class NovaClient:
 
       # prepare paramiko sftp client
       try:
-        privatekeyfile = os.path.expanduser('~/.ssh/id_rsa')
-        mykey = paramiko.RSAKey.from_private_key_file(privatekeyfile)
-        username =  getpass.getuser()
-        transport = paramiko.Transport((public_ip, 22))
-        transport.connect(username = username, pkey = mykey)
-        sftp = paramiko.SFTPClient.from_transport(transport)
+          privatekeyfile = os.path.expanduser('~/.ssh/id_rsa')
+          mykey = paramiko.RSAKey.from_private_key_file(privatekeyfile)
+          sshusername = 'root'
+          transport = paramiko.Transport((public_ip, 22))
+          transport.connect(username = sshusername, pkey = mykey)
+          sftp = paramiko.SFTPClient.from_transport(transport)
       except Exception, errmsg:
-        request.stderr = "Can't open sftp conection to %s: %s" % (public_ip,errmsg)
-        request.returncode = -1
-        return request
+          request.stderr = "Can't open sftp conection to %s: %s" % (public_ip,errmsg)
+          request.returncode = -1
+          return request
 
       # scp VM cert/key
       putCertPath = "/root/vmservicecert.pem"
       putKeyPath = "/root/vmservicekey.pem"
       try:
-        sftp.put(vmCertPath, putCertPath)
-        sftp.put(vmKeyPath, putKeyPath)
-        # while the ssh.exec_command is asyncronous request I need to put on the VM the contextualize-script to ensure the file existence before exec
-        sftp.put(vmContextualizeScriptPath, '/root/contextualize-script.bash')
+          sftp.put(vmCertPath, putCertPath)
+          sftp.put(vmKeyPath, putKeyPath)
+          # while the ssh.exec_command is asyncronous request I need to put on the VM the contextualize-script to ensure the file existence before exec
+          sftp.put(vmContextualizeScriptPath, '/root/contextualize-script.bash')
       except Exception, errmsg:
-        request.stderr = errmsg
-        request.returncode = -1
-        return request
+          request.stderr = errmsg
+          request.returncode = -1
+          return request
+ 
 
       sftp.close()
       transport.close()
 
       #2)  prepare paramiko ssh client
       try:
-        ssh = paramiko.SSHClient()
-        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        ssh.connect(public_ip, username=username, port=22, pkey=mykey)
+          ssh = paramiko.SSHClient()
+          ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+          ssh.connect(public_ip, username=sshusername, port=22, pkey=mykey )
       except Exception, errmsg:
-        request.stderr = "Can't open ssh conection to %s: %s" % (public_ip,errmsg)
-        request.returncode = -1
-        return request
+          request.stderr = "Can't open ssh conection to %s: %s" % (public_ip,errmsg)
+          request.returncode = -1
+          return request
 
       #3) Run the DIRAC contextualization orchestator script:    
 
       try:
-        remotecmd = "/bin/bash /root/contextualize-script.bash \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\'" %(uniqueId, putCertPath, putKeyPath, vmRunJobAgentURL, vmRunVmMonitorAgentURL, vmRunLogJobAgentURL, vmRunLogVmMonitorAgentURL, cvmfsContextURL, diracContextURL, cvmfs_http_proxy, siteName, cloudDriver) 
-        print "remotecmd"
-        print remotecmd
-        stdin, stdout, stderr = ssh.exec_command(remotecmd)
+          remotecmd = "/bin/bash /root/contextualize-script.bash \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\'" %(uniqueId, putCertPath, putKeyPath, vmRunJobAgentURL, vmRunVmMonitorAgentURL, vmRunLogJobAgentURL, vmRunLogVmMonitorAgentURL, cvmfsContextURL, diracContextURL, cvmfs_http_proxy, siteName, cloudDriver) 
+          print "remotecmd"
+          print remotecmd
+          stdin, stdout, stderr = ssh.exec_command(remotecmd)
       except Exception, errmsg:
-        request.stderr = "Can't run remote ssh to %s: %s" % (public_ip,errmsg)
-        request.returncode = -1
-        return request    
-
+          request.stderr = "Can't run remote ssh to %s: %s" % (public_ip,errmsg)
+          request.returncode = -1
+          return request
+      
       return request
 
   def getStatus_VMInstance( self, uniqueId ):

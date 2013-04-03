@@ -36,80 +36,79 @@ class Request:
     self.secretKey = secretKey
 
   def generateApiSignature( self, options ):
-    request = 'apikey=' + self.apiKey + options
-    secret  = self.secretKey.encode( SOURCE_ENCODING )
-    request = request.encode( SOURCE_ENCODING )
-    digest  = hmac.new( unicode( secret, 'utf-8' ), 
-                        unicode( request.lower(), 'utf-8' ), 
-                        hashlib.sha1 ).digest()
-    gLogger.info( "Cloud signature:", urllib2.quote( base64.encodestring( digest )[:-1], "" ) )
-    return urllib2.quote( base64.encodestring( digest )[:-1], "" )
+      request = 'apikey=' + self.apiKey + options
+      secret = self.secretKey.encode( SOURCE_ENCODING )
+      request = request.encode( SOURCE_ENCODING )
+      digest = hmac.new( unicode( secret, 'utf-8' ), unicode( request.lower(), 'utf-8' ), hashlib.sha1 ).digest()
+      gLogger.info( "Cloud signature:", urllib2.quote( base64.encodestring( digest )[:-1], "" ) )
+      return urllib2.quote( base64.encodestring( digest )[:-1], "" )
 
-  def callHttpCloudServer( self, cloudserver, signature, options ):
-    url = 'http://' + cloudserver + ':80/client/api?apikey=' + self.apiKey + options + '&signature=' + signature
-    gLogger.info( "Request:", url )
-    req = urllib2.Request( url )
-    xmldoc = ""
-    try:
-      callToServer = urllib2.urlopen( req )
-      xmldoc = minidom.parse( urllib2.urlopen( url ) )
-    except Exception:
-      gLogger.error( "Error in call of CloudStack Api" )
-    return xmldoc
+  def callHttpCloudServer( self, cloudserver, signature, options='' ):
+      url = 'http://' + cloudserver + ':80/client/api?apikey=' + self.apiKey + options + '&signature=' + signature
+      gLogger.info( "Request:", url )
+      req = urllib2.Request( url )
+      xmldoc = ""
+      try:
+        callToServer = urllib2.urlopen( req )
+        xmldoc = minidom.parse( urllib2.urlopen( url ) )
+      except Exception:
+          gLogger.error( "Error in call of CloudStack Api" )
+      return xmldoc
 
   def callHttpCloudServerAllRequest( self, cloudserver, URLpart ):
-    url = 'http://' + cloudserver + ':80/client/' + URLpart
-    gLogger.info( "Request:", url )
-    req = urllib2.Request( url )
-    try:
-      callToServer = urllib2.urlopen( req )
-      xmldoc = minidom.parse( urllib2.urlopen( url ) )
-    except Exception:
-      gLogger.error( "Error in call of CloudStack Api" )
-    return xmldoc
+      url = 'http://' + cloudserver + ':80/client/' + URLpart
+      gLogger.info( "Request:", url )
+      req = urllib2.Request( url )
+      try:
+          callToServer = urllib2.urlopen( req )
+          xmldoc = minidom.parse( urllib2.urlopen( url ) )
+      except Exception:
+          gLogger.error( "Error in call of CloudStack Api" )
+      return xmldoc
 
   def getText( self, nodelist ):
-    rc = []
-    for node in nodelist:
-      if node.nodeType == node.TEXT_NODE:
-        rc.append( node.data )
-    return ''.join( rc )
+      rc = []
+      for node in nodelist:
+         if node.nodeType == node.TEXT_NODE:
+            rc.append( node.data )
+      return ''.join( rc )
 
   def walk( self, parent, level ):
-    for node in parent.childNodes:
-      if node.nodeType == Node.ELEMENT_NODE:
-        self.printLevel( level )
-        gLogger.info( 'Element: %s\n' % node.nodeName )
-        attrs = node.attributes
-        for attrName in attrs.keys():
-          attrNode = attrs.get( attrName )
-          attrValue = attrNode.nodeValue
-          self.printLevel( level + 2 )
-          gLogger.info( 'Attribute -- Name: %s  Value: %s\n' % ( attrName, attrValue ) )
-        content = []
-        for child in node.childNodes:
-          if child.nodeType == Node.TEXT_NODE:
-            content.append( child.nodeValue )
-        if content:
-          strContent = string.join( content )
-          self.printLevel( level )
-          gLogger.info( 'Content: "', strContent )
-        self.walk( node, level + 1 )
+      for node in parent.childNodes:
+          if node.nodeType == Node.ELEMENT_NODE:
+              self.printLevel( level )
+              gLogger.info( 'Element: %s\n' % node.nodeName )
+              attrs = node.attributes
+              for attrName in attrs.keys():
+                  attrNode = attrs.get( attrName )
+                  attrValue = attrNode.nodeValue
+                  self.printLevel( level + 2 )
+                  gLogger.info( 'Attribute -- Name: %s  Value: %s\n' % \
+                          ( attrName, attrValue ) )
+              content = []
+              for child in node.childNodes:
+                  if child.nodeType == Node.TEXT_NODE:
+                      content.append( child.nodeValue )
+              if content:
+                  strContent = string.join( content )
+                  self.printLevel( level )
+                  gLogger.info( 'Content: "', strContent )
+              self.walk( node, level + 1 )
 
   def printLevel( self, level ):
-    for _i in xrange( level ):
-      gLogger.info( '    ' )
+      for idx in range( level ):
+        gLogger.info( '    ' )
 
   def printXMLResponse( self, xmldoc ):
-    rootNode = xmldoc.documentElement
-    level = 0
-    self.walk( rootNode, level )
+      rootNode = xmldoc.documentElement
+      level = 0
+      self.walk( rootNode, level )
 
   def createURL( self, options ):
-    options_array = ""
-    for key in sorted( options.iterkeys() ):
-      options_array += "&%s=%s" % ( key, options[key] )
-    return options_array
+      options_array = ""
+      for key in sorted( options.iterkeys() ):
+          options_array += "&%s=%s" % ( key, options[key] )
+      return options_array
 
 class CloudStackClient:
     

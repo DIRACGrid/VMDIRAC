@@ -142,6 +142,12 @@ class VirtualMachineMonitorAgent( AgentModule ):
     self.__loadHistory = []
     self.__outDataExecutor = OutputDataExecutor()
     self.vmId = ""
+    self.vmMinWorkingLoad = None
+    self.vmLoadAvgTimespan = None
+    self.vmJobWrappersLocation = None
+    self.haltPeriod = None
+    self.haltBeforeMargin = None
+    self.heartBeatPeriod = None
     self.am_setOption( "MaxCycles", 0 )
     self.am_setOption( "PollingTime", 60 )
     self.cloudDriver = gConfig.getValue( "/LocalSite/CloudDriver", "" ).lower()

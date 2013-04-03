@@ -175,7 +175,10 @@ class VirtualMachineManagerHandler( RequestHandler ):
         return imageName
       imageName = imageName[ 'Value' ]
 
-      nima = NovaImage( imageName, endpoint )
+      nima     = NovaImage( imageName, endpoint )
+      connNova = nima.connectNova()
+      if not connNova[ 'OK' ]:
+        return connNova
       
       publicIP = gVirtualMachineDB.getPublicIpFromInstance ( vmId )
       if not publicIP[ 'OK' ]:

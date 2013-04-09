@@ -97,6 +97,9 @@ class NovaClient:
       request.returncode = -1
       return request
 
+    # giving time sleep to REST API caching the instance to be available:
+    time.sleep( 10 )
+
     if not ipPool=='NO':
       # getting a floating IP and asign to the node:
       try:

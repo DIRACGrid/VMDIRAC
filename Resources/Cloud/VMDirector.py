@@ -100,11 +100,11 @@ class VMDirector:
 
     #FIXME: retDic1,2,3,4.. naming
 
+    retDict = {}
+
     retDict = self._submitInstance( imageName, workDir, endpoint )
     if not retDict['OK']:
       return retDict
-
-    retDict = {}
 
     retDict2 = virtualMachineDB.insertInstance( imageName, imageName, endpoint, runningPodName )
     if not retDict2['OK']:

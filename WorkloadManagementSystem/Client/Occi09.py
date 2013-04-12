@@ -138,7 +138,7 @@ class OcciClient:
 
   def create_VMInstance( self, bootImageName, hdcImageName, instanceType, imageDriver, 
                          bootOII, hdcOII, iface, occiDNS1, occiDNS2, Domain, CVMFS_HTTP_PROXY, 
-                         occiURLcontextfiles, occiNetId):
+                         occiURLcontextfiles, occiNetId, siteName):
     """
     This creates a VM instance for the given boot image and hdc image, and
     also de OCCI context on-the-fly image, taken the given parameters.
@@ -189,6 +189,7 @@ class OcciClient:
       tempXML.write('                <DNS1>' + occiDNS1 + '</DNS1>\n')
       tempXML.write('                <DNS2>' + occiDNS2 + '</DNS2>\n')
     tempXML.write('                <CVMFS_HTTP_PROXY>' + CVMFS_HTTP_PROXY + '</CVMFS_HTTP_PROXY>\n')
+    tempXML.write('                <SITE_NAME>' + siteName + '</SITE_NAME>\n')
     tempXML.write('                <FILES>' + occiURLcontextfiles + '</FILES>\n')
     tempXML.write('        </CONTEXT>\n')
     tempXML.write('</COMPUTE>\n')

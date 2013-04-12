@@ -148,6 +148,13 @@ class OcciImage:
       self.log.error( self.__errorStatus )
       return
 
+    # Site name (temporaly at Endpoint, but this sould be get it from Resources LHCbDIRAC like scheme)
+    self.__siteName = self.__getCSCloudEndpointOption( "siteName" )
+    if not self.__siteName:
+      self.__errorStatus = "Can't find the siteName for endpoint %s" % self.__endpoint
+      self.log.error( self.__errorStatus )
+      return
+
   def __getCSImageOption( self, option, defValue = "" ):
     """
     Following we can see that every CSImageOption are related with the booting
@@ -166,7 +173,7 @@ class OcciImage:
     if self.__errorStatus:
       return S_ERROR( self.__errorStatus )
     self.log.info( "Starting new instance for image (boot,hdc): %s,%s; to endpoint %s, and driver %s" % ( self.__bootImageName, self.__hdcImageName, self.__endpoint, self.__driver ) )
-    request = self.__cliocci.create_VMInstance( self.__bootImageName, self.__hdcImageName, instanceType, imageDriver, self.__bootOII, self.__hdcOII, self.__iface, self.__DNS1, self.__DNS2, self.__Domain, self.__CVMFS_HTTP_PROXY, self.__URLcontextfiles, self.__NetId)
+    request = self.__cliocci.create_VMInstance( self.__bootImageName, self.__hdcImageName, instanceType, imageDriver, self.__bootOII, self.__hdcOII, self.__iface, self.__DNS1, self.__DNS2, self.__Domain, self.__CVMFS_HTTP_PROXY, self.__URLcontextfiles, self.__NetId, self.__siteName)
     if request.returncode != 0:
       self.__errorStatus = "Can't create instance for boot image (boot,hdc): %s/%s at server %s\n%s" % (self.__bootImageName, self.__hdcImageName, self.__occiURI, request.stdout)
       self.log.error( self.__errorStatus )

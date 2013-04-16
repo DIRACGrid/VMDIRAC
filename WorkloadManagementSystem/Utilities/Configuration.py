@@ -81,8 +81,8 @@ class NovaConfiguration( EndpointConfiguration ):
 
     # Purely endpoint configuration ............................................              
     # This two are passed as arguments, not keyword arguments
-    self.__user                    = novaOptions.get( 'password'               , None )
-    self.__password                = novaOptions.get( 'user'                   , None )
+    self.__user                    = novaOptions.get( 'user'               , None )
+    self.__password                = novaOptions.get( 'password'           , None )
     
     # FIXME: missing driver !
     
@@ -109,6 +109,11 @@ class NovaConfiguration( EndpointConfiguration ):
     config[ 'ex_force_service_region' ] = self.__ex_force_service_region
     config[ 'ex_force_service_type' ]   = self.__ex_force_service_type
     config[ 'ex_tenant_name' ]          = self.__ex_tenant_name
+    
+    # Do not return dictionary with None values
+    for key, value in config.items():
+      if value is None:
+        del config[ key ]
         
     return config  
 
@@ -128,7 +133,7 @@ class NovaConfiguration( EndpointConfiguration ):
     
     self.log.info( '*' * 50 )
     self.log.info( 'Displaying endpoint info' )
-    for key, value in self.endpointConfig.iteritems:
+    for key, value in endpointConfig.iteritems():
       self.log.info( '%s : %s' % ( key, value ) )
     self.log.info( 'User and Password are NOT printed.')
     self.log.info( '*' * 50 )

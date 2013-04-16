@@ -100,16 +100,16 @@ class NovaConfiguration( EndpointConfiguration ):
     
     config = {}
     
-    for item in dir( self ):
-      if not item.startswith( '__ex_' ):
-        continue
-      
-      itemName = item.replace( '__ex', 'ex' )
-    
-      itemValue = getattr( self, item )
-      if itemValue is not None:
-        config[ itemName ] = itemValue
-    
+    config[ 'ex_force_ca_cert' ]        = self.__ex_force_ca_cert 
+    config[ 'ex_force_auth_token' ]     = self.__ex_force_auth_token
+    config[ 'ex_force_auth_url' ]       = self.__ex_force_auth_url
+    config[ 'ex_force_auth_version' ]   = self.__ex_force_auth_version
+    config[ 'ex_force_base_url' ]       = self.__ex_force_base_url
+    config[ 'ex_force_service_name' ]   = self.__ex_force_service_name
+    config[ 'ex_force_service_region' ] = self.__ex_force_service_region
+    config[ 'ex_force_service_type' ]   = self.__ex_force_service_type
+    config[ 'ex_tenant_name' ]          = self.__ex_tenant_name
+        
     return config  
 
   def validate( self ):
@@ -157,7 +157,8 @@ class ImageConfiguration( object ):
     self.__ic_bootImageName = imageOptions.get( 'bootImageName', None )
     self.__ic_contextMethod = imageOptions.get( 'contextMethod', None )
     self.__ic_flavorName    = imageOptions.get( 'flavorName'   , None )
-    self.__ic_contextConfig = ContextConfig( self.__ic_bootImageName, self.__ic_contextMethod )
+    #self.__ic_contextConfig = ContextConfig( self.__ic_bootImageName, self.__ic_contextMethod )
+    self.__ic_contextConfig = ContextConfig( imageName, self.__ic_contextMethod )
 
   def config( self ):
     

@@ -164,9 +164,9 @@ class NovaClient:
     contextMethod = self.imageConfig[ 'contextMethod' ]
     
     # Optional node contextualization parameters
-    keyname  = self.imageConfig.get( 'ex_keyname' , None )
-    userdata = self.imageConfig.get( 'ex_userdata', None )
-    metadata = self.imageConfig.get( 'ex_metadata', None )
+    keyname  = self.imageConfig[ 'contextConfig' ].get( 'ex_keyname' , None )
+    userdata = self.imageConfig[ 'contextConfig' ].get( 'ex_userdata', None )
+    metadata = self.imageConfig[ 'contextConfig' ].get( 'ex_metadata', None )
     
     bootImage = self.get_image( bootImageName )
     if not bootImage[ 'OK' ]:
@@ -181,7 +181,7 @@ class NovaClient:
     flavor = flavor[ 'Value' ]
     
     #FIXME: change the VM name, we want to know which version of contextualization
-    vm_name = bootImageName + '+' + contextMethod + '+' + str( time.time() )[0:10] 
+    vm_name = ( bootImageName + '-' + contextMethod + '-' + str( time.time() )[0:10] ).replace( '_', '-' ) 
 
     self.log.info( "Creating node" )
     self.log.verbose( "name : %s" % vm_name )
@@ -345,7 +345,7 @@ class NovaClient:
     # Sometimes we do not have public IP
     ipPool = self.imageConfig[ 'contextConfig' ].get( 'ipPool', None )
 
-    if not ipPool is not None:
+    if ipPool is not None:
 
       ################################## 
       # 
@@ -363,7 +363,7 @@ class NovaClient:
         return S_ERROR( errmsg )
  
     else:
-      public_ip = node.ip
+      public_ip = node.public_ip
       
     return S_OK( public_ip )  
 

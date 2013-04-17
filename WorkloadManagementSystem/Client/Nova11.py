@@ -119,7 +119,7 @@ class NovaClient:
                                 vmKeyPath, vmContextualizeScriptPath, vmRunJobAgentURL, 
                                 vmRunVmMonitorAgentURL, vmRunLogJobAgentURL, 
                                 vmRunLogVmMonitorAgentURL, cvmfsContextURL, diracContextURL, 
-                                cvmfs_http_proxy, siteName, cloudDriver ):
+                                cvmfs_http_proxy, siteName, cloudDriver, cputTime ):
     """ 
     Conextualize an active instance by ssh connection
     """
@@ -173,7 +173,7 @@ class NovaClient:
       #3) Run the DIRAC contextualization orchestator script:    
 
       try:
-          remotecmd = "/bin/bash /root/contextualize-script.bash \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\'" %(uniqueId, putCertPath, putKeyPath, vmRunJobAgentURL, vmRunVmMonitorAgentURL, vmRunLogJobAgentURL, vmRunLogVmMonitorAgentURL, cvmfsContextURL, diracContextURL, cvmfs_http_proxy, siteName, cloudDriver) 
+          remotecmd = "/bin/bash /root/contextualize-script.bash \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\'" %(uniqueId, putCertPath, putKeyPath, vmRunJobAgentURL, vmRunVmMonitorAgentURL, vmRunLogJobAgentURL, vmRunLogVmMonitorAgentURL, cvmfsContextURL, diracContextURL, cvmfs_http_proxy, siteName, cloudDriver, cpuTime) 
           print "remotecmd"
           print remotecmd
           stdin, stdout, stderr = ssh.exec_command(remotecmd)

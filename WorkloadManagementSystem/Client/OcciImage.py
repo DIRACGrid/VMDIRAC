@@ -29,6 +29,10 @@ class OcciImage:
 # __instances list not used now 
     self.__instances = []
     self.__errorStatus = ""
+    #Get the image cpuTime to put on the VM /LocalSite/CPUTime
+    self.__cpuTime = self.__getCSImageOption( "cpuTime" )
+    if not self.__cpuTime:
+      self.__cpuTime = 1800
     #Get CloudEndpoint on submission time
     self.__endpoint = endpoint
     if not self.__endpoint:
@@ -173,7 +177,7 @@ class OcciImage:
     if self.__errorStatus:
       return S_ERROR( self.__errorStatus )
     self.log.info( "Starting new instance for image (boot,hdc): %s,%s; to endpoint %s, and driver %s" % ( self.__bootImageName, self.__hdcImageName, self.__endpoint, self.__cloudDriver ) )
-    request = self.__cliocci.create_VMInstance( self.__bootImageName, self.__hdcImageName, instanceType, imageDriver, self.__bootOII, self.__hdcOII, self.__iface, self.__DNS1, self.__DNS2, self.__Domain, self.__CVMFS_HTTP_PROXY, self.__URLcontextfiles, self.__NetId, self.__siteName, self.__cloudDriver)
+    request = self.__cliocci.create_VMInstance( self.__bootImageName, self.__hdcImageName, instanceType, imageDriver, self.__bootOII, self.__hdcOII, self.__iface, self.__DNS1, self.__DNS2, self.__Domain, self.__CVMFS_HTTP_PROXY, self.__URLcontextfiles, self.__NetId, self.__siteName, self.__cloudDriver, self.__cpuTime)
     if request.returncode != 0:
       self.__errorStatus = "Can't create instance for boot image (boot,hdc): %s/%s at server %s\n%s" % (self.__bootImageName, self.__hdcImageName, self.__occiURI, request.stdout)
       self.log.error( self.__errorStatus )

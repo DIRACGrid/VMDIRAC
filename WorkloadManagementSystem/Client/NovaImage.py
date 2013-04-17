@@ -30,7 +30,11 @@ class NovaImage:
       self.__errorStatus = "Can't find endpoint for image %s" % self.__DIRACImageName
       self.log.error( self.__errorStatus )
       return
-    # Get the contextualization method (adhoc/ssh) of the endpoint
+    # Get the CPUTime of the image to put on the VMs /LocalSite/CPUTime
+    self.__cpuTime = self.__getCSImageOption( "cpuTime" ) 
+    if not self.__cpuTime:
+      self.__cpuTime = 1800
+    # Get the contextualization method (adhoc/ssh) of the image
     self.__contextMethod = self.__getCSImageOption( "contextMethod" ) 
     if not ( self.__contextMethod == 'ssh' or self.__contextMethod == 'adhoc' ): 
       self.__errorStatus = "endpoint %s contextMethod %s not available, use adhoc or ssh" % (self.__endpoint, self.__contextMethod)
@@ -208,7 +212,7 @@ class NovaImage:
     With ssh method, contextualization is asyncronous operation
     """
     if self.__contextMethod =='ssh':
-      request = self.__clinova.contextualize_VMInstance( uniqueId, public_ip, self.__contextMethod, self.__vmCertPath, self.__vmKeyPath, self.__vmContextualizeScriptPath, self.__vmRunJobAgentURL, self.__vmRunVmMonitorAgentURL, self.__vmRunLogJobAgentURL, self.__vmRunLogVmMonitorAgentURL, self.__vmCvmfsContextURL, self.__vmDiracContextURL , self.__cvmfs_http_proxy, self.__siteName, self.__cloudDriver )
+      request = self.__clinova.contextualize_VMInstance( uniqueId, public_ip, self.__contextMethod, self.__vmCertPath, self.__vmKeyPath, self.__vmContextualizeScriptPath, self.__vmRunJobAgentURL, self.__vmRunVmMonitorAgentURL, self.__vmRunLogJobAgentURL, self.__vmRunLogVmMonitorAgentURL, self.__vmCvmfsContextURL, self.__vmDiracContextURL , self.__cvmfs_http_proxy, self.__siteName, self.__cloudDriver, self.__cpuTime )
       if request.returncode != 0:
         self.__errorStatus = "Can't contextualize VM id %s at endpoint %s: %s" % (uniqueId, self.__endpoint, request.stderr)
         self.log.error( self.__errorStatus )

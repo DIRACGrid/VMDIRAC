@@ -158,10 +158,10 @@ class VirtualMachineScheduler( AgentModule ):
         result = virtualMachineDB.getInstancesByStatus( 'Submitted' )
         if result['OK'] and imageName in result['Value']:
           instances += len( result['Value'][imageName] )
-        result = virtualMachineDB.getInstancesByStatusAndEndpoint( 'Wait_ssh_context', endpoint )
+        result = virtualMachineDB.getInstancesByStatus( 'Wait_ssh_context' )
         if result['OK'] and imageName in result['Value']:
           endpointInstances += len( result['Value'][imageName] )
-        result = virtualMachineDB.getInstancesByStatusAndEndpoint( 'Contextualizing', endpoint )
+        result = virtualMachineDB.getInstancesByStatus( 'Contextualizing' )
         if result['OK'] and imageName in result['Value']:
           endpointInstances += len( result['Value'][imageName] )
         self.log.verbose( 'Checking Image %s:' % imageName, instances )
@@ -199,7 +199,7 @@ class VirtualMachineScheduler( AgentModule ):
           if result['OK'] and imageName in result['Value']:
             endpointInstances += len( result['Value'][imageName] )
           if endpointInstances < maxEndpointInstances:
-            self.log.info( 'CS CloudEndpoint %s instances: %d' % (endpoint,endpointInstances) )
+            self.log.info( 'CS CloudEndpoint %s instances: %d, maxEndpointInstances' % (endpoint,endpointInstances,maxEndpointInstances) )
             endpointFound = True
             break
 

@@ -160,10 +160,10 @@ class VirtualMachineScheduler( AgentModule ):
           instances += len( result['Value'][imageName] )
         result = virtualMachineDB.getInstancesByStatus( 'Wait_ssh_context' )
         if result['OK'] and imageName in result['Value']:
-          endpointInstances += len( result['Value'][imageName] )
+          instances += len( result['Value'][imageName] )
         result = virtualMachineDB.getInstancesByStatus( 'Contextualizing' )
         if result['OK'] and imageName in result['Value']:
-          endpointInstances += len( result['Value'][imageName] )
+          instances += len( result['Value'][imageName] )
         self.log.verbose( 'Checking Image %s:' % imageName, instances )
         maxInstances = runningPodDict['MaxInstances']
         if instances >= maxInstances:

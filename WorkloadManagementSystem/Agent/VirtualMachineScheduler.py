@@ -183,7 +183,7 @@ class VirtualMachineScheduler( AgentModule ):
             self.log.info( 'CS CloudEndpoint %s has no define MaxEndpointInstance option' % endpoint )
             continue
 
-          self.log.info( 'CS CloudEndpoint %s MaxEndpointInstance: %d' % (endpoint,maxEndpointInstances) )
+          self.log.info( 'CS CloudEndpoint %s MaxEndpointInstance: %s' % (endpoint,maxEndpointInstances) )
 
           endpointInstances = 0
           result = virtualMachineDB.getInstancesByStatusAndEndpoint( 'Running', endpoint )
@@ -199,7 +199,7 @@ class VirtualMachineScheduler( AgentModule ):
           if result['OK'] and imageName in result['Value']:
             endpointInstances += len( result['Value'][imageName] )
           if endpointInstances < maxEndpointInstances:
-            self.log.info( 'CS CloudEndpoint %s instances: %d, maxEndpointInstances' % (endpoint,endpointInstances,maxEndpointInstances) )
+            self.log.info( 'CS CloudEndpoint %s instances: %s, maxEndpointInstances' % (endpoint,endpointInstances,maxEndpointInstances) )
             endpointFound = True
             break
 

@@ -98,7 +98,7 @@ class NovaClient:
       return request
 
     # giving time sleep to REST API caching the instance to be available:
-    time.sleep( 10 )
+    time.sleep( 2 )
 
     if not ipPool=='NO':
       # getting a floating IP and asign to the node:
@@ -149,9 +149,8 @@ class NovaClient:
       try:
           sftp.put(vmCertPath, putCertPath)
           sftp.put(vmKeyPath, putKeyPath)
-          # while the ssh.exec_command is asyncronous request I need to put on the VM the contextualize-script to ensure the file existence before exec
+          # the VM with contextualize-script file existence before later exec
           sftp.put(vmContextualizeScriptPath, '/root/contextualize-script.bash')
-          time.sleep( 10 )
       except Exception, errmsg:
           request.stderr = errmsg
           request.returncode = -1
@@ -160,6 +159,9 @@ class NovaClient:
 
       sftp.close()
       transport.close()
+
+      # giving time sleep asyncronous sftp
+      time.sleep( 10 )
 
       #2)  prepare paramiko ssh client
       try:

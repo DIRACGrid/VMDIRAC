@@ -98,7 +98,7 @@ class NovaClient:
       return request
 
     # giving time sleep to REST API caching the instance to be available:
-    time.sleep( 2 )
+    time.sleep( 10 )
 
     if not ipPool=='NO':
       # getting a floating IP and asign to the node:
@@ -161,7 +161,7 @@ class NovaClient:
       transport.close()
 
       # giving time sleep asyncronous sftp
-      time.sleep( 10 )
+      time.sleep( 2 )
 
       #2)  prepare paramiko ssh client
       try:

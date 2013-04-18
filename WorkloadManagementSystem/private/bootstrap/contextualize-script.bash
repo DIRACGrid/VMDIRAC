@@ -6,7 +6,7 @@
 # contextualization script to be run on the VM, after init.d proccess 
 
 
-if [ $# -ne 12 ]
+if [ $# -ne 13 ]
 then
 	echo "bash contextualize-script.bash  <uniqueId> <certfile> <keyfile> <runjobagent> <runvmmonitoragent> <runlogjobagent> <runlogvmmonitoragent> <cvmfscontextscript> <diraccontextscript> <cvmfshttpproxy> <sitename> <clouddriver> <cpuTime>"
 	exit 1
@@ -35,7 +35,7 @@ localDiracContextPath=/root/dirac-context.sh
 
 # parameters log:
 
-echo "1 $uniqueID" >> /var/log/contextualize-script.log 2>&1
+echo "1 $uniqueId" >> /var/log/contextualize-script.log 2>&1
 echo "2 $vmCertPath" >> /var/log/contextualize-script.log 2>&1
 echo "3 $vmKeyPath" >> /var/log/contextualize-script.log 2>&1
 echo "4 $vmRunJobAgent" >> /var/log/contextualize-script.log 2>&1

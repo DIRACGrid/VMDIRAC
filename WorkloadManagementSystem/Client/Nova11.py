@@ -151,6 +151,7 @@ class NovaClient:
           sftp.put(vmKeyPath, putKeyPath)
           # while the ssh.exec_command is asyncronous request I need to put on the VM the contextualize-script to ensure the file existence before exec
           sftp.put(vmContextualizeScriptPath, '/root/contextualize-script.bash')
+          time.sleep( 10 )
       except Exception, errmsg:
           request.stderr = errmsg
           request.returncode = -1

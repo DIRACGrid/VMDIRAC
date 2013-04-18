@@ -158,6 +158,12 @@ class VirtualMachineScheduler( AgentModule ):
         result = virtualMachineDB.getInstancesByStatus( 'Submitted' )
         if result['OK'] and imageName in result['Value']:
           instances += len( result['Value'][imageName] )
+        result = virtualMachineDB.getInstancesByStatusAndEndpoint( 'Wait_ssh_context', endpoint )
+        if result['OK'] and imageName in result['Value']:
+          endpointInstances += len( result['Value'][imageName] )
+        result = virtualMachineDB.getInstancesByStatusAndEndpoint( 'Contextualizing', endpoint )
+        if result['OK'] and imageName in result['Value']:
+          endpointInstances += len( result['Value'][imageName] )
         self.log.verbose( 'Checking Image %s:' % imageName, instances )
         maxInstances = runningPodDict['MaxInstances']
         if instances >= maxInstances:
@@ -177,6 +183,8 @@ class VirtualMachineScheduler( AgentModule ):
             self.log.info( 'CS CloudEndpoint %s has no define MaxEndpointInstance option' % endpoint )
             continue
 
+          self.log.info( 'CS CloudEndpoint %s MaxEndpointInstance: %d' % (endpoint,maxEndpointInstances) )
+
           endpointInstances = 0
           result = virtualMachineDB.getInstancesByStatusAndEndpoint( 'Running', endpoint )
           if result['OK'] and imageName in result['Value']:
@@ -184,7 +192,14 @@ class VirtualMachineScheduler( AgentModule ):
           result = virtualMachineDB.getInstancesByStatusAndEndpoint( 'Submitted', endpoint )
           if result['OK'] and imageName in result['Value']:
             endpointInstances += len( result['Value'][imageName] )
+          result = virtualMachineDB.getInstancesByStatusAndEndpoint( 'Wait_ssh_context', endpoint )
+          if result['OK'] and imageName in result['Value']:
+            endpointInstances += len( result['Value'][imageName] )
+          result = virtualMachineDB.getInstancesByStatusAndEndpoint( 'Contextualizing', endpoint )
+          if result['OK'] and imageName in result['Value']:
+            endpointInstances += len( result['Value'][imageName] )
           if endpointInstances < maxEndpointInstances:
+            self.log.info( 'CS CloudEndpoint %s instances: %d' % (endpoint,endpointInstances) )
             endpointFound = True
             break
 

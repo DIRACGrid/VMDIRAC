@@ -119,7 +119,7 @@ class NovaClient:
                                 vmKeyPath, vmContextualizeScriptPath, vmRunJobAgentURL, 
                                 vmRunVmMonitorAgentURL, vmRunLogJobAgentURL, 
                                 vmRunLogVmMonitorAgentURL, cvmfsContextURL, diracContextURL, 
-                                cvmfs_http_proxy, siteName, cloudDriver, cputTime ):
+                                cvmfs_http_proxy, siteName, cloudDriver, cpuTime ):
     """ 
     Conextualize an active instance by ssh connection
     """

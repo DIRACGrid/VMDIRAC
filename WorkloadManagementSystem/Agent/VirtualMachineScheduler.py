@@ -199,7 +199,7 @@ class VirtualMachineScheduler( AgentModule ):
           if result['OK'] and imageName in result['Value']:
             endpointInstances += len( result['Value'][imageName] )
           if endpointInstances < maxEndpointInstances:
-            self.log.info( 'CS CloudEndpoint %s instances: %s, maxEndpointInstances' % (endpoint,endpointInstances,maxEndpointInstances) )
+            self.log.info( 'CS CloudEndpoint %s instances: %s, maxEndpointInstances: %s' % (endpoint,endpointInstances,maxEndpointInstances) )
             endpointFound = True
             break
 

@@ -158,7 +158,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
       result = self.getAmazonVMId()
     elif (self.cloudDriver == 'occi-0.9' or self.cloudDriver == 'occi-0.8'):
       result = self.getOcciVMId()
-    elif self.cloudDriver == 'CloudStack':
+    elif self.cloudDriver == 'cloudstack':
       result = self.getCloudStackVMId()
     elif self.cloudDriver == 'nova-1.1':
       result = self.getNovaVMId()

@@ -92,7 +92,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
     imgPath = "/Resources/VirtualMachines/Images/%s" % self.vmName
     for csOption, csDefault, varName in ( ( "MinWorkingLoad", 0.01, "vmMinWorkingLoad" ),
                                           ( "LoadAverageTimespan", 60, "vmLoadAvgTimespan" ),
-                                          ( "JobWrappersLocation", "/opt/dirac/pro/job/Wrapper/", "vmJobWrappersLocation" ),
+                                          ( "JobWrappersLocation", "/tmp/", "vmJobWrappersLocation" ),
                                           ( "HaltPeriod", 1200, "haltPeriod" ),
                                           ( "HaltBeforeMargin", 300, "haltBeforeMargin" ),
                                           ( "HeartBeatPeriod", 600, "heartBeatPeriod" ),
@@ -221,7 +221,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
     nJ = 0
     for entry in os.listdir( self.vmJobWrappersLocation ):
       entryPath = os.path.join( self.vmJobWrappersLocation, entry )
-      if os.path.isfile( entryPath ) and entry.find( "Wrapper_" ) == 0:
+      if os.path.isfile( entryPath ) and entry.find( "jobAgent-" ) == 0:
         nJ += 1
     return nJ
 

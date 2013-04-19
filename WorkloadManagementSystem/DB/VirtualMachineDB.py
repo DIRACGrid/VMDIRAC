@@ -56,7 +56,7 @@ class VirtualMachineDB( DB ):
                                        'Wait_ssh_context' : [ 'New' ],
                                        'Submitted' : [ 'New' ],
                                        'Contextualizing' : [ 'Wait_ssh_context' ],
-                                       'Running' : [ 'Submitted', 'Contextualizing', 'Stalled' ],
+                                       'Running' : [ 'Submitted', 'Contextualizing', 'Running', 'Stalled' ],
                                        'Halted' : [ 'Running', 'Stalled' ],
                                        'Stalled': [ 'New', 'Submitted', 'Wait_ssh_context', 
                                                     'Contextualizing', 'Running' ],

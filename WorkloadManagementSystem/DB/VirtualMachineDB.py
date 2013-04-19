@@ -90,8 +90,8 @@ class VirtualMachineDB( DB ):
                                                 'ErrorMessage' : 'VARCHAR(255) NOT NULL DEFAULT ""',
                                                 'MaxAllowedPrice' : 'FLOAT DEFAULT NULL',
                                                 'Uptime' : 'INTEGER UNSIGNED DEFAULT 0',
-                                                'Load' : 'FLOAT DEFAULT 0'
-                                                'Jobs' : 'INTEGER UNSIGNED NOT NULL DEFAULT 0',
+                                                'Load' : 'FLOAT DEFAULT 0',
+                                                'Jobs' : 'INTEGER UNSIGNED NOT NULL DEFAULT 0'
                                              },
                                    'PrimaryKey' : 'VMInstanceID',
                                    'Indexes': { 'Status': [ 'Status' ] },
@@ -897,7 +897,7 @@ class VirtualMachineDB( DB ):
     tables = ( "`vm_Images` AS img", "`vm_Instances` AS inst" )
     imageFields = ( 'VMImageID', 'Name', 'CloudEndpoints' )
     instanceFields = ( 'VMInstanceID', 'Name', 'UniqueID', 'VMImageID',
-                       'Status', 'PublicIP', 'Status', 'ErrorMessage', 'LastUpdate', 'Load', 'Uptime' )
+                       'Status', 'PublicIP', 'Status', 'ErrorMessage', 'LastUpdate', 'Load', 'Uptime', 'Jobs' )
 
     fields = [ 'img.%s' % f for f in imageFields ] + [ 'inst.%s' % f for f in instanceFields ]
     sqlQuery = "SELECT %s FROM %s" % ( ", ".join( fields ), ", ".join( tables ) )

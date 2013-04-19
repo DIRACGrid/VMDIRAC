@@ -24,8 +24,8 @@ function generateBrowseGrid( config )
 		totalProperty : 'numRecords',
 		id : 'inst_VMInstanceID',
 		fields : [ "inst_Name", "img_CloudEndpoints","inst_Endpoint", "inst_ErrorMessage", "inst_Status", "inst_UniqueID", 
-		           "img_VMImageID", "img_Name", "inst_VMImageID", "inst_PublicIP",  'inst_LastUpdate',
-		           'inst_Load', 'inst_Uptime', 'inst_Jobs]
+		           "img_VMImageID", "img_Name", "inst_VMImageID", "inst_PublicIP", 'inst_LastUpdate',
+		           'inst_Load', 'inst_Uptime', 'inst_Jobs']
     });
 
 	var store = new Ext.data.Store({
@@ -48,14 +48,14 @@ function generateBrowseGrid( config )
 		}),*/
 		columns: [
 		    { id : 'check', header : '', width : 30, dataIndex: 'inst_VMInstanceID', renderer : renderSelect },
-            { header: "Image", width: 100, sortable: true, dataIndex: 'img_Name'},
+            { header: "Image", width: 150, sortable: true, dataIndex: 'img_Name'},
             { header: "EndPoint", width: 100, sortable: true, dataIndex: 'img_CloudEndpoints'},
-            { header: "Status", width: 60, sortable: true, dataIndex: 'inst_Status'},
-            { header: "ID", width: 80, sortable: true, dataIndex: 'inst_UniqueID'},
+            { header: "Status", width: 100, sortable: true, dataIndex: 'inst_Status'},
+            { header: "ID", width: 250, sortable: true, dataIndex: 'inst_UniqueID'},
             { header: "IP", width: 100, sortable: true, dataIndex: 'inst_PublicIP'},
             { header: "Load", width: 50, sortable: true, dataIndex: 'inst_Load', renderer : renderLoad },
             { header: "Uptime", width: 75, sortable: true, dataIndex: 'inst_Uptime', renderer : renderUptime },
-            { header: "NumJobs", width: 75, sortable: true, dataIndex: 'inst_Jobs', renderer : renderUptime },
+            { header: "Jobs", width: 75, sortable: true, dataIndex: 'inst_Jobs' },
             { header: "Last Update (UTC)", width: 125, sortable: true, dataIndex: 'inst_LastUpdate' },
             { header: "Error", width: 350, sortable: true, dataIndex: 'inst_ErrorMessage'},
         ],

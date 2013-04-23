@@ -56,7 +56,7 @@ class VirtualMachineDB( DB ):
                                        'Wait_ssh_context' : [ 'New' ],
                                        'Submitted' : [ 'New' ],
                                        'Contextualizing' : [ 'Wait_ssh_context' ],
-                                       'Running' : [ 'Submitted', 'Contextualizing', 'Stalled' ],
+                                       'Running' : [ 'Submitted', 'Contextualizing', 'Running', 'Stalled' ],
                                        'Halted' : [ 'Running', 'Stalled' ],
                                        'Stalled': [ 'New', 'Submitted', 'Wait_ssh_context', 
                                                     'Contextualizing', 'Running' ],
@@ -90,7 +90,8 @@ class VirtualMachineDB( DB ):
                                                 'ErrorMessage' : 'VARCHAR(255) NOT NULL DEFAULT ""',
                                                 'MaxAllowedPrice' : 'FLOAT DEFAULT NULL',
                                                 'Uptime' : 'INTEGER UNSIGNED DEFAULT 0',
-                                                'Load' : 'FLOAT DEFAULT 0'
+                                                'Load' : 'FLOAT DEFAULT 0',
+                                                'Jobs' : 'INTEGER UNSIGNED NOT NULL DEFAULT 0'
                                              },
                                    'PrimaryKey' : 'VMInstanceID',
                                    'Indexes': { 'Status': [ 'Status' ] },
@@ -351,7 +352,7 @@ class VirtualMachineDB( DB ):
     if not status[ 'OK' ]:
       return status
 
-    self.__setLastLoadAndUptime( instanceID, load, uptime )
+    self.__setLastLoadJobsAndUptime( instanceID, load, jobs, uptime )
 
     #TODO: Send empty dir just in case we want to send flags (such as stop vm)
     return S_OK( {} )
@@ -807,13 +808,14 @@ class VirtualMachineDB( DB ):
                                    transferredFiles, transferredBytes ] )
     return
 
-  def __setLastLoadAndUptime( self, instanceID, load, uptime ):
+  def __setLastLoadJobsAndUptime( self, instanceID, load, jobs, uptime ):
     if not uptime:
       sqlQuery = "SELECT MAX( UNIX_TIMESTAMP( `Update` ) ) - MIN( UNIX_TIMESTAMP( `Update` ) ) FROM `vm_History` WHERE VMInstanceID = %d GROUP BY VMInstanceID" % instanceID
       result = self._query( sqlQuery )
       if result[ 'OK' ] and len( result[ 'Value' ] ) > 0:
         uptime = int( result[ 'Value' ][0][0] )
-    sqlUpdate = "UPDATE `vm_Instances` SET `Uptime` = %d, `Load` = %f WHERE `VMInstanceID` = %d" % ( uptime,
+    sqlUpdate = "UPDATE `vm_Instances` SET `Uptime` = %d, `Jobs`= %d, `Load` = %f WHERE `VMInstanceID` = %d" % ( uptime,
+                                                                                                     jobs,
                                                                                                      load,
                                                                                                      instanceID )
     self._update( sqlUpdate )
@@ -895,7 +897,7 @@ class VirtualMachineDB( DB ):
     tables = ( "`vm_Images` AS img", "`vm_Instances` AS inst" )
     imageFields = ( 'VMImageID', 'Name', 'CloudEndpoints' )
     instanceFields = ( 'VMInstanceID', 'Name', 'UniqueID', 'VMImageID',
-                       'Status', 'PublicIP', 'Status', 'ErrorMessage', 'LastUpdate', 'Load', 'Uptime' )
+                       'Status', 'PublicIP', 'Status', 'ErrorMessage', 'LastUpdate', 'Load', 'Uptime', 'Jobs' )
 
     fields = [ 'img.%s' % f for f in imageFields ] + [ 'inst.%s' % f for f in instanceFields ]
     sqlQuery = "SELECT %s FROM %s" % ( ", ".join( fields ), ", ".join( tables ) )

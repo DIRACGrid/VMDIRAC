@@ -97,6 +97,9 @@ class NovaClient:
       request.returncode = -1
       return request
 
+    # giving time sleep to REST API caching the instance to be available:
+    time.sleep( 12 )
+
     if not ipPool=='NO':
       # getting a floating IP and asign to the node:
       try:
@@ -116,7 +119,7 @@ class NovaClient:
                                 vmKeyPath, vmContextualizeScriptPath, vmRunJobAgentURL, 
                                 vmRunVmMonitorAgentURL, vmRunLogJobAgentURL, 
                                 vmRunLogVmMonitorAgentURL, cvmfsContextURL, diracContextURL, 
-                                cvmfs_http_proxy, siteName, cloudDriver ):
+                                cvmfs_http_proxy, siteName, cloudDriver, cpuTime ):
     """ 
     Conextualize an active instance by ssh connection
     """
@@ -146,7 +149,7 @@ class NovaClient:
       try:
           sftp.put(vmCertPath, putCertPath)
           sftp.put(vmKeyPath, putKeyPath)
-          # while the ssh.exec_command is asyncronous request I need to put on the VM the contextualize-script to ensure the file existence before exec
+          # the VM with contextualize-script file existence before later exec
           sftp.put(vmContextualizeScriptPath, '/root/contextualize-script.bash')
       except Exception, errmsg:
           request.stderr = errmsg
@@ -156,6 +159,9 @@ class NovaClient:
 
       sftp.close()
       transport.close()
+
+      # giving time sleep asyncronous sftp
+      time.sleep( 5 )
 
       #2)  prepare paramiko ssh client
       try:
@@ -170,7 +176,7 @@ class NovaClient:
       #3) Run the DIRAC contextualization orchestator script:    
 
       try:
-          remotecmd = "/bin/bash /root/contextualize-script.bash \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\'" %(uniqueId, putCertPath, putKeyPath, vmRunJobAgentURL, vmRunVmMonitorAgentURL, vmRunLogJobAgentURL, vmRunLogVmMonitorAgentURL, cvmfsContextURL, diracContextURL, cvmfs_http_proxy, siteName, cloudDriver) 
+          remotecmd = "/bin/bash /root/contextualize-script.bash \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\'" %(uniqueId, putCertPath, putKeyPath, vmRunJobAgentURL, vmRunVmMonitorAgentURL, vmRunLogJobAgentURL, vmRunLogVmMonitorAgentURL, cvmfsContextURL, diracContextURL, cvmfs_http_proxy, siteName, cloudDriver, cpuTime) 
           print "remotecmd"
           print remotecmd
           stdin, stdout, stderr = ssh.exec_command(remotecmd)

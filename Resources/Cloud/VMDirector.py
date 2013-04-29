@@ -104,7 +104,7 @@ class VMDirector:
     if not retDict['OK']:
       return retDict
 
-    retDict = {}
+    #retDict = {}
 
     retDict2 = virtualMachineDB.insertInstance( imageName, imageName, endpoint, runningPodName )
     if not retDict2['OK']:

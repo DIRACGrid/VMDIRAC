@@ -223,8 +223,8 @@ class VirtualMachineMonitorAgent( AgentModule ):
     for entry in os.listdir( self.vmJobWrappersLocation ):
       entryPath = os.path.join( self.vmJobWrappersLocation, entry )
       if (entry.find( "jobAgent-" ) != -1):
-        if os.listdir(entryPath)!="":
-          self.log.info( "VM job wrappers path entry: %s" % entry )
+        self.log.info( "VM job wrappers path entry: %s" % entry )
+        for jobDir in os.listdir(entryPath):
           nJ += 1
     return nJ
 

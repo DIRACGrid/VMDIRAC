@@ -139,7 +139,7 @@ class NovaClient:
       
     return S_OK( [ flavor for flavor in flavors if flavor.name == flavorName ][ 0 ] )   
 
-  def create_VMInstance( self ):
+  def create_VMInstance( self, vmdiracInstanceID = None ):
     """
     This creates a VM instance for the given boot image 
     and creates a context script, taken the given parameters.
@@ -166,7 +166,14 @@ class NovaClient:
     # Optional node contextualization parameters
     keyname  = self.imageConfig[ 'contextConfig' ].get( 'ex_keyname' , None )
     userdata = self.imageConfig[ 'contextConfig' ].get( 'ex_userdata', None )
-    metadata = self.imageConfig[ 'contextConfig' ].get( 'ex_metadata', None )
+    metadata = self.imageConfig[ 'contextConfig' ].get( 'ex_metadata', {} )
+    
+    if userdata is not None:
+      with open( userdata, 'r' ) as userDataFile: 
+        userdata = ''.join( userDataFile.readlines() )
+    
+    if vmdiracInstanceID is not None:
+      metadata.update( { 'vmdiracid' : str( vmdiracInstanceID ) } )
     
     bootImage = self.get_image( bootImageName )
     if not bootImage[ 'OK' ]:
@@ -181,7 +188,8 @@ class NovaClient:
     flavor = flavor[ 'Value' ]
     
     #FIXME: change the VM name, we want to know which version of contextualization
-    vm_name = ( bootImageName + '-' + contextMethod + '-' + str( time.time() )[0:10] ).replace( '_', '-' ) 
+    #vm_name = ( bootImageName + '-' + contextMethod + '-' + str( time.time() )[0:10] ).replace( '_', '-' ) 
+    vm_name = contextMethod + str( time.time() )[0:10]
 
     self.log.info( "Creating node" )
     self.log.verbose( "name : %s" % vm_name )

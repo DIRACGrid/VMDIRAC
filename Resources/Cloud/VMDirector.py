@@ -98,18 +98,16 @@ class VMDirector:
     if runningPodName not in self.runningPods:
       return S_ERROR( 'Unknown Running Pod: %s' % runningPodName )
 
-    #FIXME: retDic1,2,3,4.. naming
 
-    retDict = self._submitInstance( imageName, workDir, endpoint )
+    # FIRST, insert the instance into the DB !
+    newInstance = virtualMachineDB.insertInstance( imageName, imageName, endpoint, runningPodName )
+    if not newInstance[ 'OK' ]:
+      return newInstance
+    instanceID = newInstance[ 'Value' ]
+
+    retDict = self._submitInstance( imageName, workDir, endpoint, instanceID )
     if not retDict['OK']:
       return retDict
-
-    #retDict = {}
-
-    retDict2 = virtualMachineDB.insertInstance( imageName, imageName, endpoint, runningPodName )
-    if not retDict2['OK']:
-      return retDict2
-    instanceID = retDict2['Value']
 
     #########CloudStack2 adn CloudStack3 drivers have the bug of a single VM creation produces two VMs
     #########To deal with this CloudStack preaty feature we first startNewInstance inside 

@@ -31,7 +31,7 @@ class KVMDirector( VMDirector ):
     """
     VMDirector.configureFromSection( self, mySection )
 
-  def _submitInstance( self, imageName, workDir ):
+  def _submitInstance( self, imageName, workDir, instanceID ):
     """
       Real backend method to submit a new Instance of a given Image
     """

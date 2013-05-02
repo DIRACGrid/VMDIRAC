@@ -178,11 +178,11 @@ class VirtualMachineScheduler( AgentModule ):
         self.log.info( 'cloudEndpoints random failover: %s' % cloudEndpoints )
         for endpoint in cloudEndpoints:
           self.log.info( 'Checking to submit to: %s' % endpoint )
-          maxEndpointInstances = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, 'maxEndpointInstances' ), "" )
-          if not maxEndpointInstances:
+          strMaxEndpointInstances = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, 'maxEndpointInstances' ), "" )
+          if not strMaxEndpointInstances:
             self.log.info( 'CS CloudEndpoint %s has no define maxEndpointInstances option' % endpoint )
             continue
-          self.log.info( 'CS CloudEndpoint %s maxEndpointInstance: %s' % (endpoint,maxEndpointInstances) )
+          self.log.info( 'CS CloudEndpoint %s maxEndpointInstance: %s' % (endpoint,strMaxEndpointInstances) )
 
           vmPolicy = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, 'vmPolicy' ), "" )
           if not vmPolicy:
@@ -203,7 +203,8 @@ class VirtualMachineScheduler( AgentModule ):
           result = virtualMachineDB.getInstancesByStatusAndEndpoint( 'Contextualizing', endpoint )
           if result['OK'] and imageName in result['Value']:
             endpointInstances += len( result['Value'][imageName] )
-          self.log.info( 'CS CloudEndpoint %s instances: %s, maxEndpointInstances: %s' % (endpoint,endpointInstances,maxEndpointInstances) )
+          self.log.info( 'CS CloudEndpoint %s instances: %s, maxEndpointInstances: %s' % (endpoint,endpointInstances,strMaxEndpointInstances) )
+          maxEndpointInstances = int(strMaxEndpointInstances)
           if endpointInstances < maxEndpointInstances:
             if vmPolicy == 'elastic':
               numVMsToSubmit = 1

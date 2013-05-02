@@ -99,7 +99,7 @@ class VMDirector:
     if runningPodName not in self.runningPods:
       return S_ERROR( 'Unknown Running Pod: %s' % runningPodName )
 
-    for numVM in range(numVMsToSubmit):
+    for numVM in range(1,numVMsToSubmit):
       self.log.info( '********** Preparing to submitting VM number %s of %s VMs' % ( numVM, numVMsToSubmit ) )
 
       #FIXME: retDic1,2,3,4.. naming

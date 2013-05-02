@@ -167,7 +167,7 @@ class VirtualMachineScheduler( AgentModule ):
         self.log.verbose( 'Checking Image %s:' % imageName, instances )
         maxInstances = runningPodDict['MaxInstances']
         if instances >= maxInstances:
-          self.log.info( '%s >= %s Running instances of %s, skipping' % ( instances, maxInstances, imageName ) )
+          self.log.info( '%s >= %s Running instances reach MaxInstances for runningPod: %s, skipping' % ( instances, maxInstances, runningPodName ) )
           continue
 
         endpointFound = False
@@ -178,12 +178,17 @@ class VirtualMachineScheduler( AgentModule ):
         self.log.info( 'cloudEndpoints random failover: %s' % cloudEndpoints )
         for endpoint in cloudEndpoints:
           self.log.info( 'Checking to submit to: %s' % endpoint )
-          maxEndpointInstances = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, 'MaxEndpointInstances' ), "" )
+          maxEndpointInstances = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, 'maxEndpointInstances' ), "" )
           if not maxEndpointInstances:
-            self.log.info( 'CS CloudEndpoint %s has no define MaxEndpointInstance option' % endpoint )
+            self.log.info( 'CS CloudEndpoint %s has no define maxEndpointInstances option' % endpoint )
             continue
+          self.log.info( 'CS CloudEndpoint %s maxEndpointInstance: %s' % (endpoint,maxEndpointInstances) )
 
-          self.log.info( 'CS CloudEndpoint %s MaxEndpointInstance: %s' % (endpoint,maxEndpointInstances) )
+          vmPolicy = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, 'vmPolicy' ), "" )
+          if not vmPolicy:
+            self.log.info( 'CS CloudEndpoint %s has no define vmPolicy option' % endpoint )
+            continue
+          self.log.info( 'CS CloudEndpoint %s vmPolicy: %s' % (endpoint,vmPolicy) )
 
           endpointInstances = 0
           result = virtualMachineDB.getInstancesByStatusAndEndpoint( 'Running', endpoint )
@@ -198,8 +203,12 @@ class VirtualMachineScheduler( AgentModule ):
           result = virtualMachineDB.getInstancesByStatusAndEndpoint( 'Contextualizing', endpoint )
           if result['OK'] and imageName in result['Value']:
             endpointInstances += len( result['Value'][imageName] )
+          self.log.info( 'CS CloudEndpoint %s instances: %s, maxEndpointInstances: %s' % (endpoint,endpointInstances,maxEndpointInstances) )
           if endpointInstances < maxEndpointInstances:
-            self.log.info( 'CS CloudEndpoint %s instances: %s, maxEndpointInstances: %s' % (endpoint,endpointInstances,maxEndpointInstances) )
+            if vmPolicy == 'elastic':
+              numVMsToSubmit = 1
+            if vmPolicy == 'static':
+              numVMsToSubmit = maxEndpointInstances - endpointInstances
             endpointFound = True
             break
 
@@ -239,6 +248,7 @@ class VirtualMachineScheduler( AgentModule ):
                                                     'TQPriority': priority,
                                                     'CPUTime': cpu,
                                                     'CloudEndpoint': endpoint,
+                                                    'VMPolicy': vmPolicy,
                                                     'RunningPodName': runningPodName,
                                                     'VMPriority': runningPodDict['Priority'] }
 
@@ -254,7 +264,7 @@ class VirtualMachineScheduler( AgentModule ):
           runningPodName = jobsToSubmitDict['RunningPodName']
 
           ret = pool.generateJobAndQueueIt( director.submitInstance,
-                                            args = ( imageName, self.workDir, endpoint, runningPodName ),
+                                            args = ( imageName, self.workDir, endpoint, numVMsToSubmit, runningPodName ),
                                             oCallback = self.callBack,
                                             oExceptionCallback = director.exceptionCallBack,
                                             blocking = False )

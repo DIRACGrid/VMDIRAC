@@ -58,6 +58,12 @@ class OcciImage:
       self.__errorStatus = "Can't find the occiPasswd for endpoint %s" % self.__endpoint
       self.log.error( self.__errorStatus )
       return
+    # scheduling policy of the endpoint elastic/static
+    self.__vmPolicy = self.__getCSCloudEndpointOption( "vmPolicy" )
+    if not ( self.__vmPolicy == 'elastic' or self.__vmPolicy == 'static' ):
+      self.__errorStatus = "Can't find valid vmPolicy (elastic/static) for endpoint %s" % self.__endpoint
+      self.log.error( self.__errorStatus )
+      return
     # get the driver
     self.__cloudDriver = self.__getCSCloudEndpointOption( "driver" )
     if not self.__cloudDriver:

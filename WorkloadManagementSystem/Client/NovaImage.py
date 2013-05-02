@@ -83,6 +83,12 @@ class NovaImage:
       self.__errorStatus = "Can't find the siteName for endpoint %s" % self.__endpoint
       self.log.error( self.__errorStatus )
       return
+    # scheduling policy of the endpoint elastic/static
+    self.__vmPolicy = self.__getCSCloudEndpointOption( "vmPolicy" )
+    if not ( self.__vmPolicy == 'elastic' or self.__vmPolicy == 'static' ): 
+      self.__errorStatus = "Can't find valid vmPolicy (elastic/static) for endpoint %s" % self.__endpoint
+      self.log.error( self.__errorStatus )
+      return
     # CloudDriver to be passed to VM to match cloud manager depenadant operations
     self.__cloudDriver = self.__getCSCloudEndpointOption( "driver" )
     if not self.__cloudDriver:

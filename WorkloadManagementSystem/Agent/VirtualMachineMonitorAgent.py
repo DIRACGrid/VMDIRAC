@@ -226,9 +226,10 @@ class VirtualMachineMonitorAgent( AgentModule ):
     for entry in os.listdir( self.vmJobWrappersLocation ):
       entryPath = os.path.join( self.vmJobWrappersLocation, entry )
       if (entry.find( "jobAgent-" ) != -1):
-        self.log.info( "VM job wrappers path entry: %s" % entry )
-        for jobDir in os.listdir(entryPath):
-          nJ += 1
+        for jobAgentEntry in os.listdir(entryPath):
+          if (jobAgentEntry.find( ".jdl" ) != -1):
+            self.log.info( "VM job jdl %s found at: %s" % (jobAgentEntry, entryPath) )
+            nJ += 1
     return nJ
 
   def execute( self ):
@@ -274,10 +275,10 @@ class VirtualMachineMonitorAgent( AgentModule ):
       self.log.info( "Load average is %s (minimum for working instance is %s)" % ( avgLoad,
                                                                                   self.vmMinWorkingLoad ) )
       #current stop polices: elastic (load) and never
-      if self.vmStopPolicy = 'elastic':
+      if self.vmStopPolicy == 'elastic':
         #If load less than X, then halt!
           if avgLoad < self.vmMinWorkingLoad:
-          self.__haltInstance( avgLoad )
+            self.__haltInstance( avgLoad )
     return S_OK()
 
   def __processHeartBeatMessage( self, hbMsg ):

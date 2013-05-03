@@ -1,8 +1,12 @@
 [v0r7]
 NEW: endpoint vmPolicy "static" -> slots driven, indicated by maxEndpointInstances, endpoint CS parameter
      endpoint vmPolicy "elastic" -> jobs driven, one by one
+
 NEW: endpoint vmStopPolicy "never" 
      endpoint vmStopPolicy "elastic" -> no more jobs + VM halting margin time
+CHANGE: Both cases: VMs can be stoped from "Instances Overview" screen: VirtualMachineDB.py in function instanceIDHeartBeat:
+					 Send empty dir just in case we want to send flags (such as stop vm)
+TODO: The particular HEPiX method to ask VMs to shootdown from the IaaS site provider site (requirement to be specified by HEPiX)
 
 [v0r6]
 

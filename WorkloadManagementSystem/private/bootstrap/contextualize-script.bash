@@ -6,9 +6,9 @@
 # contextualization script to be run on the VM, after init.d proccess 
 
 
-if [ $# -ne 13 ]
+if [ $# -ne 14 ]
 then
-	echo "bash contextualize-script.bash  <uniqueId> <certfile> <keyfile> <runjobagent> <runvmmonitoragent> <runlogjobagent> <runlogvmmonitoragent> <cvmfscontextscript> <diraccontextscript> <cvmfshttpproxy> <sitename> <clouddriver> <cpuTime>"
+	echo "bash contextualize-script.bash  <uniqueId> <certfile> <keyfile> <runjobagent> <runvmmonitoragent> <runlogjobagent> <runlogvmmonitoragent> <cvmfscontextscript> <diraccontextscript> <cvmfshttpproxy> <sitename> <clouddriver> <cpuTime> <vmStopPolicy>"
 	exit 1
 fi
 
@@ -25,6 +25,7 @@ cvmfs_http_proxy=${10}
 siteName=${11}
 cloudDriver=${12}
 cpuTime=${13}
+vmStopPolicy=${14}
 
 localVmRunJobAgent=/root/run.job-agent
 localVmRunVmMonitorAgent=/root/run.vm-monitor-agent
@@ -48,6 +49,7 @@ echo "10 $cvmfs_http_proxy" >> /var/log/contextualize-script.log 2>&1
 echo "11 $siteName" >> /var/log/contextualize-script.log 2>&1
 echo "12 $cloudDriver" >> /var/log/contextualize-script.log 2>&1
 echo "13 $cpuTime" >> /var/log/contextualize-script.log 2>&1
+echo "14 $vmStopPolicy" >> /var/log/contextualize-script.log 2>&1
 
 #recording the uniqueId of the VM to be used by VM agents:
 echo ${uniqueId} > /etc/VMID
@@ -70,6 +72,6 @@ fi
 
 #3) Run the dirac contextualization script:    
 chmod u+x ${localDiracContextPath} >> /var/log/contextualize-script.log 2>&1
-bash ${localDiracContextPath} "${siteName}" "${vmCertPath}" "${vmKeyPath}" "${localVmRunJobAgent}" "${localVmRunVmMonitorAgent}" "${localVmRunLogJobAgent}" "${localVmRunLogVmMonitorAgent}" "${cloudDriver}" "${cpuTime}">> /var/log/contextualize-script.log 2>&1
+bash ${localDiracContextPath} "${siteName}" "${vmCertPath}" "${vmKeyPath}" "${localVmRunJobAgent}" "${localVmRunVmMonitorAgent}" "${localVmRunLogJobAgent}" "${localVmRunLogVmMonitorAgent}" "${cloudDriver}" "${cpuTime}" "${vmStopPolicy}">> /var/log/contextualize-script.log 2>&1
 
 exit 0

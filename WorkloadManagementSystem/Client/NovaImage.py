@@ -89,6 +89,12 @@ class NovaImage:
       self.__errorStatus = "Can't find valid vmPolicy (elastic/static) for endpoint %s" % self.__endpoint
       self.log.error( self.__errorStatus )
       return
+    # stoppage policy of the endpoint elastic/never
+    self.__vmStopPolicy = self.__getCSCloudEndpointOption( "vmStopPolicy" )
+    if not ( self.__vmStopPolicy == 'elastic' or self.__vmStopPolicy == 'never' ): 
+      self.__errorStatus = "Can't find valid vmStopPolicy (elastic/never) for endpoint %s" % self.__endpoint
+      self.log.error( self.__errorStatus )
+      return
     # CloudDriver to be passed to VM to match cloud manager depenadant operations
     self.__cloudDriver = self.__getCSCloudEndpointOption( "driver" )
     if not self.__cloudDriver:
@@ -218,7 +224,7 @@ class NovaImage:
     With ssh method, contextualization is asyncronous operation
     """
     if self.__contextMethod =='ssh':
-      request = self.__clinova.contextualize_VMInstance( uniqueId, public_ip, self.__contextMethod, self.__vmCertPath, self.__vmKeyPath, self.__vmContextualizeScriptPath, self.__vmRunJobAgentURL, self.__vmRunVmMonitorAgentURL, self.__vmRunLogJobAgentURL, self.__vmRunLogVmMonitorAgentURL, self.__vmCvmfsContextURL, self.__vmDiracContextURL , self.__cvmfs_http_proxy, self.__siteName, self.__cloudDriver, self.__cpuTime )
+      request = self.__clinova.contextualize_VMInstance( uniqueId, public_ip, self.__contextMethod, self.__vmCertPath, self.__vmKeyPath, self.__vmContextualizeScriptPath, self.__vmRunJobAgentURL, self.__vmRunVmMonitorAgentURL, self.__vmRunLogJobAgentURL, self.__vmRunLogVmMonitorAgentURL, self.__vmCvmfsContextURL, self.__vmDiracContextURL , self.__cvmfs_http_proxy, self.__siteName, self.__cloudDriver, self.__cpuTime, self.__vmStopPolicy )
       if request.returncode != 0:
         self.__errorStatus = "Can't contextualize VM id %s at endpoint %s: %s" % (uniqueId, self.__endpoint, request.stderr)
         self.log.error( self.__errorStatus )

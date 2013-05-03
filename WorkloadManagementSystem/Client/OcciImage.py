@@ -64,6 +64,12 @@ class OcciImage:
       self.__errorStatus = "Can't find valid vmPolicy (elastic/static) for endpoint %s" % self.__endpoint
       self.log.error( self.__errorStatus )
       return
+    # stoppage policy of the endpoint elastic/never
+    self.__vmStopPolicy = self.__getCSCloudEndpointOption( "vmStopPolicy" )
+    if not ( self.__vmStopPolicy == 'elastic' or self.__vmStopPolicy == 'never' ):
+      self.__errorStatus = "Can't find valid vmStopPolicy (elastic/never) for endpoint %s" % self.__endpoint
+      self.log.error( self.__errorStatus )
+      return
     # get the driver
     self.__cloudDriver = self.__getCSCloudEndpointOption( "driver" )
     if not self.__cloudDriver:
@@ -183,7 +189,7 @@ class OcciImage:
     if self.__errorStatus:
       return S_ERROR( self.__errorStatus )
     self.log.info( "Starting new instance for image (boot,hdc): %s,%s; to endpoint %s, and driver %s" % ( self.__bootImageName, self.__hdcImageName, self.__endpoint, self.__cloudDriver ) )
-    request = self.__cliocci.create_VMInstance( self.__bootImageName, self.__hdcImageName, instanceType, imageDriver, self.__bootOII, self.__hdcOII, self.__iface, self.__DNS1, self.__DNS2, self.__Domain, self.__CVMFS_HTTP_PROXY, self.__URLcontextfiles, self.__NetId, self.__siteName, self.__cloudDriver, self.__cpuTime)
+    request = self.__cliocci.create_VMInstance( self.__bootImageName, self.__hdcImageName, instanceType, imageDriver, self.__bootOII, self.__hdcOII, self.__iface, self.__DNS1, self.__DNS2, self.__Domain, self.__CVMFS_HTTP_PROXY, self.__URLcontextfiles, self.__NetId, self.__siteName, self.__cloudDriver, self.__cpuTime, self.__vmStopPolicy)
     if request.returncode != 0:
       self.__errorStatus = "Can't create instance for boot image (boot,hdc): %s/%s at server %s\n%s" % (self.__bootImageName, self.__hdcImageName, self.__occiURI, request.stdout)
       self.log.error( self.__errorStatus )

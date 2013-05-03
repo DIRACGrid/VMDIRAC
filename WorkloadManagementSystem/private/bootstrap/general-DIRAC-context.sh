@@ -6,9 +6,9 @@
 
         echo "Starting dirac-context-script.sh" > /var/log/dirac-context-script.log 2>&1
 
-if [ $# -ne 9 ]
+if [ $# -ne 10 ]
 then
-    echo "ERROR: general-DIRAC-context.bash <siteName> <putCertPath> <putKeyPath> <localVmRunJobAgent> <localVmRunVmMonitorAgent> <localVmRunLogJobAgent> <localVmRunLogVmMonitorAgent> <cloudDriver> <cpuTime>" > /var/log/dirac-context-script.log 2>&1
+    echo "ERROR: general-DIRAC-context.bash <siteName> <putCertPath> <putKeyPath> <localVmRunJobAgent> <localVmRunVmMonitorAgent> <localVmRunLogJobAgent> <localVmRunLogVmMonitorAgent> <cloudDriver> <cpuTime> <vmStopPolicy>" > /var/log/dirac-context-script.log 2>&1
     exit 1
 fi
 
@@ -21,6 +21,7 @@ localVmRunLogJobAgent=$6
 localVmRunLogVmMonitorAgent=$7
 cloudDriver=$8
 cpuTime=$9
+vmStopPolicy=$10
 
 
 # dirac user:
@@ -74,7 +75,7 @@ cpuTime=$9
         do
                 # multi-endpoint:
 		# FIX: CPUTime should be cloudenpoint parameter
-		su dirac -c"dirac-configure -UHdd -o /LocalSite/SubmitPool=Cloud -o /LocalSite/CPUTime=${cpuTime} -o /LocalSite/CloudDriver=${cloudDriver} -o /LocalSite/Site=${siteName} -o /LocalSite/CE=CE-nouse defaults-VMDIRAC.cfg"  >> /var/log/dirac-context-script.log 2>&1
+		su dirac -c"dirac-configure -UHdd -o /LocalSite/SubmitPool=Cloud -o /LocalSite/CPUTime=${cpuTime} -o /LocalSite/CloudDriver=${cloudDriver} -o /LocalSite/Site=${siteName}  -o /LocalSite/VMStopPolicy=${vmStopPolicy}  -o /LocalSite/CE=CE-nouse defaults-VMDIRAC.cfg"  >> /var/log/dirac-context-script.log 2>&1
 		# options H: SkipCAChecks, dd: debug level 2, U: UseServerCertificate 
 		# options only for debuging D: SkipCADownload
 		# after UseServerCertificate = yes for the configuration with CS

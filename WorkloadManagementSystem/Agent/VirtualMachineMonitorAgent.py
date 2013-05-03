@@ -175,6 +175,9 @@ class VirtualMachineMonitorAgent( AgentModule ):
         self.ipAddress = netData[ iface ][ 'ip' ]
         break
     self.log.info( "IP Address is %s" % self.ipAddress )
+    #getting the stoppage policy
+    self.vmStopPolicy = gConfig.getValue( "/LocalSite/VMStopPolicy", "" ).lower()
+    self.log.info( "vmStopPolicy is %s" % self.vmStopPolicy )
     #Declare instance running
     result = self.__declareInstanceRunning()
     if not result[ 'OK' ]:
@@ -270,9 +273,11 @@ class VirtualMachineMonitorAgent( AgentModule ):
     if avgRequiredSamples and uptime % self.haltPeriod + self.haltBeforeMargin > self.haltPeriod:
       self.log.info( "Load average is %s (minimum for working instance is %s)" % ( avgLoad,
                                                                                   self.vmMinWorkingLoad ) )
-      #If load less than X, then halt!
-      if avgLoad < self.vmMinWorkingLoad:
-        self.__haltInstance( avgLoad )
+      #current stop polices: elastic (load) and never
+      if self.vmStopPolicy = 'elastic':
+        #If load less than X, then halt!
+          if avgLoad < self.vmMinWorkingLoad:
+          self.__haltInstance( avgLoad )
     return S_OK()
 
   def __processHeartBeatMessage( self, hbMsg ):

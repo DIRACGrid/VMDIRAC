@@ -279,8 +279,10 @@ class VirtualMachineMonitorAgent( AgentModule ):
       if self.vmStopPolicy == 'elastic':
         #If load less than X, then halt!
           if avgLoad < self.vmMinWorkingLoad:
-            self.shutdownMessage = '200 ' + 'VM average load < VM Min WorkingLoad (' + str(avgLoad) + ' < ' + str(self.vmMinWorkingLoad) + ') VM Halt Before Margin: ' + str(self.haltBeforeMargin) + ' s.'
+            self.shutdownMessage = '200 ' + 'VM average load is ' + str(avgLoad) + ' (minimum average load for working VM is ' + str(self.vmMinWorkingLoad) + ') VM Halt Before Margin: ' + str(self.haltBeforeMargin) + ' s.'
             self.__haltInstance( avgLoad )
+      if self.vmStopPolicy == 'never':
+        self.log.info( "VM stoppage policy is defined to never (until SaaS or site request)")
     return S_OK()
 
   def __processHeartBeatMessage( self, hbMsg ):

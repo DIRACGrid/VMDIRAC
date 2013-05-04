@@ -182,6 +182,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
     result = self.__declareInstanceRunning()
     if not result[ 'OK' ]:
       self.log.error( "Could not declare instance running", result[ 'Message' ] )
+      self.shutdownMessage = '100 ' + 'Could not declare VM running. ' + result['Message']
       self.__haltInstance()
       return S_ERROR( "Halting!" )
     self.__instanceInfo = result[ 'Value' ]
@@ -278,6 +279,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
       if self.vmStopPolicy == 'elastic':
         #If load less than X, then halt!
           if avgLoad < self.vmMinWorkingLoad:
+            self.shutdownMessage = '200 ' + 'VM average load < VM Min WorkingLoad (' + str(avgLoad) + ' < ' + str(self.vmMinWorkingLoad) + ') VM Halt Before Margin: ' + str(self.haltBeforeMargin) + ' s.'
             self.__haltInstance( avgLoad )
     return S_OK()
 
@@ -299,6 +301,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
         except Exception, e:
           self.log.error( "Could not write stop agent file", stopFile )
     if 'halt' in hbMsg and hbMsg[ 'halt' ]:
+      self.shutdownMessage = '300' + 'Halt requested by SaaS application: VMDIRAC'
       self.__haltInstance()
 
   def __haltInstance( self, avgLoad = 0 ):
@@ -315,8 +318,20 @@ class VirtualMachineMonitorAgent( AgentModule ):
         self.log.info( "Sleeping for %d seconds and retrying" % sleepTime )
         time.sleep( sleepTime )
 
-    #time.sleep( sleepTime )
+    if 'MACHINEFEATURES' in os.environ:
+      try:
+        s = open(os.environ['MACHINEFEATURES']+'/shutdown_message_broadcast', 'r')
+          shutdown_message_broadcast = s.read().strip()
+          s.close()
+           
+         try:
+           os.system(shutdown_message_broadcast + ' ' + self.shutdownMessage)
+         except AttributeError:
+           os.system(shutdown_message_broadcast)
 
+      except:
+        self.log.info( "shutdown_message_broadcast exception" )
+        pass
 
     self.log.info( "Executing system halt..." )
     os.system( "halt" )

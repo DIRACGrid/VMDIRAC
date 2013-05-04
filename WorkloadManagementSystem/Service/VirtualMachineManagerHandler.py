@@ -8,6 +8,7 @@
     - declareInstanceRunning
     - instanceIDHeartBeat
     - declareInstanceHalting
+    - declareInstanceStopping
     - getInstancesByStatus
 
 """
@@ -140,36 +141,51 @@ class VirtualMachineManagerHandler( RequestHandler ):
     return res
     
 
+  types_declareInstanceStopping = [ StringType, FloatType ]
+  def export_declareInstanceStopping( self, instanceID ):
+    """
+    Declares "Stoppig" the instance because the Delete button of Browse Instances
+    The instanceID is the VMDIRAC VM id
+    When next instanceID heat beat with stoppig status on the DB the VM will stop the job agent and terminates ordenery
+    It returns S_ERROR if the status is not OK
+    """
+    result = gVirtualMachineDB.declareInstanceStopping( instanceID )
+    if not result[ 'OK' ]:
+      return S_ERROR()
+    self.__logResult( 'declareInstanceStopping', result )
+    return result
+
   types_declareInstanceHalting = [ StringType, FloatType ]
-  def export_declareInstanceHalting( self, vmId, load, cloudDriver ):
+  def export_declareInstanceHalting( self, uniqueID, load, cloudDriver ):
     """
     Insert the heart beat info from a halting instance
+    The VM has the uniqueID, which is the Cloud manager VM id
     Declares "Halted" the instance and the image 
     It returns S_ERROR if the status is not OK
     """
-    endpoint = gVirtualMachineDB.getEndpointFromInstance( vmId )
+    endpoint = gVirtualMachineDB.getEndpointFromInstance( uniqueID )
     if not endpoint[ 'OK' ]:
       self.__logResult( 'declareInstanceHalting', endpoint )
       return endpoint
     endpoint = endpoint[ 'Value' ]
 
-    result = gVirtualMachineDB.declareInstanceHalting( vmId, load )
+    result = gVirtualMachineDB.declareInstanceHalting( uniqueID, load )
     if not result[ 'OK' ]:
       self.__logResult( 'declareInstanceHalting', result )
       return result
     
     if ( cloudDriver == 'occi-0.9' or cloudDriver == 'occi-0.8' ):
-      imageName = gVirtualMachineDB.getImageNameFromInstance( vmId )
+      imageName = gVirtualMachineDB.getImageNameFromInstance( uniqueID )
       if not imageName[ 'OK' ]:
         self.__logResult( 'declareInstanceHalting', imageName )
         return imageName
       imageName = imageName[ 'Value' ]
 
       oima   = OcciImage( imageName, endpoint )
-      result = oima.stopInstance( vmId )
+      result = oima.stopInstance( uniqueID )
 
     elif cloudDriver == 'nova-1.1':
-      imageName = gVirtualMachineDB.getImageNameFromInstance( vmId )
+      imageName = gVirtualMachineDB.getImageNameFromInstance( uniqueID )
       if not imageName[ 'OK' ]:
         self.__logResult( 'declareInstanceHalting', imageName )
         return imageName
@@ -177,13 +193,13 @@ class VirtualMachineManagerHandler( RequestHandler ):
 
       nima = NovaImage( imageName, endpoint )
       
-      publicIP = gVirtualMachineDB.getPublicIpFromInstance ( vmId )
+      publicIP = gVirtualMachineDB.getPublicIpFromInstance ( uniqueID )
       if not publicIP[ 'OK' ]:
         self.__logResult( 'declareInstanceHalting', publicIP )
         return publicIP
       publicIP = publicIP[ 'Value' ]
       
-      result = nima.stopInstance( vmId, publicIP )
+      result = nima.stopInstance( uniqueID, publicIP )
 
     else:
       gLogger.warn( 'Unexpected cloud driver is %s' % cloudDriver )

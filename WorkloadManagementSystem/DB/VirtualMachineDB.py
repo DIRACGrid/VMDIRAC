@@ -17,8 +17,9 @@
   - Wait_ssh_context:     Declared by Director for submitted instance wich need later contextualization using ssh (VirtualMachineContextualization will check)
   - Contextualizing:     on the waith_ssh_context path is the next status before Running
   - Running:   Declared by VMMonitoring Server when an Instance reports back correctly (add LastUpdate, publicIP and privateIP)
+  - Stopping:  Declared by VMManager Server when an Instance has been deleted outside of the VM (f.e "Delete" button on Browse Instances)
   - Halted:    Declared by VMMonitoring Server when an Instance reports halting
-  - Stalled:   Declared by VMMonitoring Server when detects Instance no more running
+  - Stalled:   Declared by VMManager Server when detects Instance no more running
   - Error:     Declared by VMMonitoring Server when an Instance reports back wrong requirements or reports as running when Halted
 
   New Instances can be launched by Director if VMImage is not in Error Status.
@@ -43,7 +44,7 @@ class VirtualMachineDB( DB ):
   # When declaring a new Status, it will be set to Error if not in the list
   validImageStates    = [ 'New', 'Validated', 'Error' ]
   validInstanceStates = [ 'New', 'Submitted', 'Wait_ssh_context', 'Contextualizing', 
-                          'Running', 'Halted', 'Stalled', 'Error' ]
+                          'Running', 'Stoppig', 'Halted', 'Stalled', 'Error' ]
 
   # In seconds !
   stallingInterval = 30 * 60 
@@ -57,7 +58,8 @@ class VirtualMachineDB( DB ):
                                        'Submitted' : [ 'New' ],
                                        'Contextualizing' : [ 'Wait_ssh_context' ],
                                        'Running' : [ 'Submitted', 'Contextualizing', 'Running', 'Stalled' ],
-                                       'Halted' : [ 'Running', 'Stalled' ],
+                                       'Stopping' : [ 'New', 'Submitted', 'Contextualizing', 'Running', 'Stalled' ],
+                                       'Halted' : [ 'Running', 'Stopping' ],
                                        'Stalled': [ 'New', 'Submitted', 'Wait_ssh_context', 
                                                     'Contextualizing', 'Running' ],
                                       }
@@ -293,6 +295,18 @@ class VirtualMachineDB( DB ):
 
     return self.getAllInfoForUniqueID( uniqueID )
 
+  def declareInstanceStopping( self, instanceID, load ):
+    """
+    From "Delete" buttom of Browse Instance
+    Declares "Stopping" the instance, next heat-beat from VM will recibe a stop response to do an ordenate termination 
+    It returns S_ERROR if the status is not OK
+    """
+    status = self.__setState( 'Instance', instanceID, 'Stopping' )
+    if status[ 'OK' ]:
+      self.__addInstanceHistory( instanceID, 'Stopping' )
+
+    return status
+
   def declareInstanceHalting( self, uniqueID, load ):
     """
     Insert the heart beat info from a halting instance
@@ -354,7 +368,8 @@ class VirtualMachineDB( DB ):
 
     self.__setLastLoadJobsAndUptime( instanceID, load, jobs, uptime )
 
-    #TODO: Send empty dir just in case we want to send flags (such as stop vm)
+    if status == 'Stopping':
+      return S_OK( {'stop'} )
     return S_OK( {} )
 
   def getPublicIpFromInstance( self, uniqueId ):

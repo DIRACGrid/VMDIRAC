@@ -78,7 +78,7 @@ class VirtualMachineDB( DB ):
                                           }
                              }
 
-  tablesDesc[ 'vm_Instances' ] = { 'Fields' : { 'VMInstanceID' : 'BIGINT UNSIGNED AUTO_INCREMENT NOT NULL',
+  tablesDesc[ 'vm_Instances' ] = { 'Fields' : { 'InstanceID' : 'BIGINT UNSIGNED AUTO_INCREMENT NOT NULL',
                                                 'Name' : 'VARCHAR(255) NOT NULL',
                                                 'Endpoint' : 'VARCHAR(32) NOT NULL',
                                                 'UniqueID' : 'VARCHAR(64) NOT NULL DEFAULT ""',
@@ -93,11 +93,11 @@ class VirtualMachineDB( DB ):
                                                 'Load' : 'FLOAT DEFAULT 0',
                                                 'Jobs' : 'INTEGER UNSIGNED NOT NULL DEFAULT 0'
                                              },
-                                   'PrimaryKey' : 'VMInstanceID',
+                                   'PrimaryKey' : 'InstanceID',
                                    'Indexes': { 'Status': [ 'Status' ] },
                                  }
 
-  tablesDesc[ 'vm_History' ] = { 'Fields' : { 'VMInstanceID' : 'INTEGER UNSIGNED NOT NULL',
+  tablesDesc[ 'vm_History' ] = { 'Fields' : { 'InstanceID' : 'INTEGER UNSIGNED NOT NULL',
                                               'Status' : 'VARCHAR(32) NOT NULL',
                                               'Load' : 'FLOAT NOT NULL',
                                               'Jobs' : 'INTEGER UNSIGNED NOT NULL DEFAULT 0',
@@ -105,7 +105,7 @@ class VirtualMachineDB( DB ):
                                               'TransferredBytes' : 'BIGINT UNSIGNED NOT NULL DEFAULT 0',
                                               'Update' : 'DATETIME'
                                             },
-                                 'Indexes': { 'VMInstanceID': [ 'VMInstanceID' ] },
+                                 'Indexes': { 'InstanceID': [ 'InstanceID' ] },
                                }
 
 
@@ -150,7 +150,7 @@ class VirtualMachineDB( DB ):
     elif element == 'Instance':
       tableName   = 'vm_Instances'
       validStates = self.validInstanceStates
-      idName      = 'VMInstanceID'
+      idName      = 'InstanceID'
 
     return ( tableName, validStates, idName )
 
@@ -800,7 +800,7 @@ class VirtualMachineDB( DB ):
     except ValueError:
       return S_ERROR( "Transferred files has to be an integer value" )
 
-    self._insert( 'vm_History' , [ 'VMInstanceID', 'Status', 'Load',
+    self._insert( 'vm_History' , [ 'InstanceID', 'Status', 'Load',
                                    'Update', 'Jobs', 'TransferredFiles',
                                    'TransferredBytes' ],
                                  [ instanceID, status, load,
@@ -810,11 +810,11 @@ class VirtualMachineDB( DB ):
 
   def __setLastLoadJobsAndUptime( self, instanceID, load, jobs, uptime ):
     if not uptime:
-      sqlQuery = "SELECT MAX( UNIX_TIMESTAMP( `Update` ) ) - MIN( UNIX_TIMESTAMP( `Update` ) ) FROM `vm_History` WHERE VMInstanceID = %d GROUP BY VMInstanceID" % instanceID
+      sqlQuery = "SELECT MAX( UNIX_TIMESTAMP( `Update` ) ) - MIN( UNIX_TIMESTAMP( `Update` ) ) FROM `vm_History` WHERE InstanceID = %d GROUP BY InstanceID" % instanceID
       result = self._query( sqlQuery )
       if result[ 'OK' ] and len( result[ 'Value' ] ) > 0:
         uptime = int( result[ 'Value' ][0][0] )
-    sqlUpdate = "UPDATE `vm_Instances` SET `Uptime` = %d, `Jobs`= %d, `Load` = %f WHERE `VMInstanceID` = %d" % ( uptime,
+    sqlUpdate = "UPDATE `vm_Instances` SET `Uptime` = %d, `Jobs`= %d, `Load` = %f WHERE `InstanceID` = %d" % ( uptime,
                                                                                                      jobs,
                                                                                                      load,
                                                                                                      instanceID )
@@ -896,7 +896,7 @@ class VirtualMachineDB( DB ):
     #Main fields
     tables = ( "`vm_Images` AS img", "`vm_Instances` AS inst" )
     imageFields = ( 'VMImageID', 'Name', 'CloudEndpoints' )
-    instanceFields = ( 'VMInstanceID', 'Name', 'UniqueID', 'VMImageID',
+    instanceFields = ( 'InstanceID', 'Name', 'UniqueID', 'VMImageID',
                        'Status', 'PublicIP', 'Status', 'ErrorMessage', 'LastUpdate', 'Load', 'Uptime', 'Jobs' )
 
     fields = [ 'img.%s' % f for f in imageFields ] + [ 'inst.%s' % f for f in instanceFields ]
@@ -944,7 +944,7 @@ class VirtualMachineDB( DB ):
       record = list( record )
       data.append( record )
     totalRecords = len( data )
-    sqlQuery = "SELECT COUNT( VMInstanceID ) FROM %s WHERE %s" % ( ", ".join( tables ),
+    sqlQuery = "SELECT COUNT( InstanceID ) FROM %s WHERE %s" % ( ", ".join( tables ),
                                                                    " AND ".join( sqlCond ) )
     retVal = self._query( sqlQuery )
     if retVal[ 'OK' ]:
@@ -963,7 +963,7 @@ class VirtualMachineDB( DB ):
     fields    = ( 'Status', 'Load', 'Update', 'Jobs', 'TransferredFiles', 'TransferredBytes' )
     sqlFields = [ '`%s`' % f for f in fields ]
     
-    sqlQuery = "SELECT %s FROM `vm_History` WHERE VMInstanceId=%d" % ( ", ".join( sqlFields ), instanceId )
+    sqlQuery = "SELECT %s FROM `vm_History` WHERE InstanceId=%d" % ( ", ".join( sqlFields ), instanceId )
     retVal = self._query( sqlQuery )
     if not retVal[ 'OK' ]:
       return retVal
@@ -1016,14 +1016,14 @@ class VirtualMachineDB( DB ):
       return S_ERROR( "Average bucket has to be an integer" )
     
     sqlGroup = "FROM_UNIXTIME(UNIX_TIMESTAMP( `Update` ) - UNIX_TIMESTAMP( `Update` ) mod %d)" % bucketSize
-    sqlFields = [ '`VMInstanceID`', sqlGroup ] #+ [ "SUM(`%s`)/COUNT(`%s`)" % ( f, f ) for f in fields2Get ]
+    sqlFields = [ '`InstanceID`', sqlGroup ] #+ [ "SUM(`%s`)/COUNT(`%s`)" % ( f, f ) for f in fields2Get ]
     for field in fields2Get:
       if field in cumulativeFields:
         sqlFields.append( "MAX(`%s`)" % field )
       else:
         sqlFields.append( "SUM(`%s`)/COUNT(`%s`)" % ( field, field ) )
 
-    sqlGroup    = "%s, VMInstanceID" % sqlGroup
+    sqlGroup    = "%s, InstanceID" % sqlGroup
     paramFields = [ 'Update' ] + fields2Get
     sqlCond     = []
     
@@ -1129,7 +1129,7 @@ class VirtualMachineDB( DB ):
       return S_ERROR( "Timespan has to be an integer" )
 
     groupby   = "FROM_UNIXTIME(UNIX_TIMESTAMP( `Update` ) - UNIX_TIMESTAMP( `Update` ) mod %d )" % bucketSize
-    sqlFields = [ groupby, "COUNT( DISTINCT( `VMInstanceID` ) )" ]
+    sqlFields = [ groupby, "COUNT( DISTINCT( `InstanceID` ) )" ]
     sqlQuery  = "SELECT %s FROM `vm_History`" % ", ".join( sqlFields )
     sqlCond   = [ "`Status` = 'Running'" ]
     
@@ -1151,9 +1151,9 @@ class VirtualMachineDB( DB ):
       return S_ERROR( "Timespan has to be an integer" )
 
     groupby   = "FROM_UNIXTIME(UNIX_TIMESTAMP( h.`Update` ) - UNIX_TIMESTAMP( h.`Update` ) mod %d )" % bucketSize
-    sqlFields = [ groupby, " i.Endpoint, COUNT( DISTINCT( h.`VMInstanceID` ) ) " ]
+    sqlFields = [ groupby, " i.Endpoint, COUNT( DISTINCT( h.`InstanceID` ) ) " ]
     sqlQuery  = "SELECT %s FROM `vm_History` h, `vm_Instances` i" % ", ".join( sqlFields )
-    sqlCond   = [ " h.VMInstanceID = i.VMInstanceID AND h.`Status` = 'Running'" ]
+    sqlCond   = [ " h.InstanceID = i.InstanceID AND h.`Status` = 'Running'" ]
     
     if timespan > 0:
       sqlCond.append( "TIMESTAMPDIFF( SECOND, `Update`, UTC_TIMESTAMP() ) < %d" % timespan )

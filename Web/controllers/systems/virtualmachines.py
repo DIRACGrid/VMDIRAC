@@ -84,7 +84,7 @@ class VirtualmachinesController( BaseController ):
     try:
       instanceID = int( request.params[ 'instanceID' ] )
     except:
-      return S_ERROR( "OOps, instance ID has to be an integer" )
+      return S_ERROR( "OOps, instance ID has to be an integer " )
     rpcClient = getRPCClient( "WorkloadManagement/VirtualMachineManager" )
     result = rpcClient.getHistoryForInstanceID( instanceID )
     if not result[ 'OK' ]:
@@ -187,3 +187,17 @@ class VirtualmachinesController( BaseController ):
         rL = [ eTime, record[1], int( record[2] ) ]
       data.append( rL )
     return S_OK( data )
+
+  @jsonify
+  def deleteInstances(self):
+    try:
+      webIds = simplejson.loads( str( request.params[ 'idList' ] ) )
+    except Exception, e:
+      print e
+      return S_ERROR( "Oops! Couldn't understand the request" )
+    for VMinstanceID in webIds:
+      rpcClient = getRPCClient( "WorkloadManagement/VirtualMachineManager" )
+      result = rpcClient.declareInstanceStopping( VMinstanceID )
+      if not result[ 'OK' ]:
+        return result
+    return result

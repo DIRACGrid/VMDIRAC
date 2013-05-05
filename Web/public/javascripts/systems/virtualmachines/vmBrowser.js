@@ -65,7 +65,7 @@ function generateBrowseGrid( config )
    				{ handler:function(){ toggleAll(true) }, text:'Select all', width:150, tooltip:'Click to select all rows' },
    				{ handler:function(){ toggleAll(false) }, text:'Select none', width:150, tooltip:'Click to select all rows' },
    				'->',
-  	    			{ handler:function(){ cbDeleteSelected() }, text:'Delete', width:150, tooltip:'Click to delete all selected VMs' },
+  	    			{ handler:function(){ cbStopSelected() }, text:'Stop', width:150, tooltip:'Click to stop all selected VMs' },
       	],
       	bbar: new Ext.PagingToolbar({
 					pageSize: 50,
@@ -204,7 +204,7 @@ function createNumItemsSelector(){
 function createStatusSelector(){
 	var store = new Ext.data.SimpleStore({
 		fields:['status'],
-		data:[['All'],['New'],['Submitted'],['Running'],['Halted'],['Stalled'],['Error']]
+		data:[['All'],['New'],['Submitted'],['Wait_ssh_context'],['Contextualizing'],['Running'],['Halted'],['Stalled'],['Stopping']]
 	});
 	var combo = new Ext.form.ComboBox({
 		allowBlank:false,
@@ -252,22 +252,22 @@ function cbShowVMHistory( a,b,c )
 }
 
 /*
- *  Using old delete for VMs deletion (vmStopPolicy=never):
+ *  Using old delete for VMs stoppage (mandative for stoping when vmStopPolicy=never, optional if vmStopPolocy=elastic):
  */
 
-function cbDeleteSelected()
+function cbStopSelected()
 {
 	var selIds = getSelectedCheckboxes()
-	if( window.confirm( "Are you sure you want to delete selected Virtual Machine instances?" ) )
+	if( window.confirm( "Are you sure you want to stop selected Virtual Machines?" ) )
 		Ext.Ajax.request({
-			url : "deleteInstances",
-			success : ajaxCBServerDeleteSelected,
+			url : "stopInstances",
+			success : ajaxCBServerStopSelected,
 			failure : ajaxFailure,
 			params : { idList : Ext.util.JSON.encode( selIds ) },
 		});
 }
 
-function ajaxCBServerDeleteSelected( ajaxResponse, reqArguments )
+function ajaxCBServerStopSelected( ajaxResponse, reqArguments )
 {
 	var retVal = Ext.util.JSON.decode( ajaxResponse.responseText );
 	if( ! retVal.OK )
@@ -275,7 +275,7 @@ function ajaxCBServerDeleteSelected( ajaxResponse, reqArguments )
 		alert( "Failed to delete VM instances: " + retVal.Message );
 	}
 	else
-		alert( "Deleted " + retVal.Value + " VM instances" );
+		alert( "Stopped " + retVal.Value + " VM instances" );
 	gMainGrid.getStore().reload();
 }
 

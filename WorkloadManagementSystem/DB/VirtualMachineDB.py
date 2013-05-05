@@ -369,7 +369,7 @@ class VirtualMachineDB( DB ):
     self.__setLastLoadJobsAndUptime( instanceID, load, jobs, uptime )
 
     if status == 'Stopping':
-      return S_OK( {'stop'} )
+      return S_OK( { 'Value': 'stop' } )
     return S_OK( {} )
 
   def getPublicIpFromInstance( self, uniqueId ):

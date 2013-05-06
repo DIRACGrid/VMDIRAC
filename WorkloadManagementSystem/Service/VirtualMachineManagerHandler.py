@@ -9,7 +9,7 @@
     - instanceIDHeartBeat
     - declareInstanceHalting
     - getInstancesByStatus
-    - declareInstanceStopping
+    - declareInstancesStopping
 
 """
 
@@ -140,18 +140,18 @@ class VirtualMachineManagerHandler( RequestHandler ):
     
     return res
     
-  types_declareInstanceStopping = [ StringType, FloatType ]
-  def export_declareInstanceStopping( self, instanceID ):
+  types_declareInstancesStopping = [ ListType ]
+  def export_declareInstancesStopping( self, instanceIdList ):
     """
     Declares "Stoppig" the instance because the Delete button of Browse Instances
     The instanceID is the VMDIRAC VM id
     When next instanceID heat beat with stoppig status on the DB the VM will stop the job agent and terminates ordenery
     It returns S_ERROR if the status is not OK
     """
-    result = gVirtualMachineDB.declareInstanceStopping( instanceID )
-    if not result[ 'OK' ]:
-      return S_ERROR()
-    self.__logResult( 'declareInstanceStopping', result )
+    gLogger.info( 'Stopping instanceIdList: %s' % ( instanceIdList ) )  
+    for instanceID in instanceIdList:
+      result = gVirtualMachineDB.declareInstanceStopping( instanceID )
+      self.__logResult( 'declareInstancesStopping: ', result )
     return result
 
   types_declareInstanceHalting = [ StringType, FloatType ]

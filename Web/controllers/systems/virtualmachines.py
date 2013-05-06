@@ -187,17 +187,15 @@ class VirtualmachinesController( BaseController ):
       data.append( rL )
     return S_OK( data )
 
+
   @jsonify
-  def stopInstances( self ):
+  def declareInstancesStopping( self ):
     try:
-      #webIds = simplejson.loads( str( request.params[ 'idList' ] ) )
-      webIds = str( request.params[ 'idList' ] ) 
+      webIds = simplejson.loads( request.params[ 'idList' ] ) 
     except Exception, e:
       print e
       return S_ERROR( "Oops! Couldn't understand the request" )
-    for instanceID in webIds:
-      rpcClient = getRPCClient( "WorkloadManagement/VirtualMachineManager" )
-      result = rpcClient.declareInstanceStopping( instanceID )
-      if not result[ 'OK' ]:
-        return result
+    rpcClient = getRPCClient( "WorkloadManagement/VirtualMachineManager" )
+    result = rpcClient.declareInstancesStopping( webIds )
     return result
+

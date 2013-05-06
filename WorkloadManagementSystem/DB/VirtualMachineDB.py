@@ -295,9 +295,9 @@ class VirtualMachineDB( DB ):
 
     return self.getAllInfoForUniqueID( uniqueID )
 
-  def declareInstanceStopping( self, instanceID, load ):
+  def declareInstanceStopping( self, instanceID ):
     """
-    From "Delete" buttom of Browse Instance
+    From "Stop" buttom of Browse Instance
     Declares "Stopping" the instance, next heat-beat from VM will recibe a stop response to do an ordenate termination 
     It returns S_ERROR if the status is not OK
     """

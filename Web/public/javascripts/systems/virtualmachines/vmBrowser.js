@@ -252,33 +252,24 @@ function cbShowVMHistory( a,b,c )
 }
 
 /*
- *  Using old delete for VMs stoppage (mandative for stoping when vmStopPolicy=never, optional if vmStopPolocy=elastic):
+ *  Stopping VMs (stopping mandative management when vmStopPolicy=never, optional if vmStopPolocy=elastic):
  */
+
 
 function cbStopSelected()
 {
 	var selIds = getSelectedCheckboxes();
 	if( window.confirm( "Are you sure you want to stop selected Virtual Machines?" ) )
 		Ext.Ajax.request({
-			url : "declareInstanceStopping",
+			url : "declareInstancesStopping",
 			success : ajaxCBServerStopSelected,
 			failure : ajaxFailure,
-			params : { idList : selIds },
-/*
-			params : { idList : Ext.util.JSON.encode( selIds ) },
-*/
+			params : { idList : Ext.util.JSON.encode( selIds ) }
 		});
 }
 
 function ajaxCBServerStopSelected( ajaxResponse, reqArguments )
 {
-	var retVal = Ext.util.JSON.decode( ajaxResponse.responseText );
-	if( ! retVal.OK )
-	{
-		alert( "Failed to delete VM instances: " + retVal.Message );
-	}
-	else
-		alert( "Stopped " + retVal.Value + " VM instances" );
 	gMainGrid.getStore().reload();
 }
 

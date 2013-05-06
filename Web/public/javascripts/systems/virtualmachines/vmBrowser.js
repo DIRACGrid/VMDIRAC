@@ -52,7 +52,7 @@ function generateBrowseGrid( config )
             { header: "Image", width: 150, sortable: true, dataIndex: 'img_Name'},
             { header: "EndPoint", width: 100, sortable: true, dataIndex: 'img_CloudEndpoints'},
             { header: "Status", width: 100, sortable: true, dataIndex: 'inst_Status'},
-            { header: "Endpoint ID", width: 220, sortable: true, dataIndex: 'inst_UniqueID'},
+            { header: "Endpoint VM ID", width: 220, sortable: true, dataIndex: 'inst_UniqueID'},
             { header: "IP", width: 100, sortable: true, dataIndex: 'inst_PublicIP'},
             { header: "Load", width: 50, sortable: true, dataIndex: 'inst_Load', renderer : renderLoad },
             { header: "Uptime", width: 75, sortable: true, dataIndex: 'inst_Uptime', renderer : renderUptime },
@@ -257,13 +257,16 @@ function cbShowVMHistory( a,b,c )
 
 function cbStopSelected()
 {
-	var selIds = getSelectedCheckboxes()
+	var selIds = getSelectedCheckboxes();
 	if( window.confirm( "Are you sure you want to stop selected Virtual Machines?" ) )
 		Ext.Ajax.request({
-			url : "stopInstances",
+			url : "declareInstanceStopping",
 			success : ajaxCBServerStopSelected,
 			failure : ajaxFailure,
+			params : { idList : selIds },
+/*
 			params : { idList : Ext.util.JSON.encode( selIds ) },
+*/
 		});
 }
 

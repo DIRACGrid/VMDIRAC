@@ -163,7 +163,6 @@ class VirtualmachinesController( BaseController ):
       data.append( rL )
     return S_OK( data )
 
-
   @jsonify
   def getRunningInstancesBEPHistory( self ):
     try:
@@ -189,9 +188,10 @@ class VirtualmachinesController( BaseController ):
     return S_OK( data )
 
   @jsonify
-  def stopInstances(self):
+  def stopInstances( self ):
     try:
-      webIds = simplejson.loads( str( request.params[ 'idList' ] ) )
+      #webIds = simplejson.loads( str( request.params[ 'idList' ] ) )
+      webIds = str( request.params[ 'idList' ] ) 
     except Exception, e:
       print e
       return S_ERROR( "Oops! Couldn't understand the request" )

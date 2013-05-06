@@ -8,8 +8,8 @@
     - declareInstanceRunning
     - instanceIDHeartBeat
     - declareInstanceHalting
-    - declareInstanceStopping
     - getInstancesByStatus
+    - declareInstanceStopping
 
 """
 
@@ -140,7 +140,6 @@ class VirtualMachineManagerHandler( RequestHandler ):
     
     return res
     
-
   types_declareInstanceStopping = [ StringType, FloatType ]
   def export_declareInstanceStopping( self, instanceID ):
     """

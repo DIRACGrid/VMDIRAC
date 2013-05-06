@@ -148,8 +148,8 @@ class VirtualMachineManagerHandler( RequestHandler ):
     When next instanceID heat beat with stoppig status on the DB the VM will stop the job agent and terminates ordenery
     It returns S_ERROR if the status is not OK
     """
-    gLogger.info( 'Stopping instanceIdList: %s' % ( instanceIdList ) )  
     for instanceID in instanceIdList:
+      gLogger.info( 'Stopping DIRAC instanceID: %s' % ( instanceID ) )  
       result = gVirtualMachineDB.declareInstanceStopping( instanceID )
       self.__logResult( 'declareInstancesStopping: ', result )
     return result

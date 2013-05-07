@@ -85,7 +85,7 @@ class NovaImage:
       
     return result
    
-  def startNewInstance( self ):
+  def startNewInstance( self, vmdiracInstanceID ):
     """
     Once the connection is stablished using the `connectNova` method, we can boot
     nodes. To do so, the config in __imageConfig and __novaConfig applied to
@@ -96,7 +96,7 @@ class NovaImage:
     
     self.log.info( "Booting %s / %s" % ( self.__imageConfig.config()[ 'bootImageName' ],
                                          self.__novaConfig.config()[ 'ex_force_auth_url' ] ) )
-    result = self.__clinova.create_VMInstance()
+    result = self.__clinova.create_VMInstance( vmdiracInstanceID )
 
     if not result[ 'OK' ]:
       self.log.error( "startNewInstance" )

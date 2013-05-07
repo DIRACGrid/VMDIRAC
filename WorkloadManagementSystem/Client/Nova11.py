@@ -128,7 +128,7 @@ class NovaClient:
       **flavorName** - `string`
         flavorName as stored on the OpenStack service
       
-    :return: S_OK( image ) | S_ERROR
+    :return: S_OK( flavor ) | S_ERROR
     """
     
     try:
@@ -138,6 +138,33 @@ class NovaClient:
       return S_ERROR( errmsg )
       
     return S_OK( [ flavor for flavor in flavors if flavor.name == flavorName ][ 0 ] )   
+
+  def get_security_groups( self, securityGroupNames ):
+    """
+    Given the securityGroupName, returns the current security group object from the server. 
+    
+    :Parameters:
+      **securityGroupName** - `string`
+        securityGroupName as stored on the OpenStack service
+      
+    :return: S_OK( securityGroup ) | S_ERROR
+    """
+    
+    if not securityGroupNames:
+      securityGroupNames = []
+    elif not isinstance( securityGroupNames, list ):
+      securityGroupNames = [ securityGroupNames ] 
+
+    if not 'default' in securityGroupNames:
+      securityGroupNames.append( 'default' )
+
+    try:
+      secGroups = self.__driver.ex_list_security_groups()
+      # the libcloud library, throws Exception. Nothing to do.
+    except Exception, errmsg:
+      return S_ERROR( errmsg )
+      
+    return S_OK( [ secGroup for secGroup in secGroups if secGroup.name in securityGroupNames ] )   
 
   def create_VMInstance( self, vmdiracInstanceID = None ):
     """
@@ -166,6 +193,7 @@ class NovaClient:
     # Optional node contextualization parameters
     keyname  = self.imageConfig[ 'contextConfig' ].get( 'ex_keyname' , None )
     userdata = self.imageConfig[ 'contextConfig' ].get( 'ex_userdata', None )
+    secGroup = self.imageConfig[ 'contextConfig' ].get( 'ex_security_groups', None )
     metadata = self.imageConfig[ 'contextConfig' ].get( 'ex_metadata', {} )
     
     if userdata is not None:
@@ -187,6 +215,12 @@ class NovaClient:
       return flavor
     flavor = flavor[ 'Value' ]
     
+    secGroupRes = self.get_security_groups( secGroup )
+    if not secGroupRes[ 'OK' ]:
+      self.log.error( secGroupRes[ 'Message' ] )
+      return secGroupRes
+    secGroup = secGroupRes[ 'Value' ]
+          
     #FIXME: change the VM name, we want to know which version of contextualization
     #vm_name = ( bootImageName + '-' + contextMethod + '-' + str( time.time() )[0:10] ).replace( '_', '-' ) 
     vm_name = contextMethod + str( time.time() )[0:10]
@@ -200,12 +234,13 @@ class NovaClient:
     self.log.verbose( "ex_metadata : %s" % metadata )
 
     try:
-      vmNode = self.__driver.create_node( name        = vm_name, 
-                                          image       = bootImage, 
-                                          size        = flavor,
-                                          ex_keyname  = keyname,
-                                          ex_userdata = userdata,
-                                          ex_metadata = metadata )
+      vmNode = self.__driver.create_node( name               = vm_name, 
+                                          image              = bootImage, 
+                                          size               = flavor,
+                                          ex_keyname         = keyname,
+                                          ex_userdata        = userdata,
+                                          ex_security_groups = secGroup,
+                                          ex_metadata        = metadata )
       # the libcloud library, throws Exception. Nothing to do.
     except Exception, errmsg:
       return S_ERROR( errmsg )

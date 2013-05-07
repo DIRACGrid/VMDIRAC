@@ -58,7 +58,7 @@ class VirtualMachineDB( DB ):
                                        'Submitted' : [ 'New' ],
                                        'Contextualizing' : [ 'Wait_ssh_context' ],
                                        'Running' : [ 'Submitted', 'Contextualizing', 'Running', 'Stalled' ],
-                                       'Stopping' : [ 'New', 'Submitted', 'Contextualizing', 'Running', 'Stalled' ],
+                                       'Stopping' : [ 'Running', 'Stalled' ],
                                        'Halted' : [ 'Running', 'Stopping' ],
                                        'Stalled': [ 'New', 'Submitted', 'Wait_ssh_context', 
                                                     'Contextualizing', 'Running' ],
@@ -209,6 +209,22 @@ class VirtualMachineDB( DB ):
     sqlUpdate = "UPDATE `%s` SET UniqueID = %s WHERE %s = %d" % ( tableName, uniqueID, idName, instanceID )
     return self._update( sqlUpdate )
 
+  def getUniqueID( self, instanceID ):
+    """
+    For a given dirac instanceID get the corresponding cloud endpoint uniqueID
+    """
+    tableName, _validStates, idName = self.__getTypeTuple( 'Instance' )
+    
+    uniqueID = self._getFields( tableName, [ 'UniqueID' ], [ 'InstanceID' ], [ instanceID ] )
+    if not uniqueID[ 'OK' ]:
+      return uniqueID
+    uniqueID = uniqueID[ 'Value' ]
+
+    if not uniqueID:
+      return S_ERROR( 'Unknown %s = %s' % ( 'InstanceID', instanceID ) )
+
+    return S_OK( uniqueID )
+
   def declareInstanceSubmitted( self, uniqueID ):
     """
     After submission of the instance the Director should declare the submitted Status
@@ -306,6 +322,27 @@ class VirtualMachineDB( DB ):
       self.__addInstanceHistory( instanceID, 'Stopping' )
 
     return status
+
+  def getInstanceStatus( self, instanceID ):
+    """
+    By dirac instanceID
+    """
+    tableName, validStates, idName = self.__getTypeTuple( 'Instance' )
+    if not tableName:
+      return S_ERROR( 'Unknown DB object Instance' )
+
+    ret = self._getFields( tableName, [ 'Status' ], [ 'InstanceID' ], [ instanceID ] )
+    if not ret[ 'OK' ]:
+      return ret
+
+    if not ret[ 'Value' ]:
+      return S_ERROR( 'Unknown InstanceID = %s' % ( instanceID ) )
+
+    status = ret[ 'Value' ]
+    if not status in validStates:
+      return self.__setError( 'Instances', instanceID, 'Invalid Status: %s' % status )
+
+    return S_OK( status )
 
   def declareInstanceHalting( self, uniqueID, load ):
     """

@@ -150,7 +150,27 @@ class VirtualMachineManagerHandler( RequestHandler ):
     """
     for instanceID in instanceIdList:
       gLogger.info( 'Stopping DIRAC instanceID: %s' % ( instanceID ) )  
-      result = gVirtualMachineDB.declareInstanceStopping( instanceID )
+      result = gVirtualMachineDB.getInstanceStatus( instanceID )
+      if not result[ 'OK' ]:
+        self.__logResult( 'declareInstancesStopping ', result )
+        return result
+      status = result[ 'Value' ]
+      if status == 'Stalled': 
+        result = gVirtualMachineDB.getUniqueID( instanceID )
+        if not result[ 'OK' ]:
+          self.__logResult( 'declareInstancesStopping ', result )
+          return result
+        uniqueID = result [ 'Value' ]
+        result = gVirtualMachineDB.getEndpointFromInstance( uniqueID )
+        if not result[ 'OK' ]:
+          self.__logResult( 'declareInstancesStopping ', result )
+          return result
+        endpoint = result [ 'Value' ]
+        cloudDriver = gConfig.getValue( "/Resources/VirtualMachines/CloudEnpoints/%s/%s" % ( endpoint, 'driver' ), "" )
+        result = gVirtualMachineDB.declareInstanceHalting( uniqueID, 0, cloudDriver )
+      else:
+        # this is only aplied to Running, while the rest of trasitions are not allowed and declareInstanceStopping do nothing
+        result = gVirtualMachineDB.declareInstanceStopping( instanceID )
       self.__logResult( 'declareInstancesStopping: ', result )
     return result
 

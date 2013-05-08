@@ -16,7 +16,7 @@
 from types import DictType, FloatType, IntType, ListType, LongType, StringType, TupleType, UnicodeType
 
 # DIRAC
-from DIRAC                                import gLogger, S_ERROR, S_OK
+from DIRAC                                import gConfig, gLogger, S_ERROR, S_OK
 from DIRAC.Core.DISET.RequestHandler      import RequestHandler
 from DIRAC.Core.Utilities.ThreadScheduler import gThreadScheduler
 
@@ -152,26 +152,30 @@ class VirtualMachineManagerHandler( RequestHandler ):
       gLogger.info( 'Stopping DIRAC instanceID: %s' % ( instanceID ) )  
       result = gVirtualMachineDB.getInstanceStatus( instanceID )
       if not result[ 'OK' ]:
-        self.__logResult( 'declareInstancesStopping ', result )
+        self.__logResult( 'declareInstancesStopping on getInstanceStatus call: ', result )
         return result
-      status = result[ 'Value' ]
-      if status == 'Stalled': 
+      state = result[ 'Value' ]
+      gLogger.info( 'Stopping DIRAC instanceID: %s, current state %s' % ( instanceID, state ) )  
+      if state == 'Stalled': 
         result = gVirtualMachineDB.getUniqueID( instanceID )
         if not result[ 'OK' ]:
-          self.__logResult( 'declareInstancesStopping ', result )
+          self.__logResult( 'declareInstancesStopping on getUniqueID call: ', result )
           return result
         uniqueID = result [ 'Value' ]
         result = gVirtualMachineDB.getEndpointFromInstance( uniqueID )
         if not result[ 'OK' ]:
-          self.__logResult( 'declareInstancesStopping ', result )
+          self.__logResult( 'declareInstancesStopping on getEndpointFromInstance call: ', result )
           return result
         endpoint = result [ 'Value' ]
-        cloudDriver = gConfig.getValue( "/Resources/VirtualMachines/CloudEnpoints/%s/%s" % ( endpoint, 'driver' ), "" )
-        result = gVirtualMachineDB.declareInstanceHalting( uniqueID, 0, cloudDriver )
+        cloudDriver = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, "driver" ) )
+        if not cloudDriver:
+          msg = 'Cloud not found driver option in the Endpoint %s value %s' % (endpoint, cloudDriver)
+          return S_ERROR( msg )
+        result = self.export_declareInstanceHalting( uniqueID, 0, cloudDriver )
       else:
         # this is only aplied to Running, while the rest of trasitions are not allowed and declareInstanceStopping do nothing
         result = gVirtualMachineDB.declareInstanceStopping( instanceID )
-      self.__logResult( 'declareInstancesStopping: ', result )
+        self.__logResult( 'declareInstancesStopping: on declareInstanceStopping call: ', result )
     return result
 
   types_declareInstanceHalting = [ StringType, FloatType ]
@@ -190,13 +194,13 @@ class VirtualMachineManagerHandler( RequestHandler ):
 
     result = gVirtualMachineDB.declareInstanceHalting( uniqueID, load )
     if not result[ 'OK' ]:
-      self.__logResult( 'declareInstanceHalting', result )
+      self.__logResult( 'declareInstanceHalting on change status: ', result )
       return result
-    
+   
     if ( cloudDriver == 'occi-0.9' or cloudDriver == 'occi-0.8' ):
       imageName = gVirtualMachineDB.getImageNameFromInstance( uniqueID )
       if not imageName[ 'OK' ]:
-        self.__logResult( 'declareInstanceHalting', imageName )
+        self.__logResult( 'declareInstanceHalting getImageNameFromInstance: ', imageName )
         return imageName
       imageName = imageName[ 'Value' ]
 
@@ -206,7 +210,7 @@ class VirtualMachineManagerHandler( RequestHandler ):
     elif cloudDriver == 'nova-1.1':
       imageName = gVirtualMachineDB.getImageNameFromInstance( uniqueID )
       if not imageName[ 'OK' ]:
-        self.__logResult( 'declareInstanceHalting', imageName )
+        self.__logResult( 'declareInstanceHalting getImageNameFromInstance: ', imageName )
         return imageName
       imageName = imageName[ 'Value' ]
 
@@ -214,16 +218,16 @@ class VirtualMachineManagerHandler( RequestHandler ):
       
       publicIP = gVirtualMachineDB.getPublicIpFromInstance ( uniqueID )
       if not publicIP[ 'OK' ]:
-        self.__logResult( 'declareInstanceHalting', publicIP )
+        self.__logResult( 'declareInstanceHalting getPublicIpFromInstance: ', publicIP )
         return publicIP
       publicIP = publicIP[ 'Value' ]
       
       result = nima.stopInstance( uniqueID, publicIP )
 
     else:
-      gLogger.warn( 'Unexpected cloud driver is %s' % cloudDriver )
+      gLogger.warn( 'Unexpected cloud driver:  %s' % cloudDriver )
 
-    self.__logResult( 'declareInstanceHalting', result )
+    self.__logResult( 'declareInstanceHalting: ', result )
     return result
 
   types_getInstancesByStatus = [ StringType ]

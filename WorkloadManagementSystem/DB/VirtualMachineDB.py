@@ -44,7 +44,7 @@ class VirtualMachineDB( DB ):
   # When declaring a new Status, it will be set to Error if not in the list
   validImageStates    = [ 'New', 'Validated', 'Error' ]
   validInstanceStates = [ 'New', 'Submitted', 'Wait_ssh_context', 'Contextualizing', 
-                          'Running', 'Stoppig', 'Halted', 'Stalled', 'Error' ]
+                          'Running', 'Stopping', 'Halted', 'Stalled', 'Error' ]
 
   # In seconds !
   stallingInterval = 30 * 60 
@@ -59,7 +59,7 @@ class VirtualMachineDB( DB ):
                                        'Contextualizing' : [ 'Wait_ssh_context' ],
                                        'Running' : [ 'Submitted', 'Contextualizing', 'Running', 'Stalled' ],
                                        'Stopping' : [ 'Running', 'Stalled' ],
-                                       'Halted' : [ 'Running', 'Stopping' ],
+                                       'Halted' : [ 'Running', 'Stopping', 'Stalled' ],
                                        'Stalled': [ 'New', 'Submitted', 'Wait_ssh_context', 
                                                     'Contextualizing', 'Running' ],
                                       }
@@ -218,7 +218,7 @@ class VirtualMachineDB( DB ):
     uniqueID = self._getFields( tableName, [ 'UniqueID' ], [ 'InstanceID' ], [ instanceID ] )
     if not uniqueID[ 'OK' ]:
       return uniqueID
-    uniqueID = uniqueID[ 'Value' ]
+    uniqueID = uniqueID[ 'Value' ][0][0]
 
     if not uniqueID:
       return S_ERROR( 'Unknown %s = %s' % ( 'InstanceID', instanceID ) )
@@ -331,7 +331,7 @@ class VirtualMachineDB( DB ):
     if not tableName:
       return S_ERROR( 'Unknown DB object Instance' )
 
-    ret = self._getFields( tableName, [ 'Status' ], [ 'InstanceID' ], [ instanceID ] )
+    ret = self.__getStatus( 'Instance', instanceID )
     if not ret[ 'OK' ]:
       return ret
 
@@ -406,8 +406,8 @@ class VirtualMachineDB( DB ):
     self.__setLastLoadJobsAndUptime( instanceID, load, jobs, uptime )
 
     if status == 'Stopping':
-      return S_OK( { 'Value': 'stop' } )
-    return S_OK( {} )
+      return S_OK( 'stop' )
+    return S_OK()
 
   def getPublicIpFromInstance( self, uniqueId ):
     """

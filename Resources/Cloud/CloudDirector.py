@@ -37,7 +37,7 @@ class CloudDirector( VMDirector ):
     """
     VMDirector.configureFromSection( self, mySection )
 
-  def _submitInstance( self, imageName, workDir, endpoint ):
+  def _submitInstance( self, imageName, workDir, endpoint, instanceID ):
     """
       Real backend method to submit a new Instance of a given Image
       It has the decision logic of sumbission to the multi-endpoint, from the available from a given imageName, first approach: FirstFit 
@@ -83,7 +83,7 @@ class CloudDirector( VMDirector ):
       connNova = nima.connectNova()
       if not connNova[ 'OK' ]:
         return connNova
-      result = nima.startNewInstance()
+      result = nima.startNewInstance( instanceID )
       return result
 #      if not result[ 'OK' ]:
 #        return result

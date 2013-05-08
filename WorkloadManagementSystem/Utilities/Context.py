@@ -160,12 +160,13 @@ class AmiconfigContext( ContextConfig ):
   * ex_size
   * ex_image
   * ex_keyname
+  * ex_security_groups
   * ex_userdata
-  
+    
   """
 
   MANDATORY_KEYS = [ 'flavorName', 'ex_size', 'ex_image', 'ex_keyname', 
-                     'ex_userdata' ]
+                     'ex_security_groups', 'ex_userdata' ]
 
 #...............................................................................
 #EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF

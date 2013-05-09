@@ -63,15 +63,11 @@ class NovaImage:
     
     # Before doing anything, make sure the configurations make sense
     # ImageConfiguration
-    print "validImage"
     validImage = self.__imageConfig.validate()
-    print validImage
     if not validImage[ 'OK' ]:
       return validImage
     # EndpointConfiguration
-    print "validNova"
     validNova = self.__novaConfig.validate()
-    print validNova
     if not validNova[ 'OK' ]:
       return validNova
     
@@ -86,6 +82,8 @@ class NovaImage:
     if not result[ 'OK' ]:
       self.log.error( "connectNova" )
       self.log.error( result[ 'Message' ] )
+    else:
+      self.log.info( "Successful connection check" )
       
     return result
    
@@ -100,8 +98,6 @@ class NovaImage:
     
     self.log.info( "Booting %s / %s" % ( self.__imageConfig.config()[ 'bootImageName' ],
                                          self.__novaConfig.config()[ 'ex_force_auth_url' ] ) )
-
-    print "START startNewinstance"
 
     result = self.__clinova.create_VMInstance( vmdiracInstanceID )
 

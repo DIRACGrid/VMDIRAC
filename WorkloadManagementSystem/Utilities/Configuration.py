@@ -77,9 +77,6 @@ class NovaConfiguration( EndpointConfiguration ):
     else:
       novaOptions = novaOptions[ 'Value' ] 
 
-    print "novaOptions"
-    print novaOptions
-
     # FIXME: make it generic !
 
     # Purely endpoint configuration ............................................              
@@ -87,11 +84,7 @@ class NovaConfiguration( EndpointConfiguration ):
     self.__user                    = novaOptions.get( 'user'               , None )
     self.__password                = novaOptions.get( 'password'           , None )
 
-    # FIXME: missing driver !
     self.__cloudDriver             = novaOptions.get( 'cloudDriver'         , None )
-    print "self.__cloudDriver"
-    print self.__cloudDriver
-
     self.__vmStopPolicy            = novaOptions.get( 'vmStopPolicy'         , None )
     self.__vmPolicy                = novaOptions.get( 'vmPolicy'         , None )
     self.__siteName                = novaOptions.get( 'siteName'         , None )
@@ -123,6 +116,8 @@ class NovaConfiguration( EndpointConfiguration ):
     config[ 'vmPolicy' ]                = self.__vmPolicy
     config[ 'vmStopPolicy' ]            = self.__vmStopPolicy
     config[ 'siteName' ]                = self.__siteName
+    config[ 'user' ]                    = self.__user
+    config[ 'password' ]                = self.__password
     
     # Do not return dictionary with None values
     for key, value in config.items():
@@ -136,10 +131,6 @@ class NovaConfiguration( EndpointConfiguration ):
   
     endpointConfig = self.config()
 
-    print "self.MANDATORY_KEYS"
-    print self.MANDATORY_KEYS
-    print "enpointConfig.keys()"
-    print endpointConfig.keys()
  
     missingKeys = set( self.MANDATORY_KEYS ).difference( set( endpointConfig.keys() ) ) 
     if missingKeys:

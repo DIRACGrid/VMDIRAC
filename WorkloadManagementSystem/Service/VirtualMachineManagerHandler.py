@@ -89,7 +89,6 @@ class VirtualMachineManagerHandler( RequestHandler ):
     self.__logResult( 'setInstanceUniqueID', res )
     
     return res
-
   
   types_declareInstanceSubmitted = [ StringType ]
   def export_declareInstanceSubmitted( self, uniqueID ):
@@ -156,6 +155,7 @@ class VirtualMachineManagerHandler( RequestHandler ):
         return result
       state = result[ 'Value' ]
       gLogger.info( 'Stopping DIRAC instanceID: %s, current state %s' % ( instanceID, state ) )  
+
       if state == 'Stalled': 
         result = gVirtualMachineDB.getUniqueID( instanceID )
         if not result[ 'OK' ]:
@@ -172,10 +172,16 @@ class VirtualMachineManagerHandler( RequestHandler ):
           msg = 'Cloud not found driver option in the Endpoint %s value %s' % (endpoint, cloudDriver)
           return S_ERROR( msg )
         result = self.export_declareInstanceHalting( uniqueID, 0, cloudDriver )
+
+      if state == 'New': 
+       result = gVirtualMachineDB.recordDBHalt( instanceID, 0 )
+       self.__logResult( 'declareInstanceHalted', result )
+
       else:
         # this is only aplied to Running, while the rest of trasitions are not allowed and declareInstanceStopping do nothing
         result = gVirtualMachineDB.declareInstanceStopping( instanceID )
         self.__logResult( 'declareInstancesStopping: on declareInstanceStopping call: ', result )
+
     return result
 
   types_declareInstanceHalting = [ StringType, FloatType ]

@@ -111,9 +111,7 @@ class VMDirector:
         return newInstance
       instanceID = newInstance[ 'Value' ]
 
-      dictVMSumbitted = self._submitInstance( imageName, workDir, endpoint, instanceID )
-      print "dictVMSubmitted"
-      print dictVMSubmitted
+      dictVMSubmitted = self._submitInstance( imageName, workDir, endpoint, instanceID )
       if not dictVMSubmitted[ 'OK' ]:
         return dictVMSubmitted
 

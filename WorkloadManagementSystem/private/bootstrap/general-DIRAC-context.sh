@@ -8,20 +8,20 @@
 
 if [ $# -ne 10 ]
 then
-    echo "ERROR: general-DIRAC-context.bash <siteName> <putCertPath> <putKeyPath> <localVmRunJobAgent> <localVmRunVmMonitorAgent> <localVmRunLogJobAgent> <localVmRunLogVmMonitorAgent> <cloudDriver> <cpuTime> <vmStopPolicy>" > /var/log/dirac-context-script.log 2>&1
+    echo "ERROR: general-DIRAC-context.bash <siteName> <vmStopPolicy> <putCertPath> <putKeyPath> <localVmRunJobAgent> <localVmRunVmMonitorAgent> <localVmRunLogJobAgent> <localVmRunLogVmMonitorAgent> <cloudDriver> <cpuTime>" > /var/log/dirac-context-script.log 2>&1
     exit 1
 fi
 
 siteName=$1
-putCertPath=$2
-putKeyPath=$3
-localVmRunJobAgent=$4
-localVmRunVmMonitorAgent=$5
-localVmRunLogJobAgent=$6
-localVmRunLogVmMonitorAgent=$7
-cloudDriver=$8
-cpuTime=$9
-vmStopPolicy=$10
+vmStopPolicy=$2
+putCertPath=$3
+putKeyPath=$4
+localVmRunJobAgent=$5
+localVmRunVmMonitorAgent=$6
+localVmRunLogJobAgent=$7
+localVmRunLogVmMonitorAgent=$8
+cloudDriver=$9
+cpuTime=$10
 
 
 # dirac user:

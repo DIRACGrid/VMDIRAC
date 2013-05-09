@@ -71,7 +71,7 @@ class OcciImage:
       self.log.error( self.__errorStatus )
       return
     # get the driver
-    self.__cloudDriver = self.__getCSCloudEndpointOption( "driver" )
+    self.__cloudDriver = self.__getCSCloudEndpointOption( "cloudDriver" )
     if not self.__cloudDriver:
       self.__errorStatus = "Can't find the driver for endpoint %s" % self.__endpoint
       self.log.error( self.__errorStatus )

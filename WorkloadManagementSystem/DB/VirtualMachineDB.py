@@ -59,7 +59,7 @@ class VirtualMachineDB( DB ):
                                        'Contextualizing' : [ 'Wait_ssh_context' ],
                                        'Running' : [ 'Submitted', 'Contextualizing', 'Running', 'Stalled' ],
                                        'Stopping' : [ 'Running', 'Stalled' ],
-                                       'Halted' : [ 'Running', 'Stopping', 'Stalled' ],
+                                       'Halted' : [ 'New','Running', 'Stopping', 'Stalled' ],
                                        'Stalled': [ 'New', 'Submitted', 'Wait_ssh_context', 
                                                     'Contextualizing', 'Running' ],
                                       }
@@ -231,9 +231,7 @@ class VirtualMachineDB( DB ):
     """
     instanceID = self.__getInstanceID( uniqueID )
     if not instanceID[ 'OK' ]:
-      #print "POR AQUI 1"
       return instanceID
-    #print "POR AQUI 2"
     instanceID = instanceID[ 'Value' ]
 
     status = self.__setState( 'Instance', instanceID, 'Submitted' )
@@ -343,6 +341,18 @@ class VirtualMachineDB( DB ):
       return self.__setError( 'Instances', instanceID, 'Invalid Status: %s' % status )
 
     return S_OK( status )
+
+  def recordDBHalt( self, instanceID, load ):
+    """
+    Insert the heart beat info from a halting instance
+    Declares "Halted" the instance and the image 
+    It returns S_ERROR if the status is not OK
+    """
+    status = self.__setState( 'Instance', instanceID, 'Halted' )
+    if status[ 'OK' ]:
+      self.__addInstanceHistory( instanceID, 'Halted', load )
+
+    return status
 
   def declareInstanceHalting( self, uniqueID, load ):
     """

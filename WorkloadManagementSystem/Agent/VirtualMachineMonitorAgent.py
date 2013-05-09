@@ -2,6 +2,7 @@
 
 import commands
 import os
+import simplejson
 import time
 import urllib2
 
@@ -42,6 +43,20 @@ class VirtualMachineMonitorAgent( AgentModule ):
       return S_ERROR( "Could not retrieve occi instance id: %s" % str( e ) )
 
   def getNovaVMId( self ):
+    
+    metadataUrl = 'http://169.254.169.254/openstack/2012-08-10/meta_data.json'
+    opener      = urllib2.build_opener()
+        
+    try:
+      request  = urllib2.Request( metadataUrl )
+      jsonFile = opener.open( request )
+      jsonDict = simplejson.load( jsonFile )
+ 
+      return S_OK( jsonDict[ 'meta' ][ 'vmdiracid' ] )
+        
+    except:
+      pass  
+    
     try:
       fd = open( os.path.join( '/etc', 'VMID' ), 'r' )
       iD = fd.read().strip()

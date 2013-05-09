@@ -53,13 +53,16 @@ class VirtualMachineContextualization( AgentModule ):
         return retDict
 
       diracImageName = retDict['Value']
-      nima = NovaImage( diracImageName, endpoint )
+      nima     = NovaImage( diracImageName, endpoint )
+      connNova = nima.connectNova()
+      if not connNova[ 'OK' ]:
+        return connNova
 
       result = nima.getInstanceStatus( uniqueId )
       if not result[ 'OK' ]:
         return result
 
-      if result['Value'] == 'ACTIVE':
+      if result['Value'] == 'RUNNING':
         result = nima.contextualizeInstance( uniqueId, publicIP )
         self.log.info( "result of contextualize:" )
         self.log.info( result )

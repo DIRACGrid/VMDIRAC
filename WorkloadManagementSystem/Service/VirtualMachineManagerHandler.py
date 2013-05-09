@@ -167,7 +167,7 @@ class VirtualMachineManagerHandler( RequestHandler ):
           self.__logResult( 'declareInstancesStopping on getEndpointFromInstance call: ', result )
           return result
         endpoint = result [ 'Value' ]
-        cloudDriver = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, "driver" ) )
+        cloudDriver = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, "cloudDriver" ) )
         if not cloudDriver:
           msg = 'Cloud not found driver option in the Endpoint %s value %s' % (endpoint, cloudDriver)
           return S_ERROR( msg )
@@ -214,7 +214,10 @@ class VirtualMachineManagerHandler( RequestHandler ):
         return imageName
       imageName = imageName[ 'Value' ]
 
-      nima = NovaImage( imageName, endpoint )
+      nima     = NovaImage( imageName, endpoint )
+      connNova = nima.connectNova()
+      if not connNova[ 'OK' ]:
+        return connNova
       
       publicIP = gVirtualMachineDB.getPublicIpFromInstance ( uniqueID )
       if not publicIP[ 'OK' ]:

@@ -1,258 +1,188 @@
-########################################################################
 # $HeadURL$
-# File :   NovaImage.py
+"""
+  NovaImage
+  
+  The NovaImage provides the functionality required to use
+  a OpenStack cloud infrastructure, with NovaAPI DIRAC driver
+  Authentication is provided by user/password attributes
+"""
+# File   :   NovaImage.py
 # Author : Victor Mendez ( vmendez.tic@gmail.com )
-########################################################################
 
 # DIRAC
-from DIRAC import gLogger, gConfig, S_OK, S_ERROR
+from DIRAC import gLogger, S_OK
 
 # VMDIRAC
-from VMDIRAC.WorkloadManagementSystem.Client.Nova11 import NovaClient
+from VMDIRAC.WorkloadManagementSystem.Client.Nova11           import NovaClient
+from VMDIRAC.WorkloadManagementSystem.Utilities.Configuration import NovaConfiguration, ImageConfiguration
 
 __RCSID__ = '$Id: $'
 
 class NovaImage:
+  """
+  NovaImage class.
+  """
 
-  def __init__( self, DIRACImageName, endpoint):
+  def __init__( self, imageName, endPoint ):
     """
-    The NovaImage provides the functionality required to use
-    a OpenStack cloud infrastructure, with NovaAPI DIRAC driver
-    Authentication is provided by user/password attributes
+    Constructor: uses NovaConfiguration to parse the endPoint CS configuration
+    and ImageConfiguration to parse the imageName CS configuration. 
+    
+    :Parameters:
+      **imageName** - `string`
+        imageName as defined on CS:/Resources/VirtualMachines/Images
+        
+      **endPoint** - `string`
+        endPoint as defined on CS:/Resources/VirtualMachines/CloudEndpoint 
+    
     """
-    self.__DIRACImageName = DIRACImageName
-    self.__bootImageName = self.__getCSImageOption( "bootImageName" ) 
-    self.log = gLogger.getSubLogger( "Image %s(%s): " % ( DIRACImageName, self.__bootImageName ) )
-    self.__errorStatus = ""
-    #Get CloudEndpoint on submission time
-    self.__endpoint = endpoint
-    if not self.__endpoint:
-      self.__errorStatus = "Can't find endpoint for image %s" % self.__DIRACImageName
-      self.log.error( self.__errorStatus )
-      return
-    # Get the CPUTime of the image to put on the VMs /LocalSite/CPUTime
-    self.__cpuTime = self.__getCSImageOption( "cpuTime" ) 
-    if not self.__cpuTime:
-      self.__cpuTime = 1800
-    # Get the contextualization method (adhoc/ssh) of the image
-    self.__contextMethod = self.__getCSImageOption( "contextMethod" ) 
-    if not ( self.__contextMethod == 'ssh' or self.__contextMethod == 'adhoc' ): 
-      self.__errorStatus = "endpoint %s contextMethod %s not available, use adhoc or ssh" % (self.__endpoint, self.__contextMethod)
-      self.log.error( self.__errorStatus )
-      return
-    # OpenStack base URL (not needed in most of openstack deployments which use Auth server, in this case value can be 'Auth')
-    self.__osBaseURL = self.__getCSCloudEndpointOption( "osBaseURL" )
-    if not self.__osBaseURL:
-      self.__errorStatus = "Can't find the osBaseURL for endpoint %s" % self.__endpoint
-      self.log.error( self.__errorStatus )
-      return
-    #Get Auth endpoint
-    self.__osAuthURL = self.__getCSCloudEndpointOption( "osAuthURL" )
-    if not self.__osAuthURL:
-      self.__errorStatus = "Can't find the server osAuthURL for endpoint %s" % self.__endpoint
-      self.log.error( self.__errorStatus )
-      return
-    #Get OpenStack user/password
-    # user
-    self.__osUserName = self.__getCSCloudEndpointOption( "osUserName" )
-    if not self.__osUserName:
-      self.__errorStatus = "Can't find the osUserName for endpoint %s" % self.__endpoint
-      self.log.error( self.__errorStatus )
-      return
-    # password
-    self.__osPasswd = self.__getCSCloudEndpointOption( "osPasswd" )
-    if not self.__osPasswd:
-      self.__errorStatus = "Can't find the osPasswd for endpoint %s" % self.__endpoint
-      self.log.error( self.__errorStatus )
-      return
-    # OpenStack tenant name
-    self.__osTenantName = self.__getCSCloudEndpointOption( "osTenantName" )
-    if not self.__osTenantName:
-      self.__errorStatus = "Can't find the osTenantName for endpoint %s" % self.__endpoint
-      self.log.error( self.__errorStatus )
-      return
-    # OpenStack service region 
-    self.__osServiceRegion = self.__getCSCloudEndpointOption( "osServiceRegion" )
-    if not self.__osServiceRegion:
-      self.__errorStatus = "Can't find the osServiceRegion for endpoint %s" % self.__endpoint
-      self.log.error( self.__errorStatus )
-      return
-    # Site name (temporaly at Endpoint, but this sould be get it from Resources LHCbDIRAC like scheme)
-    self.__siteName = self.__getCSCloudEndpointOption( "siteName" )
-    if not self.__siteName:
-      self.__errorStatus = "Can't find the siteName for endpoint %s" % self.__endpoint
-      self.log.error( self.__errorStatus )
-      return
-    # scheduling policy of the endpoint elastic/static
-    self.__vmPolicy = self.__getCSCloudEndpointOption( "vmPolicy" )
-    if not ( self.__vmPolicy == 'elastic' or self.__vmPolicy == 'static' ): 
-      self.__errorStatus = "Can't find valid vmPolicy (elastic/static) for endpoint %s" % self.__endpoint
-      self.log.error( self.__errorStatus )
-      return
-    # stoppage policy of the endpoint elastic/never
-    self.__vmStopPolicy = self.__getCSCloudEndpointOption( "vmStopPolicy" )
-    if not ( self.__vmStopPolicy == 'elastic' or self.__vmStopPolicy == 'never' ): 
-      self.__errorStatus = "Can't find valid vmStopPolicy (elastic/never) for endpoint %s" % self.__endpoint
-      self.log.error( self.__errorStatus )
-      return
-    # CloudDriver to be passed to VM to match cloud manager depenadant operations
-    self.__cloudDriver = self.__getCSCloudEndpointOption( "driver" )
-    if not self.__cloudDriver:
-      self.__errorStatus = "Can't find the driver for endpoint %s" % self.__endpoint
-      self.log.error( self.__errorStatus )
-      return
-    # creating driver for connection to the endpoint and check connection
-    self.__clinova = NovaClient(self.__osAuthURL, self.__osUserName, self.__osPasswd, self.__osTenantName, self.__osBaseURL, self.__osServiceRegion)
-    request = self.__clinova.check_connection()
-    if request.returncode != 0:
-      self.__errorStatus = "Can't connect to OpenStack nova endpoint %s\n osAuthURL: %s\n%s" % (self.__osBaseURL, self.__osAuthURL, request.stderr)
-      self.log.error( self.__errorStatus )
-      return
+    # logger
+    self.log       = gLogger.getSubLogger( 'NovaImage %s: ' % imageName )
+    
+    self.imageName = imageName
+    self.endPoint  = endPoint 
+    
+    # their config() method returns a dictionary with the parsed configuration
+    # they also provide a validate() method to make sure it is correct 
+    self.__imageConfig = ImageConfiguration( imageName )    
+    self.__novaConfig  = NovaConfiguration( endPoint )
+    
+    # this object will connect to the server. Better keep it private.                 
+    self.__clinova   = None
 
-    if not self.__errorStatus:
-      self.log.info( "Available OpenStack nova endpoint  %s and Auth URL: %s" % (self.__osBaseURL, self.__osAuthURL) )
 
-    #Get the boot OpenStack Image from URI server
-    request = self.__clinova.get_image( self.__bootImageName )
-    if request.returncode != 0:
-      self.__errorStatus = "Can't get the boot image for %s from server %s\n and Auth URL: %s\n%s" % (self.__bootImageName, self.__osBaseURL, self.__osAuthURL, request.stderr)
-      self.log.error( self.__errorStatus )
-      return
-    self.__bootImage = request.image
-
-    if self.__contextMethod == 'ssh': 
-      # the virtualmachine cert/key to be copy on the VM of a specific endpoint
-      self.__vmCertPath = self.__getCSImageOption( "vmCertPath" )
-      if not self.__vmCertPath:
-        self.__errorStatus = "Can't find the vmCertPath for endpoint %s" % self.__endpoint
-        self.log.error( self.__errorStatus )
-        return
-
-      self.__vmKeyPath = self.__getCSImageOption( "vmKeyPath" )
-      if not self.__vmKeyPath:
-        self.__errorStatus = "Can't find the vmKeyPath for endpoint %s" % self.__endpoint
-        self.log.error( self.__errorStatus )
-        return
-
-      self.__vmContextualizeScriptPath = self.__getCSImageOption( "vmContextualizeScriptPath" )
-      if not self.__vmContextualizeScriptPath:
-        self.__errorStatus = "Can't find the vmContextualizeScriptPath for endpoint %s" % self.__endpoint
-        self.log.error( self.__errorStatus )
-        return
-
-      # the cvmfs context URL
-      self.__vmCvmfsContextURL = self.__getCSImageOption( "vmCvmfsContextURL" )
-      if not self.__vmCvmfsContextURL:
-        self.__errorStatus = "Can't find the vmCvmfsContextURL for endpoint %s" % self.__endpoint
-        self.log.error( self.__errorStatus )
-        return
-
-      # the specific context URL
-      self.__vmDiracContextURL = self.__getCSImageOption( "vmDiracContextURL" )
-      if not self.__vmDiracContextURL:
-        self.__errorStatus = "Can't find the vmDiracContextURL for endpoint %s" % self.__endpoint
-        self.log.error( self.__errorStatus )
-        return
-
-      # the runsvdir run file forjobAgent URL
-      self.__vmRunJobAgentURL = self.__getCSImageOption( "vmRunJobAgentURL" )
-      if not self.__vmRunJobAgentURL:
-        self.__errorStatus = "Can't find the vmRunJobAgentURL for endpoint %s" % self.__endpoint
-        self.log.error( self.__errorStatus )
-        return
-
-      # the runsvdir run file vmMonitorAgentURL 
-      self.__vmRunVmMonitorAgentURL = self.__getCSImageOption( "vmRunVmMonitorAgentURL" )
-      if not self.__vmRunVmMonitorAgentURL:
-        self.__errorStatus = "Can't find the vmRunVmMonitorAgentURL for endpoint %s" % self.__endpoint
-        self.log.error( self.__errorStatus )
-        return
-
-      # the runsvdir run.log file forjobAgent URL 
-      self.__vmRunLogJobAgentURL = self.__getCSImageOption( "vmRunLogJobAgentURL" )
-      if not self.__vmRunLogJobAgentURL:
-        self.__errorStatus = "Can't find the vmRunLogJobAgentURL for endpoint %s" % self.__endpoint
-        self.log.error( self.__errorStatus )
-        return
-
-      # the runsvdir run.log file vmMonitorAgentURL 
-      self.__vmRunLogVmMonitorAgentURL = self.__getCSImageOption( "vmRunLogVmMonitorAgentURL" )
-      if not self.__vmRunLogVmMonitorAgentURL:
-        self.__errorStatus = "Can't find the vmRunLogVmMonitorAgentURL for endpoint %s" % self.__endpoint
-        self.log.error( self.__errorStatus )
-        return
-
-      # cvmfs http proxy:
-      self.__cvmfs_http_proxy = self.__getCSCloudEndpointOption( "CVMFS_HTTP_PROXY" )
-      if not self.__cvmfs_http_proxy:
-        self.__errorStatus = "Can't find the CVMFS_HTTP_PROXY for endpoint %s" % self.__endpoint
-        self.log.error( self.__errorStatus )
-        return
-
-    ## Additional Network pool
-    self.__osIpPool = self.__getCSImageOption( "vmOsIpPool" )
-    if not self.__osIpPool:
-      self.__osIpPool = 'NO'
-
-  def __getCSImageOption( self, option, defValue = "" ):
+  def connectNova( self ):
     """
-    Following we can see that every CSImageOption are related with the booting image
+    Method that issues the connection with the OpenStack server. In order to do
+    it, validates the CS configurations. For the time being, we authenticate
+    with user / password. It gets it and passes all information to the NovaClient
+    which will check the connection.
+     
+    :return: S_OK | S_ERROR
     """
-    return gConfig.getValue( "/Resources/VirtualMachines/Images/%s/%s" % ( self.__DIRACImageName, option ), defValue )
+    
+    # Before doing anything, make sure the configurations make sense
+    # ImageConfiguration
+    print "validImage"
+    validImage = self.__imageConfig.validate()
+    print validImage
+    if not validImage[ 'OK' ]:
+      return validImage
+    # EndpointConfiguration
+    print "validNova"
+    validNova = self.__novaConfig.validate()
+    print validNova
+    if not validNova[ 'OK' ]:
+      return validNova
+    
+    # Get authentication configuration
+    user, secret = self.__novaConfig.authConfig()
 
-  def __getCSCloudEndpointOption( self, option, defValue = "" ):
-    return gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( self.__endpoint, option ), defValue )
+    # Create the libcloud and novaclient objects in NovaClient.Nova11
+    self.__clinova = NovaClient( user, secret, self.__novaConfig.config(), self.__imageConfig.config() )
 
-  def startNewInstance( self, instanceType ):
+    # Check connection to the server
+    result = self.__clinova.check_connection()
+    if not result[ 'OK' ]:
+      self.log.error( "connectNova" )
+      self.log.error( result[ 'Message' ] )
+      
+    return result
+   
+  def startNewInstance( self, vmdiracInstanceID ):
     """
-    Wrapping the image creation
+    Once the connection is stablished using the `connectNova` method, we can boot
+    nodes. To do so, the config in __imageConfig and __novaConfig applied to
+    NovaClient initialization is applied.
+    
+    :return: S_OK | S_ERROR
     """
-    if self.__errorStatus:
-      return S_ERROR( self.__errorStatus )
-    self.log.info( "Starting new instance for image: %s; to endpoint %s DIRAC driver of nova endpoint" % ( self.__bootImageName, self.__endpoint ) )
-    request = self.__clinova.create_VMInstance( self.__bootImageName, self.__contextMethod, instanceType, self.__bootImage, self.__osIpPool )
-    if request.returncode != 0:
-      self.__errorStatus = "Can't create instance for boot image: %s at server %s and Auth URL: %s \n%s" % (self.__bootImageName, self.__osBaseURL, self.__osAuthURL, request.stderr)
-      self.log.error( self.__errorStatus )
-      return S_ERROR( self.__errorStatus )
+    
+    self.log.info( "Booting %s / %s" % ( self.__imageConfig.config()[ 'bootImageName' ],
+                                         self.__novaConfig.config()[ 'ex_force_auth_url' ] ) )
 
-    return S_OK( request )
+    print "START startNewinstance"
 
-  def contextualizeInstance( self, uniqueId, public_ip ):
-    """
-    Wrapping the contextualization
-    With ssh method, contextualization is asyncronous operation
-    """
-    if self.__contextMethod =='ssh':
-      request = self.__clinova.contextualize_VMInstance( uniqueId, public_ip, self.__contextMethod, self.__vmCertPath, self.__vmKeyPath, self.__vmContextualizeScriptPath, self.__vmRunJobAgentURL, self.__vmRunVmMonitorAgentURL, self.__vmRunLogJobAgentURL, self.__vmRunLogVmMonitorAgentURL, self.__vmCvmfsContextURL, self.__vmDiracContextURL , self.__cvmfs_http_proxy, self.__siteName, self.__cloudDriver, self.__cpuTime, self.__vmStopPolicy )
-      if request.returncode != 0:
-        self.__errorStatus = "Can't contextualize VM id %s at endpoint %s: %s" % (uniqueId, self.__endpoint, request.stderr)
-        self.log.error( self.__errorStatus )
-        return S_ERROR( self.__errorStatus )
+    result = self.__clinova.create_VMInstance( vmdiracInstanceID )
 
-    return S_OK( uniqueId )
+    if not result[ 'OK' ]:
+      self.log.error( "startNewInstance" )
+      self.log.error( result[ 'Message' ] )
+    return result
 
   def getInstanceStatus( self, uniqueId ):
     """
-    Wrapping the get status of the uniqueId VM from the endpoint
+    Given the node ID, returns the status. Bear in mind, is the translation of
+    the status done by libcloud and then reversed to a string. Its possible values
+    are: RUNNING, REBOOTING, TERMINATED, PENDING, UNKNOWN.
+    
+    :Parameters:
+      **uniqueId** - `string`
+        node ID, given by the OpenStack service       
+    
+    :return: S_OK | S_ERROR
     """
-    request = self.__clinova.getStatus_VMInstance( uniqueId )
-    if request.returncode != 0:
-      self.__errorStatus = "Can't get status %s at endpoint %s: %s" % (uniqueId, self.__endpoint, request.stderr)
-      self.log.error( self.__errorStatus )
-      return S_ERROR( self.__errorStatus )
-
-    return S_OK( request.status )
-
+    
+    result = self.__clinova.getStatus_VMInstance( uniqueId )
+    
+    if not result[ 'OK' ]:
+      self.log.error( "getInstanceStatus: %s" % uniqueId )
+      self.log.error( result[ 'Message' ] )
+    
+    return result  
+    
   def stopInstance( self, uniqueId, public_ip ):
     """
-    Simple call to terminate a VM based on its id
+    Method that destroys the node and if using floating IPs and frees the floating
+    IPs if any.
+    
+    :Parameters:
+      **uniqueId** - `string`
+        node ID, given by the OpenStack service   
+      **public_ip** - `string`
+        public IP of the VM, needed for some setups ( floating IP ).   
+    
+    :return: S_OK | S_ERROR
     """
 
-    request = self.__clinova.terminate_VMinstance( uniqueId, self.__osIpPool, public_ip )
-    if request.returncode != 0:
-      self.__errorStatus = "Can't delete VM instance %s, IP %s, IpPool %s, from endpoint %s: %s" % (uniqueId, public_ip, self.__osIpPool, self.__endpoint, request.stderr)
-      self.log.error( self.__errorStatus )
-      return S_ERROR( self.__errorStatus )
+    # FIXME: maybe it makes sense to get the public_ip in Nova11 and encapsulate it.
+    # FIXME: after all, is an implementation detail.
 
-    return S_OK( request.stderr )
+    result = self.__clinova.terminate_VMinstance( uniqueId, public_ip )
+    
+    if not result[ 'OK' ]:
+      self.log.error( "stopInstance: %s, %s" % ( uniqueId, public_ip ) )
+      self.log.error( result[ 'Message' ] )
+    
+    return result
+
+  def contextualizeInstance( self, uniqueId, public_ip ):
+    """
+    This method is not a regular method in the sense that is not generic at all.
+    It will be called only of those VMs which need after-booting contextualisation,
+    for the time being, just ssh contextualisation.
+        
+    :Parameters:
+      **uniqueId** - `string`
+        node ID, given by the OpenStack service   
+      **public_ip** - `string`
+        public IP of the VM, needed for asynchronous contextualisation
+        
+    
+    :return: S_OK | S_ERROR
+    """
+
+    # FIXME: maybe is worth hiding the public_ip attribute and getting it on
+    # FIXME: the contextualize step. 
+
+    result = self.__clinova.contextualize_VMInstance( uniqueId, public_ip )
+    
+    if not result[ 'OK' ]:
+      self.log.error( "contextualizeInstance: %s, %s" % ( uniqueId, public_ip ) )
+      self.log.error( result[ 'Message' ] )
+      return result
+
+    return S_OK( uniqueId )
+      
+#...............................................................................
+#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF

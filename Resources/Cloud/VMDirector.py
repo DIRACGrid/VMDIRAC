@@ -102,65 +102,72 @@ class VMDirector:
     for numVM in range(1,numVMsToSubmit+1):
       self.log.info( '********** Preparing to submitting VM number %s of %s VMs' % ( numVM, numVMsToSubmit ) )
 
-      #FIXME: retDic1,2,3,4.. naming
+      dictVMSubmitted = {}
+      dictVMDBrecord = {}
 
-      retDict1 = {}
-      retDict2 = {}
-      retDict3 = {}
+      # FIRST, insert the instance into the DB !
+      newInstance = virtualMachineDB.insertInstance( imageName, imageName, endpoint, runningPodName )
+      if not newInstance[ 'OK' ]:
+        return newInstance
+      instanceID = newInstance[ 'Value' ]
 
-      retDict1 = self._submitInstance( imageName, workDir, endpoint )
-      if not retDict1['OK']:
-        return retDict1
-
-      retDict2 = virtualMachineDB.insertInstance( imageName, imageName, endpoint, runningPodName )
-      if not retDict2['OK']:
-        return retDict2
-      instanceID = retDict2['Value']
+      dictVMSumbitted = self._submitInstance( imageName, workDir, endpoint, instanceID )
+      print "dictVMSubmitted"
+      print dictVMSubmitted
+      if not dictVMSubmitted[ 'OK' ]:
+        return dictVMSubmitted
 
       #########CloudStack2 adn CloudStack3 drivers have the bug of a single VM creation produces two VMs
       #########To deal with this CloudStack preaty feature we first startNewInstance inside 
       #########VMDIRECTOR._submitInstance, and second we declare two VMs 
       #########CloudStack check to preaty feature
-      driver = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, "driver" ) )
+      driver = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, "cloudDriver" ) )
       if driver == "CloudStack":
         virtualMachineDB.insertInstance( imageName, imageName, endpoint, runningPodName )
 
       if driver == "nova-1.1":
-        ( uniqueID, publicIP ) = retDict1['Value']
-        retDict3 = virtualMachineDB.setPublicIP( instanceID, publicIP )
-        if not retDict3['OK']:
-          return retDict3
+        ( uniqueID, publicIP ) = dictVMSubmitted['Value']
+        dictVMDBrecord = virtualMachineDB.setPublicIP( instanceID, publicIP )
+        if not dictVMDBrecord['OK']:
+          return dictVMDBrecord
       else: 
-        uniqueID = retDict1['Value']
+        uniqueID = dictVMSubmitted['Value']
 
 
-      retDict1 = virtualMachineDB.setInstanceUniqueID( instanceID, uniqueID )
-      if not retDict1['OK']:
-        return retDict1
+      dictVMDBrecord = virtualMachineDB.setInstanceUniqueID( instanceID, uniqueID )
+      if not dictVMDBrecord['OK']:
+        return dictVMDBrecord
 
       #########CloudStack check to preaty feature
       if driver == "CloudStack":
         virtualMachineDB.setInstanceUniqueID( str( int( instanceID ) + 1 ), str( int( uniqueID ) - 1 ) )
 
       if not ( driver == "nova-1.1" ):
-        retDict1 = virtualMachineDB.declareInstanceSubmitted( uniqueID )
-        if not retDict1['OK']:
-          return retDict1
+        dictVMDBrecord = virtualMachineDB.declareInstanceSubmitted( uniqueID )
+        if not dictVMDBrecord['OK']:
+          return dictVMDBrecord
       else:
         # if nova driver then check contextMethod and update status if need ssh contextualization:
         contextMethod = gConfig.getValue( "/Resources/VirtualMachines/Images/%s/%s" % ( imageName, "contextMethod" ) )
         if contextMethod == 'ssh':
-          retDict1 = virtualMachineDB.declareInstanceWait_ssh_context( uniqueID )
-          if not retDict1['OK']:
-            return retDict1
+          dictVMDBrecord = virtualMachineDB.declareInstanceWait_ssh_context( uniqueID )
+          if not dictVMDBrecord['OK']:
+            return dictVMDBrecord
         else:
-          retDict1 = virtualMachineDB.declareInstanceSubmitted( uniqueID )
-          if not retDict1['OK']:
-            return retDict1
+          # if nova driver then check contextMethod and update status if need ssh contextualization:
+          contextMethod = gConfig.getValue( "/Resources/VirtualMachines/Images/%s/%s" % ( imageName, "contextMethod" ) )
+          if contextMethod == 'ssh':
+            dictVMDBrecord = virtualMachineDB.declareInstanceWait_ssh_context( uniqueID )
+            if not dictVMDBrecord['OK']:
+              return dictVMDBrecord
+          else:
+            dictVMDBrecord = virtualMachineDB.declareInstanceSubmitted( uniqueID )
+            if not dictVMDBrecord['OK']:
+              return dictVMDBrecord
 
-      #########CloudStack check to preaty feature
-      if driver == "CloudStack":
-        retDict2 = virtualMachineDB.declareInstanceSubmitted( str( int( uniqueID ) - 1 ) )
+        #########CloudStack check to preaty feature
+        if driver == "CloudStack":
+          dictVMDBrecord = virtualMachineDB.declareInstanceSubmitted( str( int( uniqueID ) - 1 ) )
 
     return S_OK( imageName )
 

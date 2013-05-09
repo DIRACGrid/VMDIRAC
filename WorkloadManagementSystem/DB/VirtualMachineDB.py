@@ -1218,6 +1218,10 @@ class VirtualMachineDB( DB ):
     """
     Return from CS a Dictionary with RunningPod definition
     """
+    
+    #FIXME: this MUST not be on the DB module !! 
+    #FIXME: isn't checking for Image
+    
     runningPodsCSPath = '/Resources/VirtualMachines/RunningPods'
     
     definedRunningPods = gConfig.getSections( runningPodsCSPath )

@@ -176,6 +176,7 @@ class VirtualMachineScheduler( AgentModule ):
         cloudEndpoints = [element for element in cloudEndpointsStr.split( ',' )]
         shuffle( cloudEndpoints )
         self.log.info( 'cloudEndpoints random failover: %s' % cloudEndpoints )
+        numVMsToSubmit = {}
         for endpoint in cloudEndpoints:
           self.log.info( 'Checking to submit to: %s' % endpoint )
           strMaxEndpointInstances = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, 'maxEndpointInstances' ), "" )
@@ -207,9 +208,10 @@ class VirtualMachineScheduler( AgentModule ):
           maxEndpointInstances = int(strMaxEndpointInstances)
           if endpointInstances < maxEndpointInstances:
             if vmPolicy == 'elastic':
-              numVMsToSubmit = 1
+              numVMs = 1
             if vmPolicy == 'static':
-              numVMsToSubmit = maxEndpointInstances - endpointInstances
+              numVMs = maxEndpointInstances - endpointInstances
+            numVMsToSubmit.update({str(endpoint): int(numVMs) })
             endpointFound = True
             break
 
@@ -245,10 +247,12 @@ class VirtualMachineScheduler( AgentModule ):
           imagesToSubmit[directorName] = {}
         if imageName not in imagesToSubmit[directorName]:
           imagesToSubmit[directorName][imageName] = {}
+        numVMs = numVMsToSubmit.get( endpoint )
         imagesToSubmit[directorName][imageName] = { 'Jobs': jobs,
                                                     'TQPriority': priority,
                                                     'CPUTime': cpu,
                                                     'CloudEndpoint': endpoint,
+                                                    'NumVMsToSubmit': numVMs,
                                                     'VMPolicy': vmPolicy,
                                                     'RunningPodName': runningPodName,
                                                     'VMPriority': runningPodDict['Priority'] }
@@ -263,9 +267,10 @@ class VirtualMachineScheduler( AgentModule ):
 
           endpoint = jobsToSubmitDict['CloudEndpoint']
           runningPodName = jobsToSubmitDict['RunningPodName']
+          numVMs = jobsToSubmitDict['NumVMsToSubmit']
 
           ret = pool.generateJobAndQueueIt( director.submitInstance,
-                                            args = ( imageName, self.workDir, endpoint, numVMsToSubmit, runningPodName ),
+                                            args = ( imageName, self.workDir, endpoint, numVMs, runningPodName ),
                                             oCallback = self.callBack,
                                             oExceptionCallback = director.exceptionCallBack,
                                             blocking = False )

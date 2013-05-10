@@ -6,9 +6,9 @@
 
         echo "Starting dirac-context-script.sh" > /var/log/dirac-context-script.log 2>&1
 
-if [ $# -ne 10 ]
+if [ $# -ne 9 ]
 then
-    echo "ERROR: general-DIRAC-context.bash <siteName> <vmStopPolicy> <putCertPath> <putKeyPath> <localVmRunJobAgent> <localVmRunVmMonitorAgent> <localVmRunLogJobAgent> <localVmRunLogVmMonitorAgent> <cloudDriver> <cpuTime>" > /var/log/dirac-context-script.log 2>&1
+    echo "ERROR: general-DIRAC-context.bash <siteName> <vmStopPolicy> <putCertPath> <putKeyPath> <localVmRunJobAgent> <localVmRunVmMonitorAgent> <localVmRunLogJobAgent> <localVmRunLogVmMonitorAgent> <cloudDriver> " > /var/log/dirac-context-script.log 2>&1
     exit 1
 fi
 
@@ -21,8 +21,8 @@ localVmRunVmMonitorAgent=$6
 localVmRunLogJobAgent=$7
 localVmRunLogVmMonitorAgent=$8
 cloudDriver=$9
-cpuTime=$10
 
+cpuTime=`cat /etc/CPU_TIME`
 
 # dirac user:
         /usr/sbin/useradd -d /opt/dirac dirac

@@ -46,7 +46,7 @@ class CloudDirector( VMDirector ):
 
     endpointsPath = "/Resources/VirtualMachines/CloudEndpoints"
 
-    driver = gConfig.getValue( "%s/%s/%s" % ( endpointsPath, endpoint, 'driver' ), "" )
+    driver = gConfig.getValue( "%s/%s/%s" % ( endpointsPath, endpoint, 'cloudDriver' ), "" )
 
     if driver == 'Amazon':
       ami = AmazonImage( imageName, endpoint )
@@ -77,19 +77,15 @@ class CloudDirector( VMDirector ):
       return S_OK( idInstance )
 
     if driver == 'nova-1.1':
-      #FIXME: getting instanceType here is a nonsense... we have it on the Context
-      #instanceType = gConfig.getValue( "/Resources/VirtualMachines/Images/%s/%s" % ( imageName, 'instanceType' ), "" )
       nima     = NovaImage( imageName, endpoint )
       connNova = nima.connectNova()
       if not connNova[ 'OK' ]:
         return connNova
       result = nima.startNewInstance( instanceID )
-      return result
-#      if not result[ 'OK' ]:
-#        return result
-#      uniqueID = result['Value'].VMnode.id
-#      publicIP = result['Value'].public_ip
-#      return S_OK( [uniqueID, publicIP] )
+
+      if not result[ 'OK' ]:
+        return result
+      return S_OK( result['Value'] )
 
 
     return S_ERROR( 'Unknown DIRAC Cloud driver %s' % driver )

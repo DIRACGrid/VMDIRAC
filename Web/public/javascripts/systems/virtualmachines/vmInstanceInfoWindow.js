@@ -11,7 +11,7 @@ function showInstanceInfoWindow( instanceData )
 			root : 'history',
 			fields : [ 'Status', 'Load', 'Jobs', 'TransferredFiles', 'TransferredBytes', 'Update' ],
 			autoLoad : true,
-			baseParams : { instanceID : instanceData[ 'inst_VMInstanceID' ] },
+			baseParams : { instanceID : instanceData[ 'inst_InstanceID' ] },
 			vmInstanceData : instanceData
 		}),
 		columns : [ { header : 'Update time', sortable : true, dataIndex : 'Update' },

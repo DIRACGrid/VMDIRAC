@@ -67,7 +67,7 @@ class NovaClient:
     
     # get the right openstack node driver
     cloudManagerAPI = get_driver( Provider.OPENSTACK )
-    
+  
     # The driver has the access secret, we do not want it to be public at all.    
     self.__driver = cloudManagerAPI( user, secret = secret,
                                      ex_force_auth_url = ex_force_auth_url,
@@ -184,11 +184,17 @@ class NovaClient:
     
     :return: S_OK( ( nodeID, publicIP ) ) | S_ERROR
     """
-    
+
     # Common Image Attributes  
     bootImageName = self.imageConfig[ 'bootImageName' ]
     flavorName    = self.imageConfig[ 'flavorName' ]
     contextMethod = self.imageConfig[ 'contextMethod' ]
+    cloudDriver = self.endpointConfig[ 'cloudDriver' ]
+    vmPolicy = self.endpointConfig[ 'vmPolicy' ]
+    vmStopPolicy = self.endpointConfig[ 'vmStopPolicy' ]
+    siteName = self.endpointConfig[ 'siteName' ]
+    user = self.endpointConfig[ 'user' ]
+    password = self.endpointConfig[ 'password' ]
     
     # Optional node contextualization parameters
     keyname  = self.imageConfig[ 'contextConfig' ].get( 'ex_keyname' , None )
@@ -221,8 +227,6 @@ class NovaClient:
       return secGroupRes
     secGroup = secGroupRes[ 'Value' ]
           
-    #FIXME: change the VM name, we want to know which version of contextualization
-    #vm_name = ( bootImageName + '-' + contextMethod + '-' + str( time.time() )[0:10] ).replace( '_', '-' ) 
     vm_name = contextMethod + str( time.time() )[0:10]
 
     self.log.info( "Creating node" )
@@ -230,20 +234,30 @@ class NovaClient:
     self.log.verbose( "image : %s" % bootImage )
     self.log.verbose( "size : %s" % flavor )
     self.log.verbose( "ex_keyname : %s" % keyname )
+    self.log.verbose( "ex_keyname : %s" % keyname )
     self.log.verbose( "ex_userdata : %s" % userdata )
     self.log.verbose( "ex_metadata : %s" % metadata )
 
     try:
-      vmNode = self.__driver.create_node( name               = vm_name, 
-                                          image              = bootImage, 
-                                          size               = flavor,
-                                          ex_keyname         = keyname,
-                                          ex_userdata        = userdata,
-                                          ex_security_groups = secGroup,
-                                          ex_metadata        = metadata )
+      if contextMethod == 'amiconfig':
+        vmNode = self.__driver.create_node(   name               = vm_name, 
+                                            image              = bootImage, 
+                                            size               = flavor,
+                                            ex_keyname         = keyname,
+                                            ex_userdata        = userdata,
+                                            ex_security_groups = secGroup,
+                                            ex_metadata        = metadata )
+      else:
+        vmNode = self.__driver.create_node( name                        = vm_name,
+                                            image                       = bootImage,
+                                            size                        = flavor
+                                        )
       # the libcloud library, throws Exception. Nothing to do.
     except Exception, errmsg:
       return S_ERROR( errmsg )
+
+    # giving time sleep to REST API caching the instance to be available:
+    time.sleep( 12 )
 
     publicIP = self.__assignFloatingIP( vmNode )
     if not publicIP[ 'OK' ]:
@@ -350,10 +364,6 @@ class NovaClient:
     """
     This method is only used ( at the moment ) by the ssh contextualization method.
     It is called once the vm has been booted.
-    
-    <IS THIS REALLY TRUE ?>
-    This is necesary because the libcloud deploy_node, including key/cert copy and ssh run, 
-    based on amiconfig, are sychronous operations which can not scale
     </>
     
     :Parameters:
@@ -386,7 +396,7 @@ class NovaClient:
     """
 
     # Sometimes we do not have public IP
-    ipPool = self.imageConfig[ 'contextConfig' ].get( 'ipPool', None )
+    ipPool = self.imageConfig[ 'contextConfig' ].get( 'vmOsIpPool', None )
 
     if ipPool is not None:
 
@@ -450,19 +460,48 @@ class NovaContextualise:
   def contextualise( self, imageConfig, endpointConfig, **kwargs ):
     
     contextMethod = imageConfig[ 'contextMethod' ]
-    
     if contextMethod == 'ssh':
       
       cvmfs_http_proxy = endpointConfig.get( 'CVMFS_HTTP_PROXY' )
       siteName         = endpointConfig.get( 'siteName' )
-      cloudDriver      = endpointConfig.get( 'driver' )
-      
+      cloudDriver      = endpointConfig.get( 'cloudDriver' )
+      vmStopPolicy     = endpointConfig.get( 'vmStopPolicy' )
+
+      contextConfig                 = imageConfig.get( 'contextConfig' )
+      vmKeyPath                     = contextConfig[ 'vmKeyPath' ]
+      vmCertPath                    = contextConfig[ 'vmCertPath' ]
+      vmContextualizeScriptPath     = contextConfig[ 'vmContextualizeScriptPath' ]
+      vmRunJobAgentURL              = contextConfig[ 'vmRunJobAgentURL' ]
+      vmRunVmMonitorAgentURL        = contextConfig[ 'vmRunVmMonitorAgentURL' ]
+      vmRunLogJobAgentURL           = contextConfig[ 'vmRunLogJobAgentURL' ]
+      vmRunLogVmMonitorAgentURL     = contextConfig[ 'vmRunLogVmMonitorAgentURL' ]
+      vmCvmfsContextURL             = contextConfig[ 'vmCvmfsContextURL' ]
+      vmDiracContextURL             = contextConfig[ 'vmDiracContextURL' ]
+      cpuTime                       = contextConfig[ 'cpuTime' ]
+
       uniqueId = kwargs.get( 'uniqueId' )
       publicIP = kwargs.get( 'publicIp' ) 
-      
-      result = self.__sshContextualise( uniqueId, publicIP, cloudDriver = cloudDriver,
+
+      result = self.__sshContextualise( uniqueId = uniqueId,
+                                        publicIP = publicIP, 
+                                        cloudDriver = cloudDriver,
                                         cvmfs_http_proxy = cvmfs_http_proxy,
-                                        siteName = siteName, **imageConfig )
+                                        vmStopPolicy = vmStopPolicy,
+                                        contextMethod = contextMethod,
+                                        vmCertPath = vmCertPath,
+                                        vmKeyPath = vmKeyPath,
+                                        vmContextualizeScriptPath = vmContextualizeScriptPath,
+                                        vmRunJobAgentURL = vmRunJobAgentURL,
+                                        vmRunVmMonitorAgentURL = vmRunVmMonitorAgentURL, 
+                                        vmRunLogJobAgentURL = vmRunLogJobAgentURL, 
+                                        vmRunLogVmMonitorAgentURL = vmRunLogVmMonitorAgentURL,
+                                        vmCvmfsContextURL = vmCvmfsContextURL,
+                                        vmDiracContextURL = vmDiracContextURL,
+                                        siteName = siteName,
+                                        cpuTime = cpuTime
+                                      )
+
+  
     elif contextMethod == 'adhoc':
       result = S_OK()
     elif contextMethod == 'amiconfig':
@@ -473,13 +512,25 @@ class NovaContextualise:
     return result         
     
 
-  def __sshContextualise( self, uniqueId, publicIP, vmCertPath = '', vmKeyPath = '',
-                          vmContextualizeScriptPath = '', vmRunJobAgentURL = '', 
-                          vmRunVmMonitorAgentURL = '', vmRunLogJobAgentURL = '',
-                          vmRunLogVmMonitorAgentURL = '', cvmfsContextURL = '',
-                          diracContextURL = '', cvmfs_http_proxy = '', siteName = '',
-                          cloudDriver = '' ):
-        
+  def __sshContextualise( self,
+                                        uniqueId,
+                                        publicIP, 
+                                        cloudDriver,
+                                        cvmfs_http_proxy,
+                                        vmStopPolicy,
+                                        contextMethod,
+                                        vmCertPath,
+                                        vmKeyPath,
+                                        vmContextualizeScriptPath,
+                                        vmRunJobAgentURL,
+                                        vmRunVmMonitorAgentURL,
+                                        vmRunLogJobAgentURL,
+                                        vmRunLogVmMonitorAgentURL,
+                                        vmCvmfsContextURL,
+                                        vmDiracContextURL,
+                                        siteName,
+                                        cpuTime
+                        ): 
     # the contextualization using ssh needs the VM to be ACTIVE, so VirtualMachineContextualization 
     # check status and launch contextualize_VMInstance
 
@@ -495,8 +546,6 @@ class NovaContextualise:
       sftp = paramiko.SFTPClient.from_transport( transport )
     except Exception, errmsg:
       return S_ERROR( "Can't open sftp conection to %s: %s" % ( publicIP, errmsg ) )
-    finally:
-      transport.close()      
 
     # scp VM cert/key
     putCertPath = "/root/vmservicecert.pem"
@@ -510,6 +559,12 @@ class NovaContextualise:
       return S_ERROR( errmsg )
     finally:
       sftp.close()
+      transport.close()      
+
+    # giving time sleep asyncronous sftp
+    time.sleep( 5 )
+
+
     #2)  prepare paramiko ssh client
     try:
       ssh = paramiko.SSHClient()
@@ -521,10 +576,10 @@ class NovaContextualise:
     #3) Run the DIRAC contextualization orchestator script:    
 
     try:
-      remotecmd = "/bin/bash /root/contextualize-script.bash \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\'"  
+      remotecmd = "/bin/bash /root/contextualize-script.bash \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\'"  
       remotecmd = remotecmd % ( uniqueId, putCertPath, putKeyPath, vmRunJobAgentURL, 
                                 vmRunVmMonitorAgentURL, vmRunLogJobAgentURL, vmRunLogVmMonitorAgentURL, 
-                                cvmfsContextURL, diracContextURL, cvmfs_http_proxy, siteName, cloudDriver )
+                                vmCvmfsContextURL, vmDiracContextURL, cvmfs_http_proxy, siteName, cloudDriver, cpuTime, vmStopPolicy )
       print "remotecmd"
       print remotecmd
       _stdin, _stdout, _stderr = ssh.exec_command( remotecmd )

@@ -69,7 +69,7 @@ class NovaConfiguration( EndpointConfiguration ):
         string with the name of the CloudEndpoint defined on the CS
     """
     super( NovaConfiguration, self ).__init__() 
-       
+      
     novaOptions = gConfig.getOptionsDict( '%s/%s' % ( self.ENDPOINT_PATH, novaEndpoint ) )
     if not novaOptions[ 'OK' ]:
       self.log.error( novaOptions[ 'Message' ] )
@@ -83,8 +83,11 @@ class NovaConfiguration( EndpointConfiguration ):
     # This two are passed as arguments, not keyword arguments
     self.__user                    = novaOptions.get( 'user'               , None )
     self.__password                = novaOptions.get( 'password'           , None )
-    
-    # FIXME: missing driver !
+
+    self.__cloudDriver             = novaOptions.get( 'cloudDriver'         , None )
+    self.__vmStopPolicy            = novaOptions.get( 'vmStopPolicy'         , None )
+    self.__vmPolicy                = novaOptions.get( 'vmPolicy'         , None )
+    self.__siteName                = novaOptions.get( 'siteName'         , None )
     
     self.__ex_force_ca_cert        = novaOptions.get( 'ex_force_ca_cert'       , None )
     self.__ex_force_auth_token     = novaOptions.get( 'ex_force_auth_token'    , None )
@@ -109,6 +112,12 @@ class NovaConfiguration( EndpointConfiguration ):
     config[ 'ex_force_service_region' ] = self.__ex_force_service_region
     config[ 'ex_force_service_type' ]   = self.__ex_force_service_type
     config[ 'ex_tenant_name' ]          = self.__ex_tenant_name
+    config[ 'cloudDriver' ]             = self.__cloudDriver
+    config[ 'vmPolicy' ]                = self.__vmPolicy
+    config[ 'vmStopPolicy' ]            = self.__vmStopPolicy
+    config[ 'siteName' ]                = self.__siteName
+    config[ 'user' ]                    = self.__user
+    config[ 'password' ]                = self.__password
     
     # Do not return dictionary with None values
     for key, value in config.items():
@@ -119,8 +128,10 @@ class NovaConfiguration( EndpointConfiguration ):
 
   def validate( self ):
     
+  
     endpointConfig = self.config()
-    
+
+ 
     missingKeys = set( self.MANDATORY_KEYS ).difference( set( endpointConfig.keys() ) ) 
     if missingKeys:
       return S_ERROR( 'Missing mandatory keys on endpointConfig %s' % str( missingKeys ) )
@@ -151,7 +162,7 @@ class ImageConfiguration( object ):
   def __init__( self, imageName ):
   
     self.log = gLogger.getSubLogger( 'ImageConfiguration' )
-    
+   
     imageOptions = gConfig.getOptionsDict( '/Resources/VirtualMachines/Images/%s' % imageName )
     if not imageOptions[ 'OK' ]:
       self.log.error( imageOptions[ 'Messages' ] )
@@ -184,7 +195,7 @@ class ImageConfiguration( object ):
       return S_ERROR( 'self._ic_contextMethod is None' )
     if self.__ic_flavorName is None:
       return S_ERROR( 'self._ic_flavorName is None' )
-    
+   
     validateContext = self.__ic_contextConfig.validate()
     if not validateContext[ 'OK' ]:
       self.log.error( validateContext[ 'Message' ] )

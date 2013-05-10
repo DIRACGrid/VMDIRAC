@@ -22,10 +22,11 @@ function generateBrowseGrid( config )
 	var reader = new Ext.data.JsonReader({
 		root : 'instances',
 		totalProperty : 'numRecords',
-		id : 'inst_VMInstanceID',
-		fields : [ "inst_Name", "img_CloudEndpoints","inst_Endpoint", "inst_ErrorMessage", "inst_Status", "inst_UniqueID", 
-		           "img_VMImageID", "img_Name", "inst_VMImageID", "inst_PublicIP", "img_Flavor", 'inst_LastUpdate',
-		           'inst_Load', 'inst_Uptime']
+		id : 'inst_InstanceID',
+		fields : [ 'inst_Name', 'img_CloudEndpoints', 'inst_Endpoint', 'inst_ErrorMessage', 'inst_InstanceID', 
+                           'inst_Status', 'inst_UniqueID', 
+                           'img_VMImageID', 'img_Name', 'inst_VMImageID', 'inst_PublicIP', 'inst_LastUpdate',
+		           'inst_Load', 'inst_Uptime', 'inst_Jobs']
     });
 
 	var store = new Ext.data.Store({
@@ -47,15 +48,15 @@ function generateBrowseGrid( config )
 			startCollapsed : false,
 		}),*/
 		columns: [
-		    { id : 'check', header : '', width : 30, dataIndex: 'inst_VMInstanceID', renderer : renderSelect },
-            { header: "Image", width: 100, sortable: true, dataIndex: 'img_Name'},
+		    { id : 'check', header : '', width : 30, dataIndex: 'inst_InstanceID', renderer : renderSelect },
+            { header: "Image", width: 150, sortable: true, dataIndex: 'img_Name'},
             { header: "EndPoint", width: 100, sortable: true, dataIndex: 'img_CloudEndpoints'},
-            { header: "Status", width: 60, sortable: true, dataIndex: 'inst_Status'},
-            { header: "ID", width: 80, sortable: true, dataIndex: 'inst_UniqueID'},
+            { header: "Status", width: 100, sortable: true, dataIndex: 'inst_Status'},
+            { header: "Endpoint VM ID", width: 220, sortable: true, dataIndex: 'inst_UniqueID'},
             { header: "IP", width: 100, sortable: true, dataIndex: 'inst_PublicIP'},
             { header: "Load", width: 50, sortable: true, dataIndex: 'inst_Load', renderer : renderLoad },
-            { header: "Flavor", width: 75, sortable: true, dataIndex: 'img_Flavor'},
             { header: "Uptime", width: 75, sortable: true, dataIndex: 'inst_Uptime', renderer : renderUptime },
+            { header: "Jobs", width: 50, sortable: true, dataIndex: 'inst_Jobs' },
             { header: "Last Update (UTC)", width: 125, sortable: true, dataIndex: 'inst_LastUpdate' },
             { header: "Error", width: 350, sortable: true, dataIndex: 'inst_ErrorMessage'},
         ],
@@ -64,7 +65,7 @@ function generateBrowseGrid( config )
    				{ handler:function(){ toggleAll(true) }, text:'Select all', width:150, tooltip:'Click to select all rows' },
    				{ handler:function(){ toggleAll(false) }, text:'Select none', width:150, tooltip:'Click to select all rows' },
    				'->',
-      			//{ handler:function(){ cbDeleteSelected() }, text:'Delete', width:150, tooltip:'Click to delete all selected proxies' },
+  	    			{ handler:function(){ cbStopSelected() }, text:'Stop', width:150, tooltip:'Click to stop all selected VMs' },
       	],
       	bbar: new Ext.PagingToolbar({
 					pageSize: 50,
@@ -203,7 +204,7 @@ function createNumItemsSelector(){
 function createStatusSelector(){
 	var store = new Ext.data.SimpleStore({
 		fields:['status'],
-		data:[['All'],['New'],['Submitted'],['Running'],['Halted'],['Stalled'],['Error']]
+		data:[['All'],['New'],['Submitted'],['Wait_ssh_context'],['Contextualizing'],['Running'],['Halted'],['Stalled'],['Stopping']]
 	});
 	var combo = new Ext.form.ComboBox({
 		allowBlank:false,
@@ -240,7 +241,7 @@ function cbShowContextMenu( grid, rowId, colId, event )
 {
 	event.stopEvent();
 	gVMMenu.vm_data = grid.getStore().getAt( rowId ).data;
-	gVMMenu.vm_instanceID = gVMMenu.vm_data[ 'inst_VMInstanceID' ];
+	gVMMenu.vm_instanceID = gVMMenu.vm_data[ 'inst_InstanceID' ];
 	gVMMenu.showAt(event.getXY());
 }
 
@@ -251,30 +252,24 @@ function cbShowVMHistory( a,b,c )
 }
 
 /*
- * OLD DELETE
+ *  Stopping VMs (stopping mandative management when vmStopPolicy=never, optional if vmStopPolocy=elastic):
  */
 
-function cbDeleteSelected()
+
+function cbStopSelected()
 {
-	var selIds = getSelectedCheckboxes()
-	if( window.confirm( "Are you sure you want to delete selected proxies?" ) )
+	var selIds = getSelectedCheckboxes();
+	if( window.confirm( "Are you sure you want to stop selected Virtual Machines?" ) )
 		Ext.Ajax.request({
-			url : "deleteProxies",
-			success : ajaxCBServerDeleteSelected,
+			url : "declareInstancesStopping",
+			success : ajaxCBServerStopSelected,
 			failure : ajaxFailure,
-			params : { idList : Ext.util.JSON.encode( selIds ) },
+			params : { idList : Ext.util.JSON.encode( selIds ) }
 		});
 }
 
-function ajaxCBServerDeleteSelected( ajaxResponse, reqArguments )
+function ajaxCBServerStopSelected( ajaxResponse, reqArguments )
 {
-	var retVal = Ext.util.JSON.decode( ajaxResponse.responseText );
-	if( ! retVal.OK )
-	{
-		alert( "Failed to delete proxies: " + retVal.Message );
-	}
-	else
-		alert( "Deleted " + retVal.Value + " proxies" );
 	gMainGrid.getStore().reload();
 }
 

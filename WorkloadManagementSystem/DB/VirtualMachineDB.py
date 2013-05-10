@@ -17,8 +17,9 @@
   - Wait_ssh_context:     Declared by Director for submitted instance wich need later contextualization using ssh (VirtualMachineContextualization will check)
   - Contextualizing:     on the waith_ssh_context path is the next status before Running
   - Running:   Declared by VMMonitoring Server when an Instance reports back correctly (add LastUpdate, publicIP and privateIP)
+  - Stopping:  Declared by VMManager Server when an Instance has been deleted outside of the VM (f.e "Delete" button on Browse Instances)
   - Halted:    Declared by VMMonitoring Server when an Instance reports halting
-  - Stalled:   Declared by VMMonitoring Server when detects Instance no more running
+  - Stalled:   Declared by VMManager Server when detects Instance no more running
   - Error:     Declared by VMMonitoring Server when an Instance reports back wrong requirements or reports as running when Halted
 
   New Instances can be launched by Director if VMImage is not in Error Status.
@@ -43,7 +44,7 @@ class VirtualMachineDB( DB ):
   # When declaring a new Status, it will be set to Error if not in the list
   validImageStates    = [ 'New', 'Validated', 'Error' ]
   validInstanceStates = [ 'New', 'Submitted', 'Wait_ssh_context', 'Contextualizing', 
-                          'Running', 'Halted', 'Stalled', 'Error' ]
+                          'Running', 'Stopping', 'Halted', 'Stalled', 'Error' ]
 
   # In seconds !
   stallingInterval = 30 * 60 
@@ -56,8 +57,9 @@ class VirtualMachineDB( DB ):
                                        'Wait_ssh_context' : [ 'New' ],
                                        'Submitted' : [ 'New' ],
                                        'Contextualizing' : [ 'Wait_ssh_context' ],
-                                       'Running' : [ 'Submitted', 'Contextualizing', 'Stalled' ],
-                                       'Halted' : [ 'Running', 'Stalled' ],
+                                       'Running' : [ 'Submitted', 'Contextualizing', 'Running', 'Stalled' ],
+                                       'Stopping' : [ 'Running', 'Stalled' ],
+                                       'Halted' : [ 'New','Running', 'Stopping', 'Stalled' ],
                                        'Stalled': [ 'New', 'Submitted', 'Wait_ssh_context', 
                                                     'Contextualizing', 'Running' ],
                                       }
@@ -78,7 +80,7 @@ class VirtualMachineDB( DB ):
                                           }
                              }
 
-  tablesDesc[ 'vm_Instances' ] = { 'Fields' : { 'VMInstanceID' : 'BIGINT UNSIGNED AUTO_INCREMENT NOT NULL',
+  tablesDesc[ 'vm_Instances' ] = { 'Fields' : { 'InstanceID' : 'BIGINT UNSIGNED AUTO_INCREMENT NOT NULL',
                                                 'Name' : 'VARCHAR(255) NOT NULL',
                                                 'Endpoint' : 'VARCHAR(32) NOT NULL',
                                                 'UniqueID' : 'VARCHAR(64) NOT NULL DEFAULT ""',
@@ -90,13 +92,14 @@ class VirtualMachineDB( DB ):
                                                 'ErrorMessage' : 'VARCHAR(255) NOT NULL DEFAULT ""',
                                                 'MaxAllowedPrice' : 'FLOAT DEFAULT NULL',
                                                 'Uptime' : 'INTEGER UNSIGNED DEFAULT 0',
-                                                'Load' : 'FLOAT DEFAULT 0'
+                                                'Load' : 'FLOAT DEFAULT 0',
+                                                'Jobs' : 'INTEGER UNSIGNED NOT NULL DEFAULT 0'
                                              },
-                                   'PrimaryKey' : 'VMInstanceID',
+                                   'PrimaryKey' : 'InstanceID',
                                    'Indexes': { 'Status': [ 'Status' ] },
                                  }
 
-  tablesDesc[ 'vm_History' ] = { 'Fields' : { 'VMInstanceID' : 'INTEGER UNSIGNED NOT NULL',
+  tablesDesc[ 'vm_History' ] = { 'Fields' : { 'InstanceID' : 'INTEGER UNSIGNED NOT NULL',
                                               'Status' : 'VARCHAR(32) NOT NULL',
                                               'Load' : 'FLOAT NOT NULL',
                                               'Jobs' : 'INTEGER UNSIGNED NOT NULL DEFAULT 0',
@@ -104,7 +107,7 @@ class VirtualMachineDB( DB ):
                                               'TransferredBytes' : 'BIGINT UNSIGNED NOT NULL DEFAULT 0',
                                               'Update' : 'DATETIME'
                                             },
-                                 'Indexes': { 'VMInstanceID': [ 'VMInstanceID' ] },
+                                 'Indexes': { 'InstanceID': [ 'InstanceID' ] },
                                }
 
 
@@ -149,7 +152,7 @@ class VirtualMachineDB( DB ):
     elif element == 'Instance':
       tableName   = 'vm_Instances'
       validStates = self.validInstanceStates
-      idName      = 'VMInstanceID'
+      idName      = 'InstanceID'
 
     return ( tableName, validStates, idName )
 
@@ -206,15 +209,29 @@ class VirtualMachineDB( DB ):
     sqlUpdate = "UPDATE `%s` SET UniqueID = %s WHERE %s = %d" % ( tableName, uniqueID, idName, instanceID )
     return self._update( sqlUpdate )
 
+  def getUniqueID( self, instanceID ):
+    """
+    For a given dirac instanceID get the corresponding cloud endpoint uniqueID
+    """
+    tableName, _validStates, idName = self.__getTypeTuple( 'Instance' )
+    
+    uniqueID = self._getFields( tableName, [ 'UniqueID' ], [ 'InstanceID' ], [ instanceID ] )
+    if not uniqueID[ 'OK' ]:
+      return uniqueID
+    uniqueID = uniqueID[ 'Value' ][0][0]
+
+    if not uniqueID:
+      return S_ERROR( 'Unknown %s = %s' % ( 'InstanceID', instanceID ) )
+
+    return S_OK( uniqueID )
+
   def declareInstanceSubmitted( self, uniqueID ):
     """
     After submission of the instance the Director should declare the submitted Status
     """
     instanceID = self.__getInstanceID( uniqueID )
     if not instanceID[ 'OK' ]:
-      #print "POR AQUI 1"
       return instanceID
-    #print "POR AQUI 2"
     instanceID = instanceID[ 'Value' ]
 
     status = self.__setState( 'Instance', instanceID, 'Submitted' )
@@ -292,6 +309,51 @@ class VirtualMachineDB( DB ):
 
     return self.getAllInfoForUniqueID( uniqueID )
 
+  def declareInstanceStopping( self, instanceID ):
+    """
+    From "Stop" buttom of Browse Instance
+    Declares "Stopping" the instance, next heat-beat from VM will recibe a stop response to do an ordenate termination 
+    It returns S_ERROR if the status is not OK
+    """
+    status = self.__setState( 'Instance', instanceID, 'Stopping' )
+    if status[ 'OK' ]:
+      self.__addInstanceHistory( instanceID, 'Stopping' )
+
+    return status
+
+  def getInstanceStatus( self, instanceID ):
+    """
+    By dirac instanceID
+    """
+    tableName, validStates, idName = self.__getTypeTuple( 'Instance' )
+    if not tableName:
+      return S_ERROR( 'Unknown DB object Instance' )
+
+    ret = self.__getStatus( 'Instance', instanceID )
+    if not ret[ 'OK' ]:
+      return ret
+
+    if not ret[ 'Value' ]:
+      return S_ERROR( 'Unknown InstanceID = %s' % ( instanceID ) )
+
+    status = ret[ 'Value' ]
+    if not status in validStates:
+      return self.__setError( 'Instances', instanceID, 'Invalid Status: %s' % status )
+
+    return S_OK( status )
+
+  def recordDBHalt( self, instanceID, load ):
+    """
+    Insert the heart beat info from a halting instance
+    Declares "Halted" the instance and the image 
+    It returns S_ERROR if the status is not OK
+    """
+    status = self.__setState( 'Instance', instanceID, 'Halted' )
+    if status[ 'OK' ]:
+      self.__addInstanceHistory( instanceID, 'Halted', load )
+
+    return status
+
   def declareInstanceHalting( self, uniqueID, load ):
     """
     Insert the heart beat info from a halting instance
@@ -351,10 +413,11 @@ class VirtualMachineDB( DB ):
     if not status[ 'OK' ]:
       return status
 
-    self.__setLastLoadAndUptime( instanceID, load, uptime )
+    self.__setLastLoadJobsAndUptime( instanceID, load, jobs, uptime )
 
-    #TODO: Send empty dir just in case we want to send flags (such as stop vm)
-    return S_OK( {} )
+    if status == 'Stopping':
+      return S_OK( 'stop' )
+    return S_OK()
 
   def getPublicIpFromInstance( self, uniqueId ):
     """
@@ -799,7 +862,7 @@ class VirtualMachineDB( DB ):
     except ValueError:
       return S_ERROR( "Transferred files has to be an integer value" )
 
-    self._insert( 'vm_History' , [ 'VMInstanceID', 'Status', 'Load',
+    self._insert( 'vm_History' , [ 'InstanceID', 'Status', 'Load',
                                    'Update', 'Jobs', 'TransferredFiles',
                                    'TransferredBytes' ],
                                  [ instanceID, status, load,
@@ -807,13 +870,14 @@ class VirtualMachineDB( DB ):
                                    transferredFiles, transferredBytes ] )
     return
 
-  def __setLastLoadAndUptime( self, instanceID, load, uptime ):
+  def __setLastLoadJobsAndUptime( self, instanceID, load, jobs, uptime ):
     if not uptime:
-      sqlQuery = "SELECT MAX( UNIX_TIMESTAMP( `Update` ) ) - MIN( UNIX_TIMESTAMP( `Update` ) ) FROM `vm_History` WHERE VMInstanceID = %d GROUP BY VMInstanceID" % instanceID
+      sqlQuery = "SELECT MAX( UNIX_TIMESTAMP( `Update` ) ) - MIN( UNIX_TIMESTAMP( `Update` ) ) FROM `vm_History` WHERE InstanceID = %d GROUP BY InstanceID" % instanceID
       result = self._query( sqlQuery )
       if result[ 'OK' ] and len( result[ 'Value' ] ) > 0:
         uptime = int( result[ 'Value' ][0][0] )
-    sqlUpdate = "UPDATE `vm_Instances` SET `Uptime` = %d, `Load` = %f WHERE `VMInstanceID` = %d" % ( uptime,
+    sqlUpdate = "UPDATE `vm_Instances` SET `Uptime` = %d, `Jobs`= %d, `Load` = %f WHERE `InstanceID` = %d" % ( uptime,
+                                                                                                     jobs,
                                                                                                      load,
                                                                                                      instanceID )
     self._update( sqlUpdate )
@@ -894,8 +958,8 @@ class VirtualMachineDB( DB ):
     #Main fields
     tables = ( "`vm_Images` AS img", "`vm_Instances` AS inst" )
     imageFields = ( 'VMImageID', 'Name', 'CloudEndpoints' )
-    instanceFields = ( 'VMInstanceID', 'Name', 'UniqueID', 'VMImageID',
-                       'Status', 'PublicIP', 'Status', 'ErrorMessage', 'LastUpdate', 'Load', 'Uptime' )
+    instanceFields = ( 'InstanceID', 'Name', 'UniqueID', 'VMImageID',
+                       'Status', 'PublicIP', 'Status', 'ErrorMessage', 'LastUpdate', 'Load', 'Uptime', 'Jobs' )
 
     fields = [ 'img.%s' % f for f in imageFields ] + [ 'inst.%s' % f for f in instanceFields ]
     sqlQuery = "SELECT %s FROM %s" % ( ", ".join( fields ), ", ".join( tables ) )
@@ -942,7 +1006,7 @@ class VirtualMachineDB( DB ):
       record = list( record )
       data.append( record )
     totalRecords = len( data )
-    sqlQuery = "SELECT COUNT( VMInstanceID ) FROM %s WHERE %s" % ( ", ".join( tables ),
+    sqlQuery = "SELECT COUNT( InstanceID ) FROM %s WHERE %s" % ( ", ".join( tables ),
                                                                    " AND ".join( sqlCond ) )
     retVal = self._query( sqlQuery )
     if retVal[ 'OK' ]:
@@ -961,7 +1025,7 @@ class VirtualMachineDB( DB ):
     fields    = ( 'Status', 'Load', 'Update', 'Jobs', 'TransferredFiles', 'TransferredBytes' )
     sqlFields = [ '`%s`' % f for f in fields ]
     
-    sqlQuery = "SELECT %s FROM `vm_History` WHERE VMInstanceId=%d" % ( ", ".join( sqlFields ), instanceId )
+    sqlQuery = "SELECT %s FROM `vm_History` WHERE InstanceId=%d" % ( ", ".join( sqlFields ), instanceId )
     retVal = self._query( sqlQuery )
     if not retVal[ 'OK' ]:
       return retVal
@@ -1014,14 +1078,14 @@ class VirtualMachineDB( DB ):
       return S_ERROR( "Average bucket has to be an integer" )
     
     sqlGroup = "FROM_UNIXTIME(UNIX_TIMESTAMP( `Update` ) - UNIX_TIMESTAMP( `Update` ) mod %d)" % bucketSize
-    sqlFields = [ '`VMInstanceID`', sqlGroup ] #+ [ "SUM(`%s`)/COUNT(`%s`)" % ( f, f ) for f in fields2Get ]
+    sqlFields = [ '`InstanceID`', sqlGroup ] #+ [ "SUM(`%s`)/COUNT(`%s`)" % ( f, f ) for f in fields2Get ]
     for field in fields2Get:
       if field in cumulativeFields:
         sqlFields.append( "MAX(`%s`)" % field )
       else:
         sqlFields.append( "SUM(`%s`)/COUNT(`%s`)" % ( field, field ) )
 
-    sqlGroup    = "%s, VMInstanceID" % sqlGroup
+    sqlGroup    = "%s, InstanceID" % sqlGroup
     paramFields = [ 'Update' ] + fields2Get
     sqlCond     = []
     
@@ -1127,7 +1191,7 @@ class VirtualMachineDB( DB ):
       return S_ERROR( "Timespan has to be an integer" )
 
     groupby   = "FROM_UNIXTIME(UNIX_TIMESTAMP( `Update` ) - UNIX_TIMESTAMP( `Update` ) mod %d )" % bucketSize
-    sqlFields = [ groupby, "COUNT( DISTINCT( `VMInstanceID` ) )" ]
+    sqlFields = [ groupby, "COUNT( DISTINCT( `InstanceID` ) )" ]
     sqlQuery  = "SELECT %s FROM `vm_History`" % ", ".join( sqlFields )
     sqlCond   = [ "`Status` = 'Running'" ]
     
@@ -1149,9 +1213,9 @@ class VirtualMachineDB( DB ):
       return S_ERROR( "Timespan has to be an integer" )
 
     groupby   = "FROM_UNIXTIME(UNIX_TIMESTAMP( h.`Update` ) - UNIX_TIMESTAMP( h.`Update` ) mod %d )" % bucketSize
-    sqlFields = [ groupby, " i.Endpoint, COUNT( DISTINCT( h.`VMInstanceID` ) ) " ]
+    sqlFields = [ groupby, " i.Endpoint, COUNT( DISTINCT( h.`InstanceID` ) ) " ]
     sqlQuery  = "SELECT %s FROM `vm_History` h, `vm_Instances` i" % ", ".join( sqlFields )
-    sqlCond   = [ " h.VMInstanceID = i.VMInstanceID AND h.`Status` = 'Running'" ]
+    sqlCond   = [ " h.InstanceID = i.InstanceID AND h.`Status` = 'Running'" ]
     
     if timespan > 0:
       sqlCond.append( "TIMESTAMPDIFF( SECOND, `Update`, UTC_TIMESTAMP() ) < %d" % timespan )

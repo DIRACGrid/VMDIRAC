@@ -6,21 +6,23 @@
 
         echo "Starting dirac-context-script.sh" > /var/log/dirac-context-script.log 2>&1
 
-if [ $# -ne 8 ]
+if [ $# -ne 9 ]
 then
-    echo "ERROR: general-DIRAC-context.bash <siteName> <putCertPath> <putKeyPath> <localVmRunJobAgent> <localVmRunVmMonitorAgent> <localVmRunLogJobAgent> <localVmRunLogVmMonitorAgent> <cloudDriver>" > /var/log/dirac-context-script.log 2>&1
+    echo "ERROR: general-DIRAC-context.bash <siteName> <vmStopPolicy> <putCertPath> <putKeyPath> <localVmRunJobAgent> <localVmRunVmMonitorAgent> <localVmRunLogJobAgent> <localVmRunLogVmMonitorAgent> <cloudDriver> " > /var/log/dirac-context-script.log 2>&1
     exit 1
 fi
 
 siteName=$1
-putCertPath=$2
-putKeyPath=$3
-localVmRunJobAgent=$4
-localVmRunVmMonitorAgent=$5
-localVmRunLogJobAgent=$6
-localVmRunLogVmMonitorAgent=$7
-cloudDriver=$8
+vmStopPolicy=$2
+putCertPath=$3
+putKeyPath=$4
+localVmRunJobAgent=$5
+localVmRunVmMonitorAgent=$6
+localVmRunLogJobAgent=$7
+localVmRunLogVmMonitorAgent=$8
+cloudDriver=$9
 
+cpuTime=`cat /etc/CPU_TIME`
 
 # dirac user:
         /usr/sbin/useradd -d /opt/dirac dirac
@@ -67,12 +69,15 @@ cloudDriver=$8
         # to the runsvdir stuff:
 	export PATH
 	export LD_LIBRARY_PATH
+        # for the VM Monitor
+        easy_install simplejson >> /var/log/dirac-context-scritp.log 2>&1
 	# also the options for the agents: CPUTime, Occi SumbitPools, Site...
         # if CAs are not download we retry
         for retry in 0 1 2 3 4 5 6 7 8 9
         do
                 # multi-endpoint:
-		su dirac -c"dirac-configure -UHdd -o /LocalSite/CPUTime=1800 -o /LocalSite/SubmitPool=Cloud -o /LocalSite/CloudDriver=${cloudDriver} -o /LocalSite/Site=${siteName} -o /LocalSite/CE=CE-nouse defaults-VMDIRAC.cfg"  >> /var/log/dirac-context-script.log 2>&1
+		# FIX: CPUTime should be cloudenpoint parameter
+		su dirac -c"dirac-configure -UHdd -o /LocalSite/SubmitPool=Cloud -o /LocalSite/CPUTime=${cpuTime} -o /LocalSite/CloudDriver=${cloudDriver} -o /LocalSite/Site=${siteName}  -o /LocalSite/VMStopPolicy=${vmStopPolicy}  -o /LocalSite/CE=CE-nouse defaults-VMDIRAC.cfg"  >> /var/log/dirac-context-script.log 2>&1
 		# options H: SkipCAChecks, dd: debug level 2, U: UseServerCertificate 
 		# options only for debuging D: SkipCADownload
 		# after UseServerCertificate = yes for the configuration with CS

@@ -107,10 +107,10 @@ class VirtualMachineMonitorAgent( AgentModule ):
     imgPath = "/Resources/VirtualMachines/Images/%s" % self.vmName
     for csOption, csDefault, varName in ( ( "MinWorkingLoad", 0.01, "vmMinWorkingLoad" ),
                                           ( "LoadAverageTimespan", 60, "vmLoadAvgTimespan" ),
-                                          ( "JobWrappersLocation", "/opt/dirac/pro/job/Wrapper/", "vmJobWrappersLocation" ),
-                                          ( "HaltPeriod", 1200, "haltPeriod" ),
+                                          ( "JobWrappersLocation", "/tmp/", "vmJobWrappersLocation" ),
+                                          ( "HaltPeriod", 600, "haltPeriod" ),
                                           ( "HaltBeforeMargin", 300, "haltBeforeMargin" ),
-                                          ( "HeartBeatPeriod", 600, "heartBeatPeriod" ),
+                                          ( "HeartBeatPeriod", 300, "heartBeatPeriod" ),
                                         ):
 
       path = "%s/%s" % ( imgPath, csOption )
@@ -171,9 +171,9 @@ class VirtualMachineMonitorAgent( AgentModule ):
       result = self.getGenericVMId()
     elif self.cloudDriver == 'amazon':
       result = self.getAmazonVMId()
-    elif (self.cloudDriver == 'occi-0.9-pic' or self.cloudDriver == 'occi-0.8-pic'):
+    elif (self.cloudDriver == 'occi-0.9' or self.cloudDriver == 'occi-0.8'):
       result = self.getOcciVMId()
-    elif self.cloudDriver == 'CloudStack':
+    elif self.cloudDriver == 'cloudstack':
       result = self.getCloudStackVMId()
     elif self.cloudDriver == 'nova-1.1':
       result = self.getNovaVMId()
@@ -190,6 +190,9 @@ class VirtualMachineMonitorAgent( AgentModule ):
         self.ipAddress = netData[ iface ][ 'ip' ]
         break
     self.log.info( "IP Address is %s" % self.ipAddress )
+    #getting the stoppage policy
+    self.vmStopPolicy = gConfig.getValue( "/LocalSite/VMStopPolicy", "" ).lower()
+    self.log.info( "vmStopPolicy is %s" % self.vmStopPolicy )
     #Declare instance running
     result = self.__declareInstanceRunning()
     if not result[ 'OK' ]:
@@ -233,11 +236,15 @@ class VirtualMachineMonitorAgent( AgentModule ):
   def __getNumJobWrappers( self ):
     if not os.path.isdir( self.vmJobWrappersLocation ):
       return 0
+    self.log.info( "VM job wrappers path: %s" % self.vmJobWrappersLocation )
     nJ = 0
     for entry in os.listdir( self.vmJobWrappersLocation ):
       entryPath = os.path.join( self.vmJobWrappersLocation, entry )
-      if os.path.isfile( entryPath ) and entry.find( "Wrapper_" ) == 0:
-        nJ += 1
+      if (entry.find( "jobAgent-" ) != -1):
+        for jobAgentEntry in os.listdir(entryPath):
+          if (jobAgentEntry.find( ".jdl" ) != -1):
+            self.log.info( "VM job jdl %s found at: %s" % (jobAgentEntry, entryPath) )
+            nJ += 1
     return nJ
 
   def execute( self ):
@@ -282,9 +289,13 @@ class VirtualMachineMonitorAgent( AgentModule ):
     if avgRequiredSamples and uptime % self.haltPeriod + self.haltBeforeMargin > self.haltPeriod:
       self.log.info( "Load average is %s (minimum for working instance is %s)" % ( avgLoad,
                                                                                   self.vmMinWorkingLoad ) )
-      #If load less than X, then halt!
-      if avgLoad < self.vmMinWorkingLoad:
-        self.__haltInstance( avgLoad )
+      #current stop polices: elastic (load) and never
+      if self.vmStopPolicy == 'elastic':
+        #If load less than X, then halt!
+          if avgLoad < self.vmMinWorkingLoad:
+            self.__haltInstance( avgLoad )
+      if self.vmStopPolicy == 'never':
+        self.log.info( "VM stoppage policy is defined to never (until SaaS or site request)")
     return S_OK()
 
   def __processHeartBeatMessage( self, hbMsg ):
@@ -320,9 +331,6 @@ class VirtualMachineMonitorAgent( AgentModule ):
       if i < retries - 1 :
         self.log.info( "Sleeping for %d seconds and retrying" % sleepTime )
         time.sleep( sleepTime )
-
-    #time.sleep( sleepTime )
-
 
     self.log.info( "Executing system halt..." )
     os.system( "halt" )

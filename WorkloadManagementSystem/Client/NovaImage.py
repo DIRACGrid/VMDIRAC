@@ -36,7 +36,6 @@ class NovaImage:
         endPoint as defined on CS:/Resources/VirtualMachines/CloudEndpoint 
     
     """
-    
     # logger
     self.log       = gLogger.getSubLogger( 'NovaImage %s: ' % imageName )
     
@@ -50,6 +49,7 @@ class NovaImage:
     
     # this object will connect to the server. Better keep it private.                 
     self.__clinova   = None
+
 
   def connectNova( self ):
     """
@@ -82,6 +82,8 @@ class NovaImage:
     if not result[ 'OK' ]:
       self.log.error( "connectNova" )
       self.log.error( result[ 'Message' ] )
+    else:
+      self.log.info( "Successful connection check" )
       
     return result
    
@@ -96,6 +98,7 @@ class NovaImage:
     
     self.log.info( "Booting %s / %s" % ( self.__imageConfig.config()[ 'bootImageName' ],
                                          self.__novaConfig.config()[ 'ex_force_auth_url' ] ) )
+
     result = self.__clinova.create_VMInstance( vmdiracInstanceID )
 
     if not result[ 'OK' ]:

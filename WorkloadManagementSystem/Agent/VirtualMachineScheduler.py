@@ -158,10 +158,16 @@ class VirtualMachineScheduler( AgentModule ):
         result = virtualMachineDB.getInstancesByStatus( 'Submitted' )
         if result['OK'] and imageName in result['Value']:
           instances += len( result['Value'][imageName] )
+        result = virtualMachineDB.getInstancesByStatus( 'Wait_ssh_context' )
+        if result['OK'] and imageName in result['Value']:
+          instances += len( result['Value'][imageName] )
+        result = virtualMachineDB.getInstancesByStatus( 'Contextualizing' )
+        if result['OK'] and imageName in result['Value']:
+          instances += len( result['Value'][imageName] )
         self.log.verbose( 'Checking Image %s:' % imageName, instances )
         maxInstances = runningPodDict['MaxInstances']
         if instances >= maxInstances:
-          self.log.info( '%s >= %s Running instances of %s, skipping' % ( instances, maxInstances, imageName ) )
+          self.log.info( '%s >= %s Running instances reach MaxInstances for runningPod: %s, skipping' % ( instances, maxInstances, runningPodName ) )
           continue
 
         endpointFound = False
@@ -170,12 +176,20 @@ class VirtualMachineScheduler( AgentModule ):
         cloudEndpoints = [element for element in cloudEndpointsStr.split( ',' )]
         shuffle( cloudEndpoints )
         self.log.info( 'cloudEndpoints random failover: %s' % cloudEndpoints )
+        numVMsToSubmit = {}
         for endpoint in cloudEndpoints:
           self.log.info( 'Checking to submit to: %s' % endpoint )
-          maxEndpointInstances = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, 'MaxEndpointInstances' ), "" )
-          if not maxEndpointInstances:
-            self.log.info( 'CS CloudEndpoint %s has no define MaxEndpointInstance option' % endpoint )
+          strMaxEndpointInstances = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, 'maxEndpointInstances' ), "" )
+          if not strMaxEndpointInstances:
+            self.log.info( 'CS CloudEndpoint %s has no define maxEndpointInstances option' % endpoint )
             continue
+          self.log.info( 'CS CloudEndpoint %s maxEndpointInstance: %s' % (endpoint,strMaxEndpointInstances) )
+
+          vmPolicy = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, 'vmPolicy' ), "" )
+          if not vmPolicy:
+            self.log.info( 'CS CloudEndpoint %s has no define vmPolicy option' % endpoint )
+            continue
+          self.log.info( 'CS CloudEndpoint %s vmPolicy: %s' % (endpoint,vmPolicy) )
 
           endpointInstances = 0
           result = virtualMachineDB.getInstancesByStatusAndEndpoint( 'Running', endpoint )
@@ -184,7 +198,20 @@ class VirtualMachineScheduler( AgentModule ):
           result = virtualMachineDB.getInstancesByStatusAndEndpoint( 'Submitted', endpoint )
           if result['OK'] and imageName in result['Value']:
             endpointInstances += len( result['Value'][imageName] )
+          result = virtualMachineDB.getInstancesByStatusAndEndpoint( 'Wait_ssh_context', endpoint )
+          if result['OK'] and imageName in result['Value']:
+            endpointInstances += len( result['Value'][imageName] )
+          result = virtualMachineDB.getInstancesByStatusAndEndpoint( 'Contextualizing', endpoint )
+          if result['OK'] and imageName in result['Value']:
+            endpointInstances += len( result['Value'][imageName] )
+          self.log.info( 'CS CloudEndpoint %s instances: %s, maxEndpointInstances: %s' % (endpoint,endpointInstances,strMaxEndpointInstances) )
+          maxEndpointInstances = int(strMaxEndpointInstances)
           if endpointInstances < maxEndpointInstances:
+            if vmPolicy == 'elastic':
+              numVMs = 1
+            if vmPolicy == 'static':
+              numVMs = maxEndpointInstances - endpointInstances
+            numVMsToSubmit.update({str(endpoint): int(numVMs) })
             endpointFound = True
             break
 
@@ -220,10 +247,13 @@ class VirtualMachineScheduler( AgentModule ):
           imagesToSubmit[directorName] = {}
         if imageName not in imagesToSubmit[directorName]:
           imagesToSubmit[directorName][imageName] = {}
+        numVMs = numVMsToSubmit.get( endpoint )
         imagesToSubmit[directorName][imageName] = { 'Jobs': jobs,
                                                     'TQPriority': priority,
                                                     'CPUTime': cpu,
                                                     'CloudEndpoint': endpoint,
+                                                    'NumVMsToSubmit': numVMs,
+                                                    'VMPolicy': vmPolicy,
                                                     'RunningPodName': runningPodName,
                                                     'VMPriority': runningPodDict['Priority'] }
 
@@ -237,9 +267,10 @@ class VirtualMachineScheduler( AgentModule ):
 
           endpoint = jobsToSubmitDict['CloudEndpoint']
           runningPodName = jobsToSubmitDict['RunningPodName']
+          numVMs = jobsToSubmitDict['NumVMsToSubmit']
 
           ret = pool.generateJobAndQueueIt( director.submitInstance,
-                                            args = ( imageName, self.workDir, endpoint, runningPodName ),
+                                            args = ( imageName, self.workDir, endpoint, numVMs, runningPodName ),
                                             oCallback = self.callBack,
                                             oExceptionCallback = director.exceptionCallBack,
                                             blocking = False )

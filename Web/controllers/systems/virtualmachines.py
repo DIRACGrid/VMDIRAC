@@ -84,7 +84,7 @@ class VirtualmachinesController( BaseController ):
     try:
       instanceID = int( request.params[ 'instanceID' ] )
     except:
-      return S_ERROR( "OOps, instance ID has to be an integer" )
+      return S_ERROR( "OOps, instance ID has to be an integer " )
     rpcClient = getRPCClient( "WorkloadManagement/VirtualMachineManager" )
     result = rpcClient.getHistoryForInstanceID( instanceID )
     if not result[ 'OK' ]:
@@ -163,7 +163,6 @@ class VirtualmachinesController( BaseController ):
       data.append( rL )
     return S_OK( data )
 
-
   @jsonify
   def getRunningInstancesBEPHistory( self ):
     try:
@@ -187,3 +186,16 @@ class VirtualmachinesController( BaseController ):
         rL = [ eTime, record[1], int( record[2] ) ]
       data.append( rL )
     return S_OK( data )
+
+
+  @jsonify
+  def declareInstancesStopping( self ):
+    try:
+      webIds = simplejson.loads( request.params[ 'idList' ] ) 
+    except Exception, e:
+      print e
+      return S_ERROR( "Oops! Couldn't understand the request" )
+    rpcClient = getRPCClient( "WorkloadManagement/VirtualMachineManager" )
+    result = rpcClient.declareInstancesStopping( webIds )
+    return result
+

@@ -55,9 +55,9 @@ class CloudStackImage:
       return
 
     # get the driver
-    self.__driver = self.__getCSCloudEndpointOption( "driver" )
+    self.__driver = self.__getCSCloudEndpointOption( "cloudDriver" )
     if not self.__driver:
-      self.__errorStatus = "Can't find the driver for endpoint %s" % self.__endpoint
+      self.__errorStatus = "Can't find the cloudDriver for endpoint %s" % self.__endpoint
       self.log.error( self.__errorStatus )
       return
 

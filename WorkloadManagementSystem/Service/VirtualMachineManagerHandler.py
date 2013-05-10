@@ -9,13 +9,14 @@
     - instanceIDHeartBeat
     - declareInstanceHalting
     - getInstancesByStatus
+    - declareInstancesStopping
 
 """
 
 from types import DictType, FloatType, IntType, ListType, LongType, StringType, TupleType, UnicodeType
 
 # DIRAC
-from DIRAC                                import gLogger, S_ERROR, S_OK
+from DIRAC                                import gConfig, gLogger, S_ERROR, S_OK
 from DIRAC.Core.DISET.RequestHandler      import RequestHandler
 from DIRAC.Core.Utilities.ThreadScheduler import gThreadScheduler
 
@@ -88,7 +89,6 @@ class VirtualMachineManagerHandler( RequestHandler ):
     self.__logResult( 'setInstanceUniqueID', res )
     
     return res
-
   
   types_declareInstanceSubmitted = [ StringType ]
   def export_declareInstanceSubmitted( self, uniqueID ):
@@ -139,39 +139,84 @@ class VirtualMachineManagerHandler( RequestHandler ):
     
     return res
     
+  types_declareInstancesStopping = [ ListType ]
+  def export_declareInstancesStopping( self, instanceIdList ):
+    """
+    Declares "Stoppig" the instance because the Delete button of Browse Instances
+    The instanceID is the VMDIRAC VM id
+    When next instanceID heat beat with stoppig status on the DB the VM will stop the job agent and terminates ordenery
+    It returns S_ERROR if the status is not OK
+    """
+    for instanceID in instanceIdList:
+      gLogger.info( 'Stopping DIRAC instanceID: %s' % ( instanceID ) )  
+      result = gVirtualMachineDB.getInstanceStatus( instanceID )
+      if not result[ 'OK' ]:
+        self.__logResult( 'declareInstancesStopping on getInstanceStatus call: ', result )
+        return result
+      state = result[ 'Value' ]
+      gLogger.info( 'Stopping DIRAC instanceID: %s, current state %s' % ( instanceID, state ) )  
+
+      if state == 'Stalled': 
+        result = gVirtualMachineDB.getUniqueID( instanceID )
+        if not result[ 'OK' ]:
+          self.__logResult( 'declareInstancesStopping on getUniqueID call: ', result )
+          return result
+        uniqueID = result [ 'Value' ]
+        result = gVirtualMachineDB.getEndpointFromInstance( uniqueID )
+        if not result[ 'OK' ]:
+          self.__logResult( 'declareInstancesStopping on getEndpointFromInstance call: ', result )
+          return result
+        endpoint = result [ 'Value' ]
+        cloudDriver = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, "cloudDriver" ) )
+        if not cloudDriver:
+          msg = 'Cloud not found driver option in the Endpoint %s value %s' % (endpoint, cloudDriver)
+          return S_ERROR( msg )
+        result = self.export_declareInstanceHalting( uniqueID, 0, cloudDriver )
+
+      if state == 'New': 
+       result = gVirtualMachineDB.recordDBHalt( instanceID, 0 )
+       self.__logResult( 'declareInstanceHalted', result )
+
+      else:
+        # this is only aplied to Running, while the rest of trasitions are not allowed and declareInstanceStopping do nothing
+        result = gVirtualMachineDB.declareInstanceStopping( instanceID )
+        self.__logResult( 'declareInstancesStopping: on declareInstanceStopping call: ', result )
+
+    return result
 
   types_declareInstanceHalting = [ StringType, FloatType ]
-  def export_declareInstanceHalting( self, vmId, load, cloudDriver ):
+  def export_declareInstanceHalting( self, uniqueID, load, cloudDriver ):
     """
     Insert the heart beat info from a halting instance
+    The VM has the uniqueID, which is the Cloud manager VM id
     Declares "Halted" the instance and the image 
     It returns S_ERROR if the status is not OK
     """
-    endpoint = gVirtualMachineDB.getEndpointFromInstance( vmId )
+    endpoint = gVirtualMachineDB.getEndpointFromInstance( uniqueID )
     if not endpoint[ 'OK' ]:
       self.__logResult( 'declareInstanceHalting', endpoint )
       return endpoint
     endpoint = endpoint[ 'Value' ]
 
-    result = gVirtualMachineDB.declareInstanceHalting( vmId, load )
+    result = gVirtualMachineDB.declareInstanceHalting( uniqueID, load )
     if not result[ 'OK' ]:
-      self.__logResult( 'declareInstanceHalting', result )
+      self.__logResult( 'declareInstanceHalting on change status: ', result )
       return result
-    
+   
     if ( cloudDriver == 'occi-0.9' or cloudDriver == 'occi-0.8' ):
-      imageName = gVirtualMachineDB.getImageNameFromInstance( vmId )
+      imageName = gVirtualMachineDB.getImageNameFromInstance( uniqueID )
       if not imageName[ 'OK' ]:
-        self.__logResult( 'declareInstanceHalting', imageName )
+        self.__logResult( 'declareInstanceHalting getImageNameFromInstance: ', imageName )
         return imageName
       imageName = imageName[ 'Value' ]
 
       oima   = OcciImage( imageName, endpoint )
-      result = oima.stopInstance( vmId )
+      result = oima.stopInstance( uniqueID )
 
     elif cloudDriver == 'nova-1.1':
-      imageName = gVirtualMachineDB.getImageNameFromInstance( vmId )
+      imageName = gVirtualMachineDB.getImageNameFromInstance( uniqueID )
       if not imageName[ 'OK' ]:
-        self.__logResult( 'declareInstanceHalting', imageName )
+        self.__logResult( 'declareInstanceHalting getImageNameFromInstance: ', imageName )
         return imageName
       imageName = imageName[ 'Value' ]
 
@@ -180,18 +225,18 @@ class VirtualMachineManagerHandler( RequestHandler ):
       if not connNova[ 'OK' ]:
         return connNova
       
-      publicIP = gVirtualMachineDB.getPublicIpFromInstance ( vmId )
+      publicIP = gVirtualMachineDB.getPublicIpFromInstance ( uniqueID )
       if not publicIP[ 'OK' ]:
-        self.__logResult( 'declareInstanceHalting', publicIP )
+        self.__logResult( 'declareInstanceHalting getPublicIpFromInstance: ', publicIP )
         return publicIP
       publicIP = publicIP[ 'Value' ]
       
-      result = nima.stopInstance( vmId, publicIP )
+      result = nima.stopInstance( uniqueID, publicIP )
 
     else:
-      gLogger.warn( 'Unexpected cloud driver is %s' % cloudDriver )
+      gLogger.warn( 'Unexpected cloud driver:  %s' % cloudDriver )
 
-    self.__logResult( 'declareInstanceHalting', result )
+    self.__logResult( 'declareInstanceHalting: ', result )
     return result
 
   types_getInstancesByStatus = [ StringType ]

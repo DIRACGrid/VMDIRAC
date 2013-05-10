@@ -71,7 +71,7 @@ class ContextConfig( object ):
     """
     # Get sublogger with the class name loaded in __new__
     self.log = gLogger.getSubLogger( self.__class__.__name__ )
-    
+ 
     contextOptions = gConfig.getOptionsDict( self.CONTEXT_PATH % ( imageName, contextName ) )
     if not contextOptions[ 'OK' ]:
       self.log.error( contextOptions[ 'Message' ] )
@@ -98,9 +98,10 @@ class ContextConfig( object ):
       
     :return: S_OK | S_ERROR  
     """
-   
+
+ 
     contextConfig = self.config()
-    
+  
     missingKeys = set( self.MANDATORY_KEYS ).difference( set( contextConfig.keys() ) ) 
     if missingKeys:
       return S_ERROR( 'Missing mandatory keys on endpointConfig %s' % str( missingKeys ) )
@@ -133,12 +134,14 @@ class SSHContext( ContextConfig ):
   * vmRunVmMonitorAgentURL : the runsvdir run file vmMonitorAgent 
   * vmRunLogJobAgentURL : the runsvdir run.log file forjobAgent 
   * vmRunLogVmMonitorAgentURL : the runsvdir run.log file vmMonitorAgent
+  * cpuTime : the VM cpuTime of the image
+  * cloudDriver : the endpoint dirac cloud driver
   
   """
   MANDATORY_KEYS = [ 'hdcImageName', 'flavorName', 'vmOsIpPool', 'vmCertPath', 
                      'vmKeyPath', 'vmContextualizeScriptPath', 'vmCvmfsContextURL', 
                      'vmDiracContextURL', 'vmRunJobAgentURL', 'vmRunVmMonitorAgentURL', 
-                     'vmRunLogJobAgentURL', 'vmRunLogVmMonitorAgentURL' ]     
+                     'vmRunLogJobAgentURL', 'vmRunLogVmMonitorAgentURL', 'cpuTime', 'cloudDriver' ]
 
 #...............................................................................    
 # AdHoc Context

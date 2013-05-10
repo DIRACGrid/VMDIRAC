@@ -69,6 +69,8 @@ cpuTime=`cat /etc/CPU_TIME`
         # to the runsvdir stuff:
 	export PATH
 	export LD_LIBRARY_PATH
+        # for the VM Monitor
+        easy_install simplejson >> /var/log/dirac-context-scritp.log 2>&1
 	# also the options for the agents: CPUTime, Occi SumbitPools, Site...
         # if CAs are not download we retry
         for retry in 0 1 2 3 4 5 6 7 8 9

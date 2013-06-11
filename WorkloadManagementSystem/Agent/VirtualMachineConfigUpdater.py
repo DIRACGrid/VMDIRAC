@@ -9,7 +9,7 @@
 import glob
 import os
 
-from DIRAC                                               import S_OK
+from DIRAC                                               import gConfig, S_OK, rootPath
 from DIRAC.ConfigurationSystem.Client.Helpers.Operations import Operations
 from DIRAC.Core.Base.AgentModule                         import AgentModule
 from DIRAC.Core.Utilities.CFG                            import CFG
@@ -19,8 +19,6 @@ __RCSID__ = '$Id: $'
 
 class VirtualMachineConfiguUpdater( AgentModule ):
 
-  CONFIG_FILE = '/opt/dirac/etc/dirac.cfg'
-
   def __init__( self, *args, **kwargs ):
     """ Constructor
     
@@ -28,7 +26,9 @@ class VirtualMachineConfiguUpdater( AgentModule ):
         
     AgentModule.__init__( self, *args, **kwargs )  
   
-    self.opHelper = None 
+    self.opHelper      = None
+    self.controlPath   = '' 
+    self.stopAgentPath = ''
   
   
   def initialize( self ):
@@ -36,7 +36,16 @@ class VirtualMachineConfiguUpdater( AgentModule ):
     
     """
     
-    self.opHelper = Operations() 
+    self.opHelper    = Operations()
+    
+    # Set control path 
+    instancePath       = gConfig.getValue( '/LocalSite/InstancePath', rootPath )
+    self.controlPath   = os.path.join( instancePath, 'control', '*', '*' )
+    self.stopAgentPath = os.path.join( self.controlPath, 'stop_agent' )
+  
+    self.log.info( 'Instance path: %s' % instancePath )
+    self.log.info( 'Control path: %s' % self.controlPath )
+    self.log.info( 'Stop Agent path: %s' % self.stopAgentPath )
   
     return S_OK()
   
@@ -55,7 +64,7 @@ class VirtualMachineConfiguUpdater( AgentModule ):
     localCFG     = CFG()
     
     #load local CFG
-    localCFG.loadFromFile( self.CONFIG_FILE )
+    localCFG.loadFromFile( gConfig.diracConfigFilePath )
     releaseVersion = localCFG.getRecursive( 'LocalSite/ReleaseVersion' )
     
     if pilotVersion > releaseVersion:
@@ -63,7 +72,7 @@ class VirtualMachineConfiguUpdater( AgentModule ):
       self.log.info( 'UPDATING %s > %s' % ( pilotVersion, releaseVersion ) )
     
       localCFG.setOption( 'LocalSite/ReleaseVersion', pilotVersion )
-      localCFG.writeToFile( self.CONFIG_FILE )  
+      localCFG.writeToFile( gConfig.diracConfigFilePath )  
       
       self.touchStopAgents()
          
@@ -74,8 +83,8 @@ class VirtualMachineConfiguUpdater( AgentModule ):
     """ findStopAgents
     
     """  
-    
-    stopAgents = glob.glob( '/opt/dirac/control/*/*/stop_agent' )
+        
+    stopAgents = glob.glob( self.stopAgentPath )
     for stopAgent in stopAgents:
       self.log.warn( 'Found stop_agent in: %s' % stopAgent )
     
@@ -87,10 +96,10 @@ class VirtualMachineConfiguUpdater( AgentModule ):
     
     """
     
-    controlAgents = glob.glob( '/opt/dirac/control/*/*' )
+    controlAgents = glob.glob( self.controlPath )
     for controlAgent in controlAgents:
       
-      stopAgent = '%s/stop_agent' % controlAgent
+      stopAgent = os.path.join( controlAgent, 'stop_agent' )
       
       with file( stopAgent, 'a' ):
         os.utime( stopAgent, None )

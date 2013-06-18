@@ -96,20 +96,25 @@ cpuTime=`cat /etc/CPU_TIME`
 	cat etc/dirac.cfg >> /var/log/dirac-context-script.log 2>&1
 	echo >> /var/log/dirac-context-script.log 2>&1
 
-# start the agents: VirtualMachineMonitor, JobAgent
+# start the agents: VirtualMachineMonitor, JobAgent, VirtualMachineConfigUpdater
 
 	cd /opt/dirac
 	mkdir -p startup/WorkloadManagement_JobAgent/log >> /var/log/dirac-context-script.log 2>&1
 	mkdir -p startup/WorkloadManagement_VirtualMachineMonitorAgent/log >> /var/log/dirac-context-script.log 2>&1
+	mkdir -p startup/WorkloadManagement_VirtualMachineConfigUpdaterAgent/log >> /var/log/dirac-context-script.log 2>&1
 	mv ${localVmRunJobAgent} startup/WorkloadManagement_JobAgent/run >> /var/log/dirac-context-script.log 2>&1
 	mv ${localVmRunLogJobAgent} startup/WorkloadManagement_JobAgent/log/run >> /var/log/dirac-context-script.log 2>&1
 	mv ${localVmRunVmMonitorAgent} startup/WorkloadManagement_VirtualMachineMonitorAgent/run >> /var/log/dirac-context-script.log 2>&1
 	mv ${localVmRunLogVmMonitorAgent} startup/WorkloadManagement_VirtualMachineMonitorAgent/log/run >> /var/log/dirac-context-script.log 2>&1
+	mv ${localVmRunVmMonitorAgent} startup/WorkloadManagement_VirtualMachineConfigUpdaterAgent/run >> /var/log/dirac-context-script.log 2>&1
+	mv ${localVmRunLogVmMonitorAgent} startup/WorkloadManagement_VirtualMachineConfigUpdaterAgent/log/run >> /var/log/dirac-context-script.log 2>&1
 
 	chmod 755 startup/WorkloadManagement_JobAgent/log/run 
 	chmod 755 startup/WorkloadManagement_JobAgent/run 
 	chmod 755 startup/WorkloadManagement_VirtualMachineMonitorAgent/log/run 
 	chmod 755 startup/WorkloadManagement_VirtualMachineMonitorAgent/run 
+	chmod 755 startup/WorkloadManagement_VirtualMachineConfigUpdaterAgent/log/run 
+	chmod 755 startup/WorkloadManagement_VirtualMachineConfigUpdaterAgent/run 
 
 	echo "rights and permissions to control and work JobAgent dirs" >> /var/log/dirac-context-script.log 2>&1
 	mkdir -p /opt/dirac/control/WorkloadManagement/JobAgent >> /var/log/dirac-context-script.log 2>&1
@@ -124,7 +129,7 @@ cpuTime=`cat /etc/CPU_TIME`
 	ls -l /opt/dirac/work/WorkloadManagement >> /var/log/dirac-context-script.log 2>&1
 	echo >> /var/log/dirac-context-script.log 2>&1
 
-	echo "runsvdir startup, have a look to DIRAC JobAgent and VirtualMachineMonitorAgent logs" >> /var/log/dirac-context-script.log 2>&1
+	echo "runsvdir startup, have a look to DIRAC JobAgent, VirtualMachineMonitorAgent and VirtualMachineConfigUpdaterAgent logs" >> /var/log/dirac-context-script.log 2>&1
 	runsvdir -P /opt/dirac/startup 'log:  DIRAC runsv' &
 
 #

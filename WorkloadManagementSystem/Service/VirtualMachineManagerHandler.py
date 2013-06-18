@@ -210,7 +210,12 @@ class VirtualMachineManagerHandler( RequestHandler ):
         return imageName
       imageName = imageName[ 'Value' ]
 
+      gLogger.info( 'Declare instance haltig:  %s, endpoint: %s imageName: %s' % (str(uniqueID),endpoint,imageName) )
       oima   = OcciImage( imageName, endpoint )
+      connOcci = oima.connectOcci()
+      if not connOcci[ 'OK' ]:
+        return connOcci
+
       result = oima.stopInstance( uniqueID )
 
     elif cloudDriver == 'nova-1.1':

@@ -28,12 +28,12 @@ class ContextConfig( object ):
   # Mandatory keys for the basic Context Configuration. Are the options that 
   # will be used by other components. Is a sanity check against a miss-configured
   # ConfigurationService.
-  MANDATORY_KEYS = [ 'instanceType' ]
+  MANDATORY_KEYS = [ 'bootImageName', 'flavorName', 'contextMethod' ]
   
   def __new__( cls, _imageName, contextName ):
     """
     Uses the contextName parameter to decide which class to load. If not in
-    `ssh`, `adhoc` or `amiconfig` raises a NotImplementedException
+    `ssh`, `adhoc`, `amiconfig` or `OcciOpennebulaContext` raises a NotImplementedException
     
     :Parameters:
       **_imageName** - `string` 
@@ -51,6 +51,8 @@ class ContextConfig( object ):
         cls = AdHocContext
       elif contextName == 'amiconfig':
         cls = AmiconfigContext
+      elif contextName == 'occi_opennebula':
+        cls = OcciOpennebulaContext
       else:
         raise NotImplementedError( "No context implemented for %s" % contextName )
       
@@ -66,7 +68,7 @@ class ContextConfig( object ):
         name of the image on the CS
       **contextName** - `string`
         string with the type of context on the CS. It decides which class to load. 
-        Either `ssh`,`adhoc`,`amiconfig`.
+        Either `ssh`,`adhoc`,`amiconfig`, `occi_opennebula`.
     
     """
     # Get sublogger with the class name loaded in __new__
@@ -122,7 +124,6 @@ class SSHContext( ContextConfig ):
   """
   SSHContext defines the following mandatory keys:
   
-  * hdcImageName
   * flavorName
   * vmOsIpPool
   * vmCertPath : the virtualmachine cert to be copied on the VM of a specific endpoint
@@ -138,10 +139,10 @@ class SSHContext( ContextConfig ):
   * cloudDriver : the endpoint dirac cloud driver
   
   """
-  MANDATORY_KEYS = [ 'hdcImageName', 'flavorName', 'vmOsIpPool', 'vmCertPath', 
+  MANDATORY_KEYS = [ 'vmOsIpPool', 'vmCertPath', 
                      'vmKeyPath', 'vmContextualizeScriptPath', 'vmCvmfsContextURL', 
                      'vmDiracContextURL', 'vmRunJobAgentURL', 'vmRunVmMonitorAgentURL', 
-                     'vmRunLogJobAgentURL', 'vmRunLogVmMonitorAgentURL', 'cpuTime', 'cloudDriver' ]
+                     'vmRunLogJobAgentURL', 'vmRunLogVmMonitorAgentURL' ]
 
 #...............................................................................    
 # AdHoc Context
@@ -159,7 +160,6 @@ class AmiconfigContext( ContextConfig ):
   """
   AmiconfigContext defines the following mandatory keys:
   
-  * flavorName
   * ex_size
   * ex_image
   * ex_keyname
@@ -168,8 +168,21 @@ class AmiconfigContext( ContextConfig ):
     
   """
 
-  MANDATORY_KEYS = [ 'flavorName', 'ex_size', 'ex_image', 'ex_keyname', 
+  MANDATORY_KEYS = [ 'ex_size', 'ex_image', 'ex_keyname', 
                      'ex_security_groups', 'ex_userdata' ]
+
+#...............................................................................
+# OcciOpennebulaContext
+
+class OcciOpennebulaContext( ContextConfig ):
+  """
+  AmiconfigContext defines the following mandatory keys:
+  
+  * hdcImangeName
+    
+  """
+
+  MANDATORY_KEYS = [ 'hdcImageName','context_files_url' ]
 
 #...............................................................................
 #EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF

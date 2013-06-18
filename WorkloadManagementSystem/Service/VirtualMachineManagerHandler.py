@@ -211,6 +211,10 @@ class VirtualMachineManagerHandler( RequestHandler ):
       imageName = imageName[ 'Value' ]
 
       oima   = OcciImage( imageName, endpoint )
+      connOcci = nima.connectOcci()
+      if not connOcci[ 'OK' ]:
+        return connOcci
+
       result = oima.stopInstance( uniqueID )
 
     elif cloudDriver == 'nova-1.1':

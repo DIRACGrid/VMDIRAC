@@ -51,6 +51,127 @@ class EndpointConfiguration( object ):
 
 #...............................................................................
 
+class OcciConfiguration( EndpointConfiguration ):
+  """
+  OcciConfiguration Class parses the section <occiEndpoint> 
+  and builds a configuration if possible, with the information obtained from the CS.
+  """
+
+  # Keys that MUST be present on ANY Occi CloudEndpoint configuration in the CS
+  MANDATORY_KEYS = [ 'cloudDriver', 'vmPolicy', 'vmStopPolicy', 'siteName', 'occiURI', 'maxEndpointInstances' ]
+    
+  def __init__( self, occiEndpoint ):
+    """
+    Constructor
+    
+    :Parameters:
+      **occiEndpoint** - `string`
+        string with the name of the CloudEndpoint defined on the CS
+    """
+    super( OcciConfiguration, self ).__init__() 
+      
+    occiOptions = gConfig.getOptionsDict( '%s/%s' % ( self.ENDPOINT_PATH, occiEndpoint ) )
+    if not occiOptions[ 'OK' ]:
+      self.log.error( occiOptions[ 'Message' ] )
+      occiOptions = {}
+    else:
+      occiOptions = occiOptions[ 'Value' ] 
+
+    # FIXME: make it generic !
+
+    # Purely endpoint configuration ............................................              
+    # This two are passed as arguments, not keyword arguments
+    self.__user                    = occiOptions.get( 'user'                    , None )
+    self.__password                = occiOptions.get( 'password'                , None )
+
+    self.__cloudDriver             = occiOptions.get( 'cloudDriver'             , None )
+    self.__vmStopPolicy            = occiOptions.get( 'vmStopPolicy'            , None )
+    self.__vmPolicy                = occiOptions.get( 'vmPolicy'                , None )
+    self.__siteName                = occiOptions.get( 'siteName'                , None )
+    self.__maxEndpointInstances    = occiOptions.get( 'maxEndpointInstances'    , None )
+    
+    self.__occiURI                 = occiOptions.get( 'occiURI'                 , None )
+    self.__imageDriver             = occiOptions.get( 'imageDriver'             , None )
+    self.__netId                   = occiOptions.get( 'netId'                   , None )
+    self.__iface                   = occiOptions.get( 'iface'                   , None )
+    self.__dns1                    = occiOptions.get( 'DNS1'                    , None )
+    self.__dns2                    = occiOptions.get( 'DNS2'                    , None )
+    self.__domain                  = occiOptions.get( 'domain'                  , None )
+    self.__cvmfs_http_proxy        = occiOptions.get( 'CVMFS_HTTP_PROXY'        , None )
+
+  def config( self ):
+    
+    config = {}
+    
+    config[ 'user' ]                    = self.__user
+    config[ 'password' ]                = self.__password
+
+    config[ 'cloudDriver' ]             = self.__cloudDriver
+    config[ 'vmPolicy' ]                = self.__vmPolicy
+    config[ 'vmStopPolicy' ]            = self.__vmStopPolicy
+    config[ 'siteName' ]                = self.__siteName
+    config[ 'maxEndpointInstances' ]    = self.__maxEndpointInstances
+
+    config[ 'occiURI' ]                 = self.__occiURI 
+    config[ 'imageDriver' ]             = self.__imageDriver
+    config[ 'netId' ]                   = self.__netId
+    config[ 'iface' ]                   = self.__iface
+    config[ 'dns1' ]                    = self.__dns1
+    config[ 'dns2' ]                    = self.__dns2
+    config[ 'domain' ]                  = self.__domain
+    config[ 'cvmfs_http_proxy' ]        = self.__cvmfs_http_proxy
+    
+    # Do not return dictionary with None values
+    for key, value in config.items():
+      if value is None:
+        del config[ key ]
+        
+    return config  
+
+  def validate( self ):
+    
+  
+    endpointConfig = self.config()
+
+ 
+    missingKeys = set( self.MANDATORY_KEYS ).difference( set( endpointConfig.keys() ) ) 
+    if missingKeys:
+      return S_ERROR( 'Missing mandatory keys on endpointConfig %s' % str( missingKeys ) )
+    
+    # on top of the MANDATORY_KEYS, we make sure the user & password are set
+    if self.__user is None:
+      return S_ERROR( 'User is None' )
+    if self.__password is None:
+      return S_ERROR( 'Password is None' )
+    
+    self.log.info( '*' * 50 )
+    self.log.info( 'Displaying endpoint info' )
+    for key, value in endpointConfig.iteritems():
+      if key == 'user':
+        self.log.info( '%s : *********' % ( key ) )
+      elif key == 'password':
+        self.log.info( '%s : *********' % ( key ) )
+      else:
+        self.log.info( '%s : %s' % ( key, value ) )
+    self.log.info( 'User and Password are NOT printed.')
+    self.log.info( '*' * 50 )
+        
+    return S_OK()
+
+  def authConfig( self ):
+    
+    return ( self.__user, self.__password )
+  
+  def cloudDriver( self ):
+    
+    return ( self.__cloudDriver )
+
+  def occiURI( self ):
+    
+    return ( self.__occiURI )
+
+#...............................................................................
+
 class NovaConfiguration( EndpointConfiguration ):
   """
   NovaConfiguration Class parses the section <novaEndpoint> 
@@ -58,7 +179,7 @@ class NovaConfiguration( EndpointConfiguration ):
   """
 
   # Keys that MUST be present on ANY Nova CloudEndpoint configuration in the CS
-  MANDATORY_KEYS = [ 'ex_force_auth_url', 'ex_force_service_region', 'ex_tenant_name' ]
+  MANDATORY_KEYS = [ 'ex_force_auth_url', 'ex_force_service_region', 'ex_tenant_name', 'vmPolicy', 'vmStopPolicy', 'cloudDriver', 'siteName', 'maxEndpointInstances' ]
     
   def __init__( self, novaEndpoint ):
     """
@@ -81,13 +202,14 @@ class NovaConfiguration( EndpointConfiguration ):
 
     # Purely endpoint configuration ............................................              
     # This two are passed as arguments, not keyword arguments
-    self.__user                    = novaOptions.get( 'user'               , None )
-    self.__password                = novaOptions.get( 'password'           , None )
+    self.__user                    = novaOptions.get( 'user'                   , None )
+    self.__password                = novaOptions.get( 'password'               , None )
 
-    self.__cloudDriver             = novaOptions.get( 'cloudDriver'         , None )
-    self.__vmStopPolicy            = novaOptions.get( 'vmStopPolicy'         , None )
-    self.__vmPolicy                = novaOptions.get( 'vmPolicy'         , None )
-    self.__siteName                = novaOptions.get( 'siteName'         , None )
+    self.__cloudDriver             = novaOptions.get( 'cloudDriver'            , None )
+    self.__vmStopPolicy            = novaOptions.get( 'vmStopPolicy'           , None )
+    self.__vmPolicy                = novaOptions.get( 'vmPolicy'               , None )
+    self.__siteName                = novaOptions.get( 'siteName'               , None )
+    self.__maxEndpointInstances    = novaOptions.get( 'maxEndpointInstances'   , None )
     
     self.__ex_force_ca_cert        = novaOptions.get( 'ex_force_ca_cert'       , None )
     self.__ex_force_auth_token     = novaOptions.get( 'ex_force_auth_token'    , None )
@@ -103,6 +225,15 @@ class NovaConfiguration( EndpointConfiguration ):
     
     config = {}
     
+    config[ 'user' ]                    = self.__user
+    config[ 'password' ]                = self.__password
+
+    config[ 'cloudDriver' ]             = self.__cloudDriver
+    config[ 'vmPolicy' ]                = self.__vmPolicy
+    config[ 'vmStopPolicy' ]            = self.__vmStopPolicy
+    config[ 'siteName' ]                = self.__siteName
+    config[ 'maxEndpointInstances' ]    = self.__maxEndpointInstances
+
     config[ 'ex_force_ca_cert' ]        = self.__ex_force_ca_cert 
     config[ 'ex_force_auth_token' ]     = self.__ex_force_auth_token
     config[ 'ex_force_auth_url' ]       = self.__ex_force_auth_url
@@ -112,12 +243,6 @@ class NovaConfiguration( EndpointConfiguration ):
     config[ 'ex_force_service_region' ] = self.__ex_force_service_region
     config[ 'ex_force_service_type' ]   = self.__ex_force_service_type
     config[ 'ex_tenant_name' ]          = self.__ex_tenant_name
-    config[ 'cloudDriver' ]             = self.__cloudDriver
-    config[ 'vmPolicy' ]                = self.__vmPolicy
-    config[ 'vmStopPolicy' ]            = self.__vmStopPolicy
-    config[ 'siteName' ]                = self.__siteName
-    config[ 'user' ]                    = self.__user
-    config[ 'password' ]                = self.__password
     
     # Do not return dictionary with None values
     for key, value in config.items():
@@ -170,11 +295,11 @@ class ImageConfiguration( object ):
     else:
       imageOptions = imageOptions[ 'Value' ] 
   
-    self.__ic_bootImageName = imageOptions.get( 'bootImageName', None )
-    self.__ic_contextMethod = imageOptions.get( 'contextMethod', None )
-    self.__ic_flavorName    = imageOptions.get( 'flavorName'   , None )
+    self.__ic_bootImageName  = imageOptions.get( 'bootImageName'     , None )
+    self.__ic_contextMethod  = imageOptions.get( 'contextMethod'     , None )
+    self.__ic_flavorName     = imageOptions.get( 'flavorName'        , None )
     #self.__ic_contextConfig = ContextConfig( self.__ic_bootImageName, self.__ic_contextMethod )
-    self.__ic_contextConfig = ContextConfig( imageName, self.__ic_contextMethod )
+    self.__ic_contextConfig  = ContextConfig( imageName, self.__ic_contextMethod )
 
   def config( self ):
     
@@ -210,6 +335,6 @@ class ImageConfiguration( object ):
     self.log.info( '*' * 50 )  
       
     return S_OK()   
-    
+
 #...............................................................................
 #EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF    

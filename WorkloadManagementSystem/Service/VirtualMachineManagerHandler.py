@@ -210,8 +210,9 @@ class VirtualMachineManagerHandler( RequestHandler ):
         return imageName
       imageName = imageName[ 'Value' ]
 
+      gLogger.info( 'Declare instance haltig:  %s, imageName: %s' % (str(uniqueID),imageName) )
       oima   = OcciImage( imageName, endpoint )
-      connOcci = nima.connectOcci()
+      connOcci = oima.connectOcci()
       if not connOcci[ 'OK' ]:
         return connOcci
 

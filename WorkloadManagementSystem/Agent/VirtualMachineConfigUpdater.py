@@ -29,6 +29,11 @@ class VirtualMachineConfigUpdater( AgentModule ):
     self.opHelper      = None
     self.controlPath   = '' 
     self.stopAgentPath = ''
+
+
+    self.am_setOption( "PollingTime", 60.0 )
+
+    return S_OK()
   
   
   def initialize( self ):

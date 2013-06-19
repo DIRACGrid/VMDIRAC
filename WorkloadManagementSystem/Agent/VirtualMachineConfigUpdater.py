@@ -17,7 +17,7 @@ from DIRAC.Core.Utilities.CFG                            import CFG
 __RCSID__ = '$Id: $'
 
 
-class VirtualMachineConfiguUpdater( AgentModule ):
+class VirtualMachineConfigUpdater( AgentModule ):
 
   def __init__( self, *args, **kwargs ):
     """ Constructor

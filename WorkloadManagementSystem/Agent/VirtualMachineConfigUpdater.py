@@ -17,7 +17,7 @@ from DIRAC.Core.Utilities.CFG                            import CFG
 __RCSID__ = '$Id: $'
 
 
-class VirtualMachineConfiguUpdater( AgentModule ):
+class VirtualMachineConfigUpdater( AgentModule ):
 
   def __init__( self, *args, **kwargs ):
     """ Constructor
@@ -29,6 +29,11 @@ class VirtualMachineConfiguUpdater( AgentModule ):
     self.opHelper      = None
     self.controlPath   = '' 
     self.stopAgentPath = ''
+
+
+    self.am_setOption( "PollingTime", 60.0 )
+
+    return S_OK()
   
   
   def initialize( self ):

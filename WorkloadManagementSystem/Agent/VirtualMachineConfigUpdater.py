@@ -17,7 +17,7 @@ from DIRAC.Core.Utilities.CFG                            import CFG
 __RCSID__ = '$Id: $'
 
 
-class VirtualMachineConfiguUpdater( AgentModule ):
+class VirtualMachineConfigUpdater( AgentModule ):
 
   def __init__( self, *args, **kwargs ):
     """ Constructor
@@ -61,21 +61,28 @@ class VirtualMachineConfiguUpdater( AgentModule ):
       return S_OK()
 
     pilotVersion = self.opHelper.getValue( 'Pilot/Version', '' )
-    localCFG     = CFG()
+    if not pilotVersion:
+      self.log.error( 'There is no pilot version on the CS' )
+      return S_OK()
+      
+    localCFG = CFG()
     
     #load local CFG
-    localCFG.loadFromFile( gConfig.diracConfigFilePath )
-    releaseVersion = localCFG.getRecursive( 'LocalSite/ReleaseVersion' )
+    localCFG.loadFromFile( '/opt/dirac/etc/dirac.cfg' )
+    releaseVersion = localCFG.getRecursive( 'LocalSite/ReleaseVersion' )[ 'value' ]
     
+    self.log.info( 'PilotVersion : %s' % pilotVersion )
+    self.log.info( 'ReleaseVersion : %s' % releaseVersion )
+            
     if pilotVersion > releaseVersion:
     
       self.log.info( 'UPDATING %s > %s' % ( pilotVersion, releaseVersion ) )
     
       localCFG.setOption( 'LocalSite/ReleaseVersion', pilotVersion )
-      localCFG.writeToFile( gConfig.diracConfigFilePath )  
+      localCFG.writeToFile( '/opt/dirac/etc/dirac.cfg' )  
       
       self.touchStopAgents()
-         
+    
     return S_OK()     
    
    

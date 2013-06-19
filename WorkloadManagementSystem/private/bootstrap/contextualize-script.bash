@@ -8,7 +8,7 @@
 
 if [ $# -ne 14 ]
 then
-	echo "bash contextualize-script.bash  <uniqueId> <certfile> <keyfile> <runjobagent> <runvmmonitoragent> <runlogjobagent> <runlogvmmonitoragent> <cvmfscontextscript> <diraccontextscript> <cvmfshttpproxy> <sitename> <clouddriver> <cpuTime> <vmStopPolicy>"
+	echo "bash contextualize-script.bash  <uniqueId> <certfile> <keyfile> <runjobagent> <runvmmonitoragent> <runvmupdateragent> <runlogagent> <cvmfscontextscript> <diraccontextscript> <cvmfshttpproxy> <sitename> <clouddriver> <cpuTime> <vmStopPolicy>"
 	exit 1
 fi
 
@@ -17,8 +17,8 @@ vmCertPath=$2
 vmKeyPath=$3
 vmRunJobAgent=$4
 vmRunVmMonitorAgent=$5
-vmRunLogJobAgent=$6
-vmRunLogVmMonitorAgent=$7
+vmRunVmUpdaterAgent=$6
+vmRunLogAgent=$7
 cvmfsContextPath=$8
 diracContextPath=$9
 cvmfs_http_proxy=${10}
@@ -29,8 +29,8 @@ vmStopPolicy=${14}
 
 localVmRunJobAgent=/root/run.job-agent
 localVmRunVmMonitorAgent=/root/run.vm-monitor-agent
-localVmRunLogJobAgent=/root/run.log.job-agent 
-localVmRunLogVmMonitorAgent=/root/run.log.vm-monitor-agent
+localVmRunVmUpdaterAgent=/root/run.vm-updater-agent 
+localVmRunLogAgent=/root/run.log.agent
 localCvmfsContextPath=/root/cvmfs-context.sh
 localDiracContextPath=/root/dirac-context.sh
 
@@ -41,8 +41,8 @@ echo "2 $vmCertPath" >> /var/log/contextualize-script.log 2>&1
 echo "3 $vmKeyPath" >> /var/log/contextualize-script.log 2>&1
 echo "4 $vmRunJobAgent" >> /var/log/contextualize-script.log 2>&1
 echo "5 $vmRunVmMonitorAgent" >> /var/log/contextualize-script.log 2>&1
-echo "6 $vmRunLogJobAgent" >> /var/log/contextualize-script.log 2>&1
-echo "7 $vmRunLogVmMonitorAgent" >> /var/log/contextualize-script.log 2>&1
+echo "6 $vmRunVmUpdaterAgent" >> /var/log/contextualize-script.log 2>&1
+echo "7 $vmRunLogAgent" >> /var/log/contextualize-script.log 2>&1
 echo "8 $cvmfsContextPath" >> /var/log/contextualize-script.log 2>&1
 echo "9 $diracContextPath" >> /var/log/contextualize-script.log 2>&1
 echo "10 $cvmfs_http_proxy" >> /var/log/contextualize-script.log 2>&1
@@ -58,8 +58,8 @@ echo ${uniqueId} > /etc/VMID
 # 1) download the necesary files:
 wget --no-check-certificate -O ${localVmRunJobAgent} ${vmRunJobAgent} >> /var/log/contextualize-script.log 2>&1
 wget --no-check-certificate -O ${localVmRunVmMonitorAgent} ${vmRunVmMonitorAgent} >> /var/log/contextualize-script.log 2>&1
-wget --no-check-certificate -O ${localVmRunLogJobAgent} ${vmRunLogJobAgent} >> /var/log/contextualize-script.log 2>&1
-wget --no-check-certificate -O ${localVmRunLogVmMonitorAgent} ${vmRunLogVmMonitorAgent} >> /var/log/contextualize-script.log 2>&1
+wget --no-check-certificate -O ${localVmRunVmUpdaterAgent} ${vmRunVmUpdaterAgent} >> /var/log/contextualize-script.log 2>&1
+wget --no-check-certificate -O ${localVmRunLogAgent} ${vmRunLogAgent} >> /var/log/contextualize-script.log 2>&1
 wget --no-check-certificate -O ${localCvmfsContextPath} ${cvmfsContextPath} >> /var/log/contextualize-script.log 2>&1
 wget --no-check-certificate -O ${localDiracContextPath} ${diracContextPath} >> /var/log/contextualize-script.log 2>&1
 
@@ -74,6 +74,6 @@ fi
 echo ${cpuTime} > /etc/CPU_TIME
 
 chmod u+x ${localDiracContextPath} >> /var/log/contextualize-script.log 2>&1
-bash ${localDiracContextPath} "${siteName}" "${vmStopPolicy}" "${vmCertPath}" "${vmKeyPath}" "${localVmRunJobAgent}" "${localVmRunVmMonitorAgent}" "${localVmRunLogJobAgent}" "${localVmRunLogVmMonitorAgent}" "${cloudDriver}" >> /var/log/contextualize-script.log 2>&1
+bash ${localDiracContextPath} "${siteName}" "${vmStopPolicy}" "${vmCertPath}" "${vmKeyPath}" "${localVmRunJobAgent}" "${localVmRunVmMonitorAgent}" "${localVmRunVmUpdaterAgent}" "${localVmRunLogAgent}" "${cloudDriver}" >> /var/log/contextualize-script.log 2>&1
 
 exit 0

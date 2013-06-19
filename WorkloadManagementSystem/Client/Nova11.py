@@ -473,8 +473,8 @@ class NovaContextualise:
       vmContextualizeScriptPath     = contextConfig[ 'vmContextualizeScriptPath' ]
       vmRunJobAgentURL              = contextConfig[ 'vmRunJobAgentURL' ]
       vmRunVmMonitorAgentURL        = contextConfig[ 'vmRunVmMonitorAgentURL' ]
-      vmRunLogJobAgentURL           = contextConfig[ 'vmRunLogJobAgentURL' ]
-      vmRunLogVmMonitorAgentURL     = contextConfig[ 'vmRunLogVmMonitorAgentURL' ]
+      vmRunVmUpdaterAgentURL        = contextConfig[ 'vmRunVmUpdaterAgentURL' ]
+      vmRunLogAgentURL              = contextConfig[ 'vmRunLogAgentURL' ]
       vmCvmfsContextURL             = contextConfig[ 'vmCvmfsContextURL' ]
       vmDiracContextURL             = contextConfig[ 'vmDiracContextURL' ]
       cpuTime                       = contextConfig[ 'cpuTime' ]
@@ -493,8 +493,8 @@ class NovaContextualise:
                                         vmContextualizeScriptPath = vmContextualizeScriptPath,
                                         vmRunJobAgentURL = vmRunJobAgentURL,
                                         vmRunVmMonitorAgentURL = vmRunVmMonitorAgentURL, 
-                                        vmRunLogJobAgentURL = vmRunLogJobAgentURL, 
-                                        vmRunLogVmMonitorAgentURL = vmRunLogVmMonitorAgentURL,
+                                        vmRunVmUpdaterAgentURL = vmRunVmUpdaterAgentURL, 
+                                        vmRunLogAgentURL = vmRunLogAgentURL,
                                         vmCvmfsContextURL = vmCvmfsContextURL,
                                         vmDiracContextURL = vmDiracContextURL,
                                         siteName = siteName,
@@ -524,8 +524,8 @@ class NovaContextualise:
                                         vmContextualizeScriptPath,
                                         vmRunJobAgentURL,
                                         vmRunVmMonitorAgentURL,
-                                        vmRunLogJobAgentURL,
-                                        vmRunLogVmMonitorAgentURL,
+                                        vmRunVmUpdaterAgentURL,
+                                        vmRunLogAgentURL,
                                         vmCvmfsContextURL,
                                         vmDiracContextURL,
                                         siteName,
@@ -578,7 +578,7 @@ class NovaContextualise:
     try:
       remotecmd = "/bin/bash /root/contextualize-script.bash \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\'"  
       remotecmd = remotecmd % ( uniqueId, putCertPath, putKeyPath, vmRunJobAgentURL, 
-                                vmRunVmMonitorAgentURL, vmRunLogJobAgentURL, vmRunLogVmMonitorAgentURL, 
+                                vmRunVmMonitorAgentURL, vmRunVmUpdaterAgentURL, vmRunLogAgentURL, 
                                 vmCvmfsContextURL, vmDiracContextURL, cvmfs_http_proxy, siteName, cloudDriver, cpuTime, vmStopPolicy )
       print "remotecmd"
       print remotecmd

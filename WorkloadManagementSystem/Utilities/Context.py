@@ -133,8 +133,8 @@ class SSHContext( ContextConfig ):
   * vmDiracContextURL : the dirac specific context URL
   * vmRunJobAgentURL : the runsvdir run file for JobAgent
   * vmRunVmMonitorAgentURL : the runsvdir run file vmMonitorAgent 
-  * vmRunLogJobAgentURL : the runsvdir run.log file forjobAgent 
-  * vmRunLogVmMonitorAgentURL : the runsvdir run.log file vmMonitorAgent
+  * vmRunVmUpdaterJobAgentURL : the runsvdir run file VirtualMachineConfigUpdater agent
+  * vmRunLogAgentURL : the runsvdir run.log file 
   * cpuTime : the VM cpuTime of the image
   * cloudDriver : the endpoint dirac cloud driver
   
@@ -142,7 +142,7 @@ class SSHContext( ContextConfig ):
   MANDATORY_KEYS = [ 'vmOsIpPool', 'vmCertPath', 
                      'vmKeyPath', 'vmContextualizeScriptPath', 'vmCvmfsContextURL', 
                      'vmDiracContextURL', 'vmRunJobAgentURL', 'vmRunVmMonitorAgentURL', 
-                     'vmRunLogJobAgentURL', 'vmRunLogVmMonitorAgentURL' ]
+                     'vmRunVmUpdaterAgentURL', 'vmRunLogAgentURL' ]
 
 #...............................................................................    
 # AdHoc Context

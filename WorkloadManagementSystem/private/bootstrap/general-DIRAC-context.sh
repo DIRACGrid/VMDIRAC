@@ -8,7 +8,7 @@
 
 if [ $# -ne 9 ]
 then
-    echo "ERROR: general-DIRAC-context.bash <siteName> <vmStopPolicy> <putCertPath> <putKeyPath> <localVmRunJobAgent> <localVmRunVmMonitorAgent> <localVmRunLogJobAgent> <localVmRunLogVmMonitorAgent> <cloudDriver> " > /var/log/dirac-context-script.log 2>&1
+    echo "ERROR: general-DIRAC-context.bash <siteName> <vmStopPolicy> <putCertPath> <putKeyPath> <localVmRunJobAgent> <localVmRunVmMonitorAgent> <localVmRunVmUpdaterAgent> <localVmRunLogAgent> <cloudDriver> " > /var/log/dirac-context-script.log 2>&1
     exit 1
 fi
 
@@ -18,8 +18,8 @@ putCertPath=$3
 putKeyPath=$4
 localVmRunJobAgent=$5
 localVmRunVmMonitorAgent=$6
-localVmRunLogJobAgent=$7
-localVmRunLogVmMonitorAgent=$8
+localVmRunVmUpdaterAgent=$7
+localVmRunLogAgent=$8
 cloudDriver=$9
 
 cpuTime=`cat /etc/CPU_TIME`
@@ -101,20 +101,20 @@ cpuTime=`cat /etc/CPU_TIME`
 	cd /opt/dirac
 	mkdir -p startup/WorkloadManagement_JobAgent/log >> /var/log/dirac-context-script.log 2>&1
 	mkdir -p startup/WorkloadManagement_VirtualMachineMonitorAgent/log >> /var/log/dirac-context-script.log 2>&1
-	mkdir -p startup/WorkloadManagement_VirtualMachineConfigUpdaterAgent/log >> /var/log/dirac-context-script.log 2>&1
+	mkdir -p startup/WorkloadManagement_VirtualMachineConfigUpdater/log >> /var/log/dirac-context-script.log 2>&1
 	mv ${localVmRunJobAgent} startup/WorkloadManagement_JobAgent/run >> /var/log/dirac-context-script.log 2>&1
-	mv ${localVmRunLogJobAgent} startup/WorkloadManagement_JobAgent/log/run >> /var/log/dirac-context-script.log 2>&1
+	mv ${localVmRunLogAgent} startup/WorkloadManagement_JobAgent/log/run >> /var/log/dirac-context-script.log 2>&1
 	mv ${localVmRunVmMonitorAgent} startup/WorkloadManagement_VirtualMachineMonitorAgent/run >> /var/log/dirac-context-script.log 2>&1
-	mv ${localVmRunLogVmMonitorAgent} startup/WorkloadManagement_VirtualMachineMonitorAgent/log/run >> /var/log/dirac-context-script.log 2>&1
-	mv ${localVmRunVmMonitorAgent} startup/WorkloadManagement_VirtualMachineConfigUpdaterAgent/run >> /var/log/dirac-context-script.log 2>&1
-	mv ${localVmRunLogVmMonitorAgent} startup/WorkloadManagement_VirtualMachineConfigUpdaterAgent/log/run >> /var/log/dirac-context-script.log 2>&1
+	mv ${localVmRunLogAgent} startup/WorkloadManagement_VirtualMachineMonitorAgent/log/run >> /var/log/dirac-context-script.log 2>&1
+	mv ${localVmRunVmUpdaterAgent} startup/WorkloadManagement_VirtualMachineConfigUpdater/run >> /var/log/dirac-context-script.log 2>&1
+	mv ${localVmRunLogAgent} startup/WorkloadManagement_VirtualMachineConfigUpdater/log/run >> /var/log/dirac-context-script.log 2>&1
 
 	chmod 755 startup/WorkloadManagement_JobAgent/log/run 
 	chmod 755 startup/WorkloadManagement_JobAgent/run 
 	chmod 755 startup/WorkloadManagement_VirtualMachineMonitorAgent/log/run 
 	chmod 755 startup/WorkloadManagement_VirtualMachineMonitorAgent/run 
-	chmod 755 startup/WorkloadManagement_VirtualMachineConfigUpdaterAgent/log/run 
-	chmod 755 startup/WorkloadManagement_VirtualMachineConfigUpdaterAgent/run 
+	chmod 755 startup/WorkloadManagement_VirtualMachineConfigUpdater/log/run 
+	chmod 755 startup/WorkloadManagement_VirtualMachineConfigUpdater/run 
 
 	echo "rights and permissions to control and work JobAgent dirs" >> /var/log/dirac-context-script.log 2>&1
 	mkdir -p /opt/dirac/control/WorkloadManagement/JobAgent >> /var/log/dirac-context-script.log 2>&1
@@ -129,7 +129,7 @@ cpuTime=`cat /etc/CPU_TIME`
 	ls -l /opt/dirac/work/WorkloadManagement >> /var/log/dirac-context-script.log 2>&1
 	echo >> /var/log/dirac-context-script.log 2>&1
 
-	echo "runsvdir startup, have a look to DIRAC JobAgent, VirtualMachineMonitorAgent and VirtualMachineConfigUpdaterAgent logs" >> /var/log/dirac-context-script.log 2>&1
+	echo "runsvdir startup, have a look to DIRAC JobAgent, VirtualMachineMonitorAgent and VirtualMachineConfigUpdater logs" >> /var/log/dirac-context-script.log 2>&1
 	runsvdir -P /opt/dirac/startup 'log:  DIRAC runsv' &
 
 #

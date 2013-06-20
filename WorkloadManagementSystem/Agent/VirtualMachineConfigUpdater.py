@@ -45,7 +45,7 @@ class VirtualMachineConfigUpdater( AgentModule ):
     self.cfgToUpdate   = self.am_getOption( 'cfgToUpdate', gConfig.diracConfigFilePath )        
     
     self.log.info( 'Stop Agent path: %s' % self.stopAgentPath )
-    self.log.info( 'Config To Updte: %s' % self.cfgToUpdate )
+    self.log.info( 'Config To Update: %s' % self.cfgToUpdate )
   
     return S_OK() 
    

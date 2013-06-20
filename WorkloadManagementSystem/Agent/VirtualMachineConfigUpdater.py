@@ -9,12 +9,15 @@
 import glob
 import os
 
-from DIRAC                                               import gConfig, S_OK, rootPath
+from distutils.version import LooseVersion
+
+from DIRAC                                               import gConfig, S_ERROR, S_OK
 from DIRAC.ConfigurationSystem.Client.Helpers.Operations import Operations
 from DIRAC.Core.Base.AgentModule                         import AgentModule
 from DIRAC.Core.Utilities.CFG                            import CFG
 
-__RCSID__ = '$Id: $'
+__RCSID__  = '$Id: $'
+AGENT_NAME = 'WorkloadManagement/VirtualMachineConfigUpdater'
 
 
 class VirtualMachineConfigUpdater( AgentModule ):
@@ -27,8 +30,8 @@ class VirtualMachineConfigUpdater( AgentModule ):
     AgentModule.__init__( self, *args, **kwargs )  
   
     self.opHelper      = None
-    self.controlPath   = '' 
     self.stopAgentPath = ''
+    self.cfgToUpdate   = '' 
   
   
   def initialize( self ):
@@ -38,18 +41,15 @@ class VirtualMachineConfigUpdater( AgentModule ):
     
     self.opHelper    = Operations()
     
-    # Set control path 
-    instancePath       = gConfig.getValue( '/LocalSite/InstancePath', rootPath )
-    self.controlPath   = os.path.join( instancePath, 'control', '*', '*' )
-    self.stopAgentPath = os.path.join( self.controlPath, 'stop_agent' )
-  
-    self.log.info( 'Instance path: %s' % instancePath )
-    self.log.info( 'Control path: %s' % self.controlPath )
+    self.stopAgentPath = self.am_getStopAgentFile().replace( AGENT_NAME, '*/*' )
+    self.cfgToUpdate   = self.am_getOption( 'cfgToUpdate', gConfig.diracConfigFilePath )        
+    
     self.log.info( 'Stop Agent path: %s' % self.stopAgentPath )
+    self.log.info( 'Config To Updte: %s' % self.cfgToUpdate )
   
-    return S_OK()
-  
-  
+    return S_OK() 
+   
+   
   def execute( self ):
     """ execute
     
@@ -64,28 +64,53 @@ class VirtualMachineConfigUpdater( AgentModule ):
     if not pilotVersion:
       self.log.error( 'There is no pilot version on the CS' )
       return S_OK()
+
+    pilotVersion = self.getNewestPilotVersion()
+    if not pilotVersion[ 'OK' ]:
+      self.log.error( pilotVersion[ 'Message' ] )
+      return S_ERROR( pilotVersion[ 'Message' ] )
+    pilotVersion = pilotVersion[ 'Value' ]
       
     localCFG = CFG()
     
     #load local CFG
-    localCFG.loadFromFile( '/opt/dirac/etc/dirac.cfg' )
+    localCFG.loadFromFile( self.cfgToUpdate )
     releaseVersion = localCFG.getRecursive( 'LocalSite/ReleaseVersion' )[ 'value' ]
     
     self.log.info( 'PilotVersion : %s' % pilotVersion )
     self.log.info( 'ReleaseVersion : %s' % releaseVersion )
             
-    if pilotVersion > releaseVersion:
+    if LooseVersion( pilotVersion ) > LooseVersion( releaseVersion ):
     
       self.log.info( 'UPDATING %s > %s' % ( pilotVersion, releaseVersion ) )
     
       localCFG.setOption( 'LocalSite/ReleaseVersion', pilotVersion )
-      localCFG.writeToFile( '/opt/dirac/etc/dirac.cfg' )  
+      localCFG.writeToFile( self.cfgToUpdate )  
       
       self.touchStopAgents()
     
+    else:
+      
+      self.log.info( 'Nothing to do' )
+    
     return S_OK()     
    
+
+  def getNewestPilotVersion( self ):
+    """ getNewestPilotVersion
+    
+    """
+    
+    pilotVersion = self.opHelper.getValue( 'Pilot/Version', [] )
+    if not pilotVersion:
+      return S_ERROR( 'Empty pilot version' )
+        
+    pilotVersion = [ LooseVersion( pV ) for pV in pilotVersion ]
+    pilotVersion.sort()
+    
+    return S_OK( pilotVersion.pop().vstring )
    
+      
   def findStopAgents( self ):
     """ findStopAgents
     
@@ -103,14 +128,18 @@ class VirtualMachineConfigUpdater( AgentModule ):
     
     """
     
-    controlAgents = glob.glob( self.controlPath )
-    for controlAgent in controlAgents:
+    stopAgentDirs = glob.glob( self.stopAgentPath.replace( 'stop_agent' , '' ) )
+    for stopAgentDir in stopAgentDirs:
       
-      stopAgent = os.path.join( controlAgent, 'stop_agent' )
+      # Do not restart itself
+      if AGENT_NAME in stopAgentDir:
+        continue
       
-      with file( stopAgent, 'a' ):
-        os.utime( stopAgent, None )
-        self.log.info( 'Written stop_agent in: %s' % stopAgent ) 
+      stopAgentFile = os.path.join( stopAgentDir, 'stop_agent' )
+      
+      with file( stopAgentFile, 'a' ):
+        os.utime( stopAgentFile, None )
+        self.log.info( 'Written stop_agent in: %s' % stopAgentFile )
 
     return S_OK()
 

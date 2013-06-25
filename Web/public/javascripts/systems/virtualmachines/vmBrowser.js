@@ -1,7 +1,10 @@
 var gMainGrid = false;
 var gVMMenu = false;
+var auth_response = false;
 
 function initVMBrowser(){
+  auth_response = '';
+  checkVmWebOperation();
   Ext.onReady(function(){
     renderPage();
   });
@@ -40,6 +43,19 @@ function generateBrowseGrid( config )
 	    vmCond : config.vmFilter
 	});
 
+	if( auth_response == "Auth" )
+		aux_tbar= [
+   				{ handler:function(){ toggleAll(true) }, text:'Select all', width:150, tooltip:'Click to select all rows' },
+   				{ handler:function(){ toggleAll(false) }, text:'Select none', width:150, tooltip:'Click to select all rows' },
+   				'->',
+  	    			{ handler:function(){ cbStopSelected() }, text:'Stop', width:150, tooltip:'Click to stop all selected VMs' },
+      			  ];
+	else
+		aux_tbar= [
+   				{ handler:function(){ toggleAll(true) }, text:'Select all', width:150, tooltip:'Click to select all rows' },
+   				{ handler:function(){ toggleAll(false) }, text:'Select none', width:150, tooltip:'Click to select all rows' },
+      			  ];
+	
 	gMainGrid = new Ext.grid.GridPanel( {
 		store : store,
 		/*view: new Ext.grid.GroupingView({
@@ -49,36 +65,31 @@ function generateBrowseGrid( config )
 		}),*/
 		columns: [
 		    { id : 'check', header : '', width : 30, dataIndex: 'inst_InstanceID', renderer : renderSelect },
-            { header: "Image", width: 150, sortable: true, dataIndex: 'img_Name'},
-            { header: "EndPoint", width: 100, sortable: true, dataIndex: 'img_CloudEndpoints'},
-            { header: "Status", width: 100, sortable: true, dataIndex: 'inst_Status'},
-            { header: "Endpoint VM ID", width: 220, sortable: true, dataIndex: 'inst_UniqueID'},
-            { header: "IP", width: 100, sortable: true, dataIndex: 'inst_PublicIP'},
-            { header: "Load", width: 50, sortable: true, dataIndex: 'inst_Load', renderer : renderLoad },
-            { header: "Uptime", width: 75, sortable: true, dataIndex: 'inst_Uptime', renderer : renderUptime },
-            { header: "Jobs", width: 50, sortable: true, dataIndex: 'inst_Jobs' },
-            { header: "Last Update (UTC)", width: 125, sortable: true, dataIndex: 'inst_LastUpdate' },
-            { header: "Error", width: 350, sortable: true, dataIndex: 'inst_ErrorMessage'},
-        ],
-        region : 'center',
-        tbar : [
-   				{ handler:function(){ toggleAll(true) }, text:'Select all', width:150, tooltip:'Click to select all rows' },
-   				{ handler:function(){ toggleAll(false) }, text:'Select none', width:150, tooltip:'Click to select all rows' },
-   				'->',
-  	    			{ handler:function(){ cbStopSelected() }, text:'Stop', width:150, tooltip:'Click to stop all selected VMs' },
-      	],
-      	bbar: new Ext.PagingToolbar({
-					pageSize: 50,
-					store: store,
-					displayInfo: true,
-					displayMsg: 'Displaying entries {0} - {1} of {2}',
-					emptyMsg: "No entries to display",
-					items:[ '-',
-					        'Items displaying per page: ', createNumItemsSelector(),
-					        '-',
-					        'Show VMs in status: ', createStatusSelector() ],
-      	}),
-      	listeners : { sortchange : cbMainGridSortChange },
+	            { header: "Image", width: 150, sortable: true, dataIndex: 'img_Name'},
+	            { header: "EndPoint", width: 100, sortable: true, dataIndex: 'img_CloudEndpoints'},
+	            { header: "Status", width: 100, sortable: true, dataIndex: 'inst_Status'},
+	            { header: "Endpoint VM ID", width: 220, sortable: true, dataIndex: 'inst_UniqueID'},
+	            { header: "IP", width: 100, sortable: true, dataIndex: 'inst_PublicIP'},
+	            { header: "Load", width: 50, sortable: true, dataIndex: 'inst_Load', renderer : renderLoad },
+	            { header: "Uptime", width: 75, sortable: true, dataIndex: 'inst_Uptime', renderer : renderUptime },
+	            { header: "Jobs", width: 50, sortable: true, dataIndex: 'inst_Jobs' },
+	            { header: "Last Update (UTC)", width: 125, sortable: true, dataIndex: 'inst_LastUpdate' },
+	            { header: "Error", width: 350, sortable: true, dataIndex: 'inst_ErrorMessage'},
+                ],
+	        region : 'center',
+		tbar : aux_tbar,
+      		bbar: new Ext.PagingToolbar({
+			pageSize: 50,
+			store: store,
+			displayInfo: true,
+			displayMsg: 'Displaying entries {0} - {1} of {2}',
+			emptyMsg: "No entries to display",
+			items:[ '-',
+			        'Items displaying per page: ', createNumItemsSelector(),
+			        '-',
+			        'Show VMs in status: ', createStatusSelector() ],
+      		}),
+      		listeners : { sortchange : cbMainGridSortChange },
 	} );
 	if( config.title )
 		gMainGrid.setTile( config.title );
@@ -252,9 +263,38 @@ function cbShowVMHistory( a,b,c )
 }
 
 /*
- *  Stopping VMs (stopping mandative management when vmStopPolicy=never, optional if vmStopPolocy=elastic):
+ *  Callback with Auth or Unauth string, for current RPC access to Web Operation
  */
 
+/*
+*/
+function checkVmWebOperation()
+{
+	Ext.Ajax.request({
+		url : "checkVmWebOperation",
+		cache: false,
+		async: false,
+		success : ajaxReturn,
+		failure : ajaxFailure,
+		params : { operation : 'Web' }
+	});
+}
+
+
+function ajaxReturn( ajaxResponse, reqArguments )
+{
+        var retVal = Ext.util.JSON.decode( ajaxResponse.responseText );
+        if( ! retVal.OK )
+        {
+              alert( "Failed to checkVmWebOperation: " + retVal.Message );
+              return
+        }
+	auth_response = retVal.Value 
+}
+
+/*
+ *  Stopping VMs (stopping mandative management when vmStopPolicy=never, optional if vmStopPolocy=elastic):
+ */
 
 function cbStopSelected()
 {

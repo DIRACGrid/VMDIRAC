@@ -24,6 +24,7 @@ from DIRAC.Core.Utilities.ThreadScheduler import gThreadScheduler
 from VMDIRAC.WorkloadManagementSystem.Client.NovaImage    import NovaImage
 from VMDIRAC.WorkloadManagementSystem.Client.OcciImage    import OcciImage
 from VMDIRAC.WorkloadManagementSystem.DB.VirtualMachineDB import VirtualMachineDB
+from VMDIRAC.Security                                     import VmProperties
 
 __RCSID__ = '$Id: $'
 
@@ -47,16 +48,15 @@ class VirtualMachineManagerHandler( RequestHandler ):
 
   def initialize( self ):
 
-# FIXME: is all this actually used ????       
-#    credDict = self.getRemoteCredentials()  
-#    self.ownerDN              = credDict[ 'DN' ]
-#    self.ownerGroup           = credDict[ 'group' ]
-#    self.userProperties       = credDict[ 'properties' ]
-#    self.owner                = credDict[ 'username' ]
-#    self.peerUsesLimitedProxy = credDict[ 'isLimitedProxy' ]
+     credDict = self.getRemoteCredentials()  
+     self.rpcProperties       = credDict[ 'properties' ]
+
+#     self.ownerDN              = credDict[ 'DN' ]
+#     self.ownerGroup           = credDict[ 'group' ]
+#     self.owner                = credDict[ 'username' ]
+#     self.peerUsesLimitedProxy = credDict[ 'isLimitedProxy' ]
 #    
-#    self.diracSetup           = self.serviceInfoDict[ 'clientSetup' ]
-    pass
+#     self.diracSetup           = self.serviceInfoDict[ 'clientSetup' ]
 
   @staticmethod
   def __logResult( methodName, result ):
@@ -66,6 +66,14 @@ class VirtualMachineManagerHandler( RequestHandler ):
     if not result[ 'OK' ]:
       gLogger.error( '%s%s' % ( methodName, result[ 'Message' ] ) )  
 
+  types_checkVmWebOperation = [ StringType ]
+  def export_checkVmWebOperation( self, operation ):
+    """
+    return true if rpc has VM_WEB_OPERATION
+    """
+    if VmProperties.VM_WEB_OPERATION in self.rpcProperties:
+      return S_OK( 'Auth' )
+    return S_OK( 'Unauth' )
 
   types_insertInstance = [ StringType, ( StringType, UnicodeType ), ]
   def export_insertInstance( self, imageName, instanceName, endpoint, runningPodName ):
@@ -109,6 +117,9 @@ class VirtualMachineManagerHandler( RequestHandler ):
       - instanceName does not have a "Submitted" entry 
       - uniqueID is not unique
     """
+    if not VmProperties.VM_RPC_OPERATION in self.rpcProperties:
+      return S_ERROR( "Unauthorized declareInstanceRunning RPC" )
+
     publicIP = self.getRemoteAddress()[ 0 ]
     
     res = gVirtualMachineDB.declareInstanceRunning( uniqueID, publicIP, privateIP )
@@ -127,6 +138,9 @@ class VirtualMachineManagerHandler( RequestHandler ):
     Declares "Running" the instance and the image 
     It returns S_ERROR if the status is not OK
     """
+    if not VmProperties.VM_RPC_OPERATION in self.rpcProperties:
+      return S_ERROR( "Unauthorized declareInstanceIDHeartBeat RPC" )
+
     #FIXME: do we really need the try / except. The type is fixed to int / long.
     try:
       uptime = int( uptime )
@@ -147,6 +161,9 @@ class VirtualMachineManagerHandler( RequestHandler ):
     When next instanceID heat beat with stoppig status on the DB the VM will stop the job agent and terminates ordenery
     It returns S_ERROR if the status is not OK
     """
+    if not VmProperties.VM_WEB_OPERATION in self.rpcProperties:
+      return S_ERROR( "Unauthorized VM Stopping" )
+
     for instanceID in instanceIdList:
       gLogger.info( 'Stopping DIRAC instanceID: %s' % ( instanceID ) )  
       result = gVirtualMachineDB.getInstanceStatus( instanceID )
@@ -176,7 +193,7 @@ class VirtualMachineManagerHandler( RequestHandler ):
         result = gVirtualMachineDB.recordDBHalt( instanceID, 0 )
         self.__logResult( 'declareInstanceHalted', result )
       else:
-        # this is only aplied to Running, while the rest of trasitions are not allowed and declareInstanceStopping do nothing
+        # this is only aplied to allowed trasitions 
         result = gVirtualMachineDB.declareInstanceStopping( instanceID )
         self.__logResult( 'declareInstancesStopping: on declareInstanceStopping call: ', result )
 
@@ -190,6 +207,9 @@ class VirtualMachineManagerHandler( RequestHandler ):
     Declares "Halted" the instance and the image 
     It returns S_ERROR if the status is not OK
     """
+    if not VmProperties.VM_RPC_OPERATION in self.rpcProperties:
+      return S_ERROR( "Unauthorized declareInstanceHalting RPC" )
+
     endpoint = gVirtualMachineDB.getEndpointFromInstance( uniqueID )
     if not endpoint[ 'OK' ]:
       self.__logResult( 'declareInstanceHalting', endpoint )

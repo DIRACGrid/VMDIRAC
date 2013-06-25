@@ -37,7 +37,7 @@ class CloudDirector( VMDirector ):
     """
     VMDirector.configureFromSection( self, mySection )
 
-  def _submitInstance( self, imageName, workDir, endpoint, instanceID ):
+  def _submitInstance( self, imageName, endpoint, CPUTime, instanceID ):
     """
       Real backend method to submit a new Instance of a given Image
       It has the decision logic of sumbission to the multi-endpoint, from the available from a given imageName, first approach: FirstFit 
@@ -66,11 +66,11 @@ class CloudDirector( VMDirector ):
 
 
     if ( driver == 'occi-0.9' or driver == 'occi-0.8'):
-      instanceType = gConfig.getValue( "%s/%s/%s" % ( endpointsPath, endpoint, 'instanceType' ), "" )
-      imageDriver  = gConfig.getValue( "%s/%s/%s" % ( endpointsPath, endpoint, 'imageDriver' ), "" )
-      
       oima   = OcciImage( imageName, endpoint )
-      result = oima.startNewInstance( instanceType, imageDriver )
+      connOcci = oima.connectOcci()
+      if not connOcci[ 'OK' ]:
+        return connOcci
+      result = oima.startNewInstance( CPUTime )
       if not result[ 'OK' ]:
         return result
       idInstance = result['Value']
@@ -82,7 +82,6 @@ class CloudDirector( VMDirector ):
       if not connNova[ 'OK' ]:
         return connNova
       result = nima.startNewInstance( instanceID )
-
       if not result[ 'OK' ]:
         return result
       return S_OK( result['Value'] )

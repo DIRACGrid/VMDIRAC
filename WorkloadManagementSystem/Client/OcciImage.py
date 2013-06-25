@@ -4,194 +4,104 @@
 # Author : Victor Mendez ( vmendez.tic@gmail.com )
 ########################################################################
 
+# DIRAC
 from DIRAC import gLogger, gConfig, S_OK, S_ERROR
 
-#VMInstance operations is from VirtualMachineDB.Instances, instead of endpoint interfaced
-# no more OcciVMInstnaces
-#from VMDIRAC.WorkloadManagementSystem.Client.OcciVMInstance import OcciVMInstance
-#occiClient dynamically below, depending on the driver
-#from VMDIRAC.WorkloadManagementSystem.Client.OcciClient import OcciClient
+# VMDIRAC
+from VMDIRAC.WorkloadManagementSystem.Utilities.Configuration import OcciConfiguration, ImageConfiguration
+
 
 __RCSID__ = '$Id: $'
 
 class OcciImage:
 
-  def __init__( self, DIRACImageName, endpoint):
+  def __init__( self, imageName, endPoint):
     """
-    The OCCI Image Interface provides the functionality required to use
-    a standard occi cloud infrastructure.
-    Authentication is provided by an occi user/password attributes
+    The OCCI Image Interface provides the functionality required to use a standard occi cloud infrastructure.
+    Constructor: uses OcciConfiguration to parse the endPoint CS configuration
+    and ImageConfiguration to parse the imageName CS configuration.
+
+    :Parameters:
+      **imageName** - `string`
+        imageName as defined on CS:/Resources/VirtualMachines/Images
+
+      **endPoint** - `string`
+        endPoint as defined on CS:/Resources/VirtualMachines/CloudEndpoint
+
     """
-    self.__DIRACImageName = DIRACImageName
-    self.__bootImageName = self.__getCSImageOption( "bootImageName" ) 
-    self.__hdcImageName = self.__getCSImageOption( "hdcImageName" )
-    self.log = gLogger.getSubLogger( "Image %s(%s,%s): " % ( DIRACImageName, self.__bootImageName, self.__hdcImageName ) )
-# __instances list not used now 
-    self.__instances = []
-    self.__errorStatus = ""
-    #Get the image cpuTime to put on the VM /LocalSite/CPUTime
-    self.__cpuTime = self.__getCSImageOption( "cpuTime" )
-    if not self.__cpuTime:
-      self.__cpuTime = 1800
-    #Get CloudEndpoint on submission time
-    self.__endpoint = endpoint
-    if not self.__endpoint:
-      self.__errorStatus = "Can't find endpoint for image %s" % self.__DIRACImageName
-      self.log.error( self.__errorStatus )
-      return
-    #Get OCCI URI endpoint
-    self.__occiURI = self.__getCSCloudEndpointOption( "occiURI" )
-    if not self.__occiURI:
-      self.__errorStatus = "Can't find the server occiURI for endpoint %s" % self.__endpoint
-      self.log.error( self.__errorStatus )
-      return
-    #Get OCCI user/password
-    # user
-    self.__occiUser = self.__getCSCloudEndpointOption( "occiUser" )
-    if not self.__occiUser:
-      self.__errorStatus = "Can't find the occiUser for endpoint %s" % self.__endpoint
-      self.log.error( self.__errorStatus )
-      return
-    # password
-    self.__occiPasswd = self.__getCSCloudEndpointOption( "occiPasswd" )
-    if not self.__occiPasswd:
-      self.__errorStatus = "Can't find the occiPasswd for endpoint %s" % self.__endpoint
-      self.log.error( self.__errorStatus )
-      return
-    # scheduling policy of the endpoint elastic/static
-    self.__vmPolicy = self.__getCSCloudEndpointOption( "vmPolicy" )
-    if not ( self.__vmPolicy == 'elastic' or self.__vmPolicy == 'static' ):
-      self.__errorStatus = "Can't find valid vmPolicy (elastic/static) for endpoint %s" % self.__endpoint
-      self.log.error( self.__errorStatus )
-      return
-    # stoppage policy of the endpoint elastic/never
-    self.__vmStopPolicy = self.__getCSCloudEndpointOption( "vmStopPolicy" )
-    if not ( self.__vmStopPolicy == 'elastic' or self.__vmStopPolicy == 'never' ):
-      self.__errorStatus = "Can't find valid vmStopPolicy (elastic/never) for endpoint %s" % self.__endpoint
-      self.log.error( self.__errorStatus )
-      return
-    # get the driver
-    self.__cloudDriver = self.__getCSCloudEndpointOption( "cloudDriver" )
-    if not self.__cloudDriver:
-      self.__errorStatus = "Can't find the driver for endpoint %s" % self.__endpoint
-      self.log.error( self.__errorStatus )
-      return
-    # check connection, depending on the driver
-    if self.__cloudDriver == "occi-0.8":
+    # logger
+    self.log       = gLogger.getSubLogger( 'OcciImage %s: ' % imageName )
+
+    self.imageName = imageName
+    self.endPoint  = endPoint
+
+    # their config() method returns a dictionary with the parsed configuration
+    # they also provide a validate() method to make sure it is correct
+    self.__imageConfig = ImageConfiguration( imageName )
+    self.__occiConfig  = OcciConfiguration( endPoint )
+
+    # this object will connect to the server. Better keep it private.
+    self.__cliocci   = None
+    # error status of the image with the asociated context (endpoing + image), basically for check_connction propagation
+    self.__errorStatus   = None
+
+  def connectOcci( self ):
+    """
+    Method that issues the connection with the OpenNebula server. In order to do
+    it, validates the CS configurations. For the time being, we authenticate
+    with user / password. It gets it and passes all information to the OcciClient
+    which will check the connection.
+
+    :return: S_OK | S_ERROR
+    """
+
+    # Before doing anything, make sure the configurations make sense
+    # ImageConfiguration
+    validImage = self.__imageConfig.validate()
+    if not validImage[ 'OK' ]:
+      return validImage
+    # EndpointConfiguration
+    validOcci = self.__occiConfig.validate()
+    if not validOcci[ 'OK' ]:
+      return validOcci
+
+    # Get authentication configuration
+    user, secret = self.__occiConfig.authConfig()
+
+    # Create the occiclient objects in OcciClient:
+    if self.__occiConfig.cloudDriver() == "occi-0.8":
       from VMDIRAC.WorkloadManagementSystem.Client.Occi08 import OcciClient
-      self.__cliocci = OcciClient(self.__occiURI, self.__occiUser, self.__occiPasswd)
-    elif self.__cloudDriver == "occi-0.9":
+      self.__cliocci = OcciClient(user, secret, self.__occiConfig.config(), self.__imageConfig.config())
+    elif self.__occiConfig.cloudDriver() == "occi-0.9":
       from VMDIRAC.WorkloadManagementSystem.Client.Occi09 import OcciClient
-      self.__cliocci = OcciClient(self.__occiURI, self.__occiUser, self.__occiPasswd)
+      self.__cliocci = OcciClient(user, secret, self.__occiConfig.config(), self.__imageConfig.config())
     else:
       self.__errorStatus = "Driver %s not supported" % self.__cloudDriver
       self.log.error( self.__errorStatus )
       return
+
+    # Check connection to the server
     request = self.__cliocci.check_connection()
     if request.returncode != 0:
-      self.__errorStatus = "Can't connect to OCCI server %s\n%s" % (self.__occiURI, request.stdout)
+      self.__errorStatus = "Can't connect to OCCI URI %s\n%s" % (self.__occiConfig.occiURI(), request.stdout)
       self.log.error( self.__errorStatus )
-      return
-
-    if not self.__errorStatus:
-      self.log.info( "Available OCCI server  %s" % self.__occiURI )
-
-    #Get the boot Occi Image Id (OII) from URI server
-    request = self.__cliocci.get_image_id( self.__bootImageName )
-    if request.returncode != 0:
-      self.__errorStatus = "Can't get the boot image id for %s from server %s\n%s" % (self.__bootImageName, self.__occiURI, request.stdout)
-      self.log.error( self.__errorStatus )
-      return
-    self.__bootOII = request.stdout
-
-    #Get the hdc Occi Image Id (OII) from URI server
-    if not self.__hdcImageName == 'NO_CONTEXT':
-      request = self.__cliocci.get_image_id( self.__hdcImageName )
-      if request.returncode != 0:
-        self.__errorStatus = "Can't get the contextual image id for %s from server %s\n%s" % (self.__hdcImageName, self.__occiURI, request.stdout)
-        self.log.error( self.__errorStatus )
-        return
-      self.__hdcOII = request.stdout
+      return S_ERROR( self.__errorStatus )
     else:
-      self.__hdcOII = 'NO_CONTEXT'
+      self.log.info( "Successful connection check to %s" % (self.__occiConfig.occiURI()) )
 
-    # iface static or auto (DHCP image)
-    self.__iface = self.__getCSCloudEndpointOption( "iface" )
-    if not self.__iface:
-      self.__errorStatus = "Can't find the iface (static/auto) for endpoint %s" % self.__endpoint
-      self.log.error( self.__errorStatus )
-      return
+    return S_OK( request.stdout )
 
-    if self.__iface == 'static': 
-
-      # dns1
-      self.__DNS1 = self.__getCSCloudEndpointOption( "DNS1" )
-      if not self.__DNS1:
-        self.__errorStatus = "Can't find the DNS1 for endpoint %s" % self.__endpoint
-        self.log.error( self.__errorStatus )
-        return
-
-      # dns2
-      self.__DNS2 = self.__getCSCloudEndpointOption( "DNS2" )
-      if not self.__DNS2:
-        self.__errorStatus = "Can't find the DNS2 for endpoint %s" % self.__endpoint
-        self.log.error( self.__errorStatus )
-        return
-
-      # domain
-      self.__Domain = self.__getCSCloudEndpointOption( "Domain" )
-      if not self.__Domain:
-        self.__errorStatus = "Can't find the Domain for endpoint %s" % self.__endpoint
-        self.log.error( self.__errorStatus )
-        return
-
-    # cvmfs http proxy:
-    self.__CVMFS_HTTP_PROXY = self.__getCSCloudEndpointOption( "CVMFS_HTTP_PROXY" )
-    if not self.__CVMFS_HTTP_PROXY:
-      self.__errorStatus = "Can't find the CVMFS_HTTP_PROXY for endpoint %s" % self.__endpoint
-      self.log.error( self.__errorStatus )
-      return
-
-    # URL context files:
-    self.__URLcontextfiles = self.__getCSImageOption( "URLcontextfiles" )
-    if not self.__URLcontextfiles:
-      self.__URLcontextfiles = "http://lhcweb.pic.es/vmendez/context/root.pub"
-
-    # Network id
-    self.__NetId = self.__getCSCloudEndpointOption( "NetId" )
-    if not self.__NetId:
-      self.__errorStatus = "Can't find the NetId for endpoint %s" % self.__endpoint
-      self.log.error( self.__errorStatus )
-      return
-
-    # Site name (temporaly at Endpoint, but this sould be get it from Resources LHCbDIRAC like scheme)
-    self.__siteName = self.__getCSCloudEndpointOption( "siteName" )
-    if not self.__siteName:
-      self.__errorStatus = "Can't find the siteName for endpoint %s" % self.__endpoint
-      self.log.error( self.__errorStatus )
-      return
-
-  def __getCSImageOption( self, option, defValue = "" ):
+  def startNewInstance( self, cpuTime ):
     """
-    Following we can see that every CSImageOption are related with the booting
-    image, the contextualized hdc image has no asociated options
-    """
-    return gConfig.getValue( "/Resources/VirtualMachines/Images/%s/%s" % ( self.__DIRACImageName, option ), defValue )
-
-  def __getCSCloudEndpointOption( self, option, defValue = "" ):
-    return gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( self.__endpoint, option ), defValue )
-
-  def startNewInstance( self, instanceType = "small", imageDriver = "default" ):
-    """
-    Prior to use, virtual machine images are uploaded to the OCCI cloud manager
-    assigned an id (OII in a URI). 
+    Prior to use, virtual machine images are uploaded to the OCCI cloud manager assigned an id (OII in a URI). 
     """
     if self.__errorStatus:
       return S_ERROR( self.__errorStatus )
-    self.log.info( "Starting new instance for image (boot,hdc): %s,%s; to endpoint %s, and driver %s" % ( self.__bootImageName, self.__hdcImageName, self.__endpoint, self.__cloudDriver ) )
-    request = self.__cliocci.create_VMInstance( self.__bootImageName, self.__hdcImageName, instanceType, imageDriver, self.__bootOII, self.__hdcOII, self.__iface, self.__DNS1, self.__DNS2, self.__Domain, self.__CVMFS_HTTP_PROXY, self.__URLcontextfiles, self.__NetId, self.__siteName, self.__cloudDriver, self.__cpuTime, self.__vmStopPolicy)
+
+    self.log.info( "Starting new instance for DIRAC image (boot,hdc): %s; to endpoint %s" % ( self.imageName, self.endPoint) )
+    request = self.__cliocci.create_VMInstance(cpuTime)
     if request.returncode != 0:
-      self.__errorStatus = "Can't create instance for boot image (boot,hdc): %s/%s at server %s\n%s" % (self.__bootImageName, self.__hdcImageName, self.__occiURI, request.stdout)
+      self.__errorStatus = "Can't create instance for DIRAC image (boot,hdc): %s; to endpoint %s" % ( self.imageName, self.endPoint) 
       self.log.error( self.__errorStatus )
       return S_ERROR( self.__errorStatus )
 
@@ -204,42 +114,9 @@ class OcciImage:
 
     request = self.__cliocci.terminate_VMinstance( VMinstanceId )
     if request.returncode != 0:
-      self.__errorStatus = "Can't delete VM instance ide %s from server %s\n%s" % (VMinstanceId, self.__occiURI, request.stdout)
+      self.__errorStatus = "Can't delete VM instance ide %s from endpoint URL %s\n%s" % (VMinstanceId, self.__occiConfig.occiURI(), request.stdout)
       self.log.error( self.__errorStatus )
       return S_ERROR( self.__errorStatus )
 
     return S_OK( request.stdout )
 
-
-#VMInstance operations is from VirtualMachineDB.Instances, instead of endpoint interfaced
-# no more OcciVMInstances
-#  def getAllInstances( self ):
-#    """
-#    Get all instances for this image
-#    """
-#    instances = []
-#    request = self.__cliocci.get_all_VMinstances( self.__bootImageName )
-#    if request.returncode != 0:
-#      self.__errorStatus = "Error while get all instances of %s from server %s\n%s" % (self.__bootImage, self.__occiURI, request.stdout)
-#      self.log.error( self.__errorStatus )
-#      return S_ERROR( self.__errorStatus )
-#
-#    for instanceId in request.rlist:
-#      instances.append( OcciVMInstance ( instanceId, self.__occiURI, self.__occiUser, self.__occiPasswd ) ) 
-#    return instances
-
-#  def getAllRunningInstances( self ):
-#    """
-#    Get all running instances for this image
-#    """
-#    instances = []
-#    request = self.__cliocci.get_running_VMinstances( self.__bootImageName )
-#    if request.returncode != 0:
-#      self.__errorStatus = "Error while get the running instances of %s from server %s\n%s" % (self.__bootImage, self.__occiURI, request.stdout)
-#      self.log.error( self.__errorStatus )
-#      return S_ERROR( self.__errorStatus )
-#
-#    for instanceId in request.rlist:
-#      instances.append( OcciVMInstance ( instanceId, self.__occiURI, self.__occiUser, self.__occiPasswd ) ) 
-#    return instances
-#

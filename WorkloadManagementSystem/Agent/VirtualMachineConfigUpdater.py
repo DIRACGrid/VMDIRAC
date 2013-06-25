@@ -33,7 +33,6 @@ class VirtualMachineConfigUpdater( AgentModule ):
     self.stopAgentPath = ''
     self.cfgToUpdate   = '' 
   
-  
   def initialize( self ):
     """ initialize
     

@@ -11,6 +11,9 @@ import time
 
 from subprocess import Popen, PIPE, STDOUT
 
+# DIRAC
+from DIRAC import gLogger, S_OK, S_ERROR
+
 __RCSID__ = '$Id: $'
 
 # Classes
@@ -70,11 +73,30 @@ class Request:
 
 class OcciClient:
   
-  def __init__(self, URI = None, User = None, Passwd = None):
-    self.id = None    
-    self.URI = URI    
-    self.user = User    
-    self.passwd = Passwd    
+  def __init__(  self, user, secret, endpointConfig, imageConfig):
+    """
+    Constructor: uses user / secret authentication for the time being. 
+    copy the endpointConfig and ImageConfig dictionaries to the OcciClient
+
+    :Parameters:
+      **user** - `string`
+        username that will be used on the authentication
+      **secret** - `string`
+        password used on the authentication
+      **endpointConfig** - `dict`
+        dictionary with the endpoint configuration ( WMS.Utilities.Configuration.OcciConfiguration )
+      **imageConfig** - `dict`
+        dictionary with the image configuration ( WMS.Utilities.Configuration.ImageConfiguration )
+
+    """
+
+    # logger
+    self.log = gLogger.getSubLogger( self.__class__.__name__ )
+
+    self.endpointConfig = endpointConfig
+    self.imageConfig    = imageConfig
+    self.__user           = user
+    self.__password       = secret
 
   def check_connection(self, timelife = 5):
     """
@@ -83,7 +105,7 @@ class OcciClient:
     """
 
     request = Request()
-    command = 'occi-storage' + ' -U ' + self.user + ' -P ' + self.passwd + ' -R ' + self.URI + ' list'
+    command = 'occi-storage' + ' -U ' + self.__user + ' -P ' + self.__password + ' -R ' + self.endpointConfig['occiURI'] + ' list'
     request.exec_and_wait(command, timelife)
     return request
    
@@ -94,7 +116,7 @@ class OcciClient:
     """
 
     request = Request()
-    command = 'occi-storage' + ' -U ' + self.user + ' -P ' + self.passwd + ' -R ' + self.URI + ' list ' 
+    command = 'occi-storage' + ' -U ' + self.__user + ' -P ' + self.__password + ' -R ' + self.endpointConfig['occiURI'] + ' list ' 
     request.exec_no_wait(command)
     first = request.stdout.find("name='"+imageName+"'") 
     if first < 0:
@@ -114,7 +136,7 @@ class OcciClient:
     """ 
 
     request = Request()
-    command = 'occi-compute' + ' -U ' + self.user + ' -P ' + self.passwd + ' -R ' + self.URI + ' show ' + instanceId 
+    command = 'occi-compute' + ' -U ' + self.__user + ' -P ' + self.__password + ' -R ' + self.endpointConfig['occiURI'] + ' show ' + instanceId 
     request.exec_no_wait(command)
     first = request.stdout.find("/storage/") 
     if first < 0:
@@ -136,24 +158,69 @@ class OcciClient:
 
     return request
 
-  def create_VMInstance( self, bootImageName, hdcImageName, instanceType, imageDriver, 
-                         bootOII, hdcOII, iface, occiDNS1, occiDNS2, Domain, CVMFS_HTTP_PROXY, 
-                         occiURLcontextfiles, occiNetId, siteName, cloudDriver, cpuTime, vmStopPolicy):
+  def create_VMInstance(self, cpuTime):
     """
-    This creates a VM instance for the given boot image and hdc image, and
-    also de OCCI context on-the-fly image, taken the given parameters.
-    Before the VM instance creation is doing a XML composition
+    This creates a VM instance for the given boot image 
+    if context method is adhoc then boot image is create to be in Submitted status
+    if context method is ssh then boot image is created to be in Wait_ssh_context (for contextualization agent)
+    if context method is occi_opennebula context is in hdc image, and also de OCCI context on-the-fly image, taken the given parameters
     Successful creation returns instance id  and the IP
     """
+
+    #Comming from running pod specific:
+    strCpuTime = str(cpuTime)
+
+    #DIRAC image context:
+    bootImageName  = self.imageConfig[ 'bootImageName' ]
+    flavorName  = self.imageConfig[ 'flavorName' ]
+    contextMethod  = self.imageConfig[ 'contextMethod' ]
+    hdcImageName  = self.imageConfig[ 'contextConfig' ].get( 'hdcImageName' , None )
+    context_files_url  = self.imageConfig[ 'contextConfig' ].get( 'context_files_url' , None )
+
+    # endpoint context:
+    siteName  = self.endpointConfig[ 'siteName' ]
+    cloudDriver  = self.endpointConfig[ 'cloudDriver' ]
+    occiURI  = self.endpointConfig[ 'occiURI' ]
+    imageDriver  = self.endpointConfig[ 'imageDriver' ]
+    vmStopPolicy  = self.endpointConfig[ 'vmStopPolicy' ]
+    netId  = self.endpointConfig[ 'netId' ]
+    cvmfs_http_proxy  = self.endpointConfig[ 'cvmfs_http_proxy' ]
+    iface  = self.endpointConfig[ 'iface' ]
+    if iface == 'static':
+      dns1  = self.endpointConfig[ 'dns1' ]
+      dns2  = self.endpointConfig[ 'dns2' ]
+      domain  = self.endpointConfig[ 'domain' ]
+
+    #Get the boot Occi Image Id (OII) from URI server
+    request = self.get_image_id( bootImageName )
+    if request.returncode != 0:
+      self.__errorStatus = "Can't get the boot image id for %s from server %s\n%s" % (bootImageName, occiURI, request.stdout)
+      self.log.error( self.__errorStatus )
+      return
+    bootOII = request.stdout
+    
+    if contextMethod == 'occi_opennebula':
+      #Get the hdc Occi Image Id (OII) from URI server
+      request = self.get_image_id( hdcImageName )
+      if request.returncode != 0:
+        self.__errorStatus = "Can't get the contextual image id for %s from server %s\n%s" % (self.__hdcImageName, self.__occiURI, request.stdout)
+        self.log.error( self.__errorStatus )
+        return
+      hdcOII = request.stdout
+
+    if contextMethod == 'occi_opennebula':
+      vm_name = bootImageName + '_' + hdcImageName + '_' + str( time.time() )[0:10]
+    else:
+      vm_name = bootImageName + '_' + contextMethod + '_' + str( time.time() )[0:10]
 
     tempXMLname = '/tmp/computeOCCI.%s.xml' % os.getpid()
     tempXML = open(tempXMLname, 'w') 
       
     tempXML.write('<COMPUTE>\n')
-    tempXML.write('        <NAME>' + bootImageName + '+' + hdcImageName + '+' + str(time.time())[0:10] + '</NAME>\n')
-    tempXML.write('        <INSTANCE_TYPE>' + instanceType + '</INSTANCE_TYPE>\n')
+    tempXML.write('        <NAME>' + vm_name + '</NAME>\n')
+    tempXML.write('        <INSTANCE_TYPE>' + flavorName + '</INSTANCE_TYPE>\n')
     tempXML.write('        <DISK id="0">\n')
-    tempXML.write('                <STORAGE href="' + self.URI + '/storage/' + bootOII + '"/>\n')
+    tempXML.write('                <STORAGE href="' + occiURI + '/storage/' + bootOII + '"/>\n')
     tempXML.write('                <TYPE>OS</TYPE>\n')
     tempXML.write('                <TARGET>hda</TARGET>\n')
     if not imageDriver == 'default':
@@ -164,37 +231,43 @@ class OcciClient:
       else:
         tempXML.write('                <DRIVER>' + imageDriver + '</DRIVER>\n')
     tempXML.write('        </DISK>\n')
-    if not hdcImageName == 'NO_CONTEXT':
+
+    if contextMethod == 'occi_opennebula':
       tempXML.write('        <DISK id="1">\n')
-      tempXML.write('                <STORAGE href="' + self.URI + '/storage/' + hdcOII + '"/>\n')
+      tempXML.write('                <STORAGE href="' + occiURI + '/storage/' + hdcOII + '"/>\n')
       tempXML.write('                <TYPE>CDROM</TYPE>\n')
       if not imageDriver == 'default':
         if imageDriver == 'qcow2-one-3.2.1':
           tempXML.write('                <DRIVER>qcow2</DRIVER>\n')
-    #          elif imageDriver == 'qcow2-one-3.2.0':
-    #              tempXML.write('                <DRIVER type="qcow2"/>\n')
+        elif imageDriver == 'qcow2-one-3.2.0':
+          tempXML.write('                <DRIVER type="qcow2"/>\n')
         else:
           tempXML.write('                <DRIVER>' + imageDriver + '</DRIVER>\n')
       tempXML.write('        </DISK>\n')
+
     tempXML.write('        <NIC>\n')
-    tempXML.write('                <NETWORK href="' + self.URI + '/network/' + occiNetId + '"/>\n')
+    tempXML.write('                <NETWORK href="' + occiURI + '/network/' + netId + '"/>\n')
     tempXML.write('        </NIC>\n')
-    tempXML.write('        <CONTEXT>\n')
-    tempXML.write('                <VMID>$VMID</VMID>\n')
-    tempXML.write('                <IP>$NIC[IP]</IP>\n')
-    tempXML.write('                <MAC_ETH0>$NIC[MAC]</MAC_ETH0>\n')
-    tempXML.write('                <IFACE>' + iface + '</IFACE>\n')
-    if iface == 'static':
-      tempXML.write('                <DOMAIN>' + Domain + '</DOMAIN>\n')
-      tempXML.write('                <DNS1>' + occiDNS1 + '</DNS1>\n')
-      tempXML.write('                <DNS2>' + occiDNS2 + '</DNS2>\n')
-    tempXML.write('                <CVMFS_HTTP_PROXY>' + CVMFS_HTTP_PROXY + '</CVMFS_HTTP_PROXY>\n')
-    tempXML.write('                <SITE_NAME>' + siteName + '</SITE_NAME>\n')
-    tempXML.write('                <CLOUD_DRIVER>' + cloudDriver + '</CLOUD_DRIVER>\n')
-    tempXML.write('                <CPU_TIME>' + cpuTime + '</CPU_TIME>\n')
-    tempXML.write('                <VM_STOP_POLICY>' + vmStopPolicy + '</VM_STOP_POLICY>\n')
-    tempXML.write('                <FILES>' + occiURLcontextfiles + '</FILES>\n')
-    tempXML.write('        </CONTEXT>\n')
+    if contextMethod == 'occi_opennebula':
+      tempXML.write('        <CONTEXT>\n')
+      tempXML.write('                <VMID>$VMID</VMID>\n')
+      tempXML.write('                <IP>$NIC[IP]</IP>\n')
+      tempXML.write('                <MAC_ETH0>$NIC[MAC]</MAC_ETH0>\n')
+      tempXML.write('                <IFACE>' + iface + '</IFACE>\n')
+
+      if iface == 'static':
+        tempXML.write('                <DOMAIN>' + domain + '</DOMAIN>\n')
+        tempXML.write('                <DNS1>' + dns1 + '</DNS1>\n')
+        tempXML.write('                <DNS2>' + dns2 + '</DNS2>\n')
+
+      tempXML.write('                <CVMFS_HTTP_PROXY>' + cvmfs_http_proxy + '</CVMFS_HTTP_PROXY>\n')
+      tempXML.write('                <SITE_NAME>' + siteName + '</SITE_NAME>\n')
+      tempXML.write('                <CLOUD_DRIVER>' + cloudDriver + '</CLOUD_DRIVER>\n')
+      tempXML.write('                <CPU_TIME>' + strCpuTime + '</CPU_TIME>\n')
+      tempXML.write('                <VM_STOP_POLICY>' + vmStopPolicy + '</VM_STOP_POLICY>\n')
+      tempXML.write('                <FILES>' + context_files_url + '</FILES>\n')
+      tempXML.write('        </CONTEXT>\n')
+
     tempXML.write('</COMPUTE>\n')
       
     tempXML.close()
@@ -207,7 +280,7 @@ class OcciClient:
 
 
     request = Request()
-    command = 'occi-compute' + ' -U ' + self.user + ' -P ' + self.passwd + ' -R ' + self.URI + ' create ' + tempXMLname
+    command = 'occi-compute' + ' -U ' + self.__user + ' -P ' + self.__password + ' -R ' + occiURI + ' create ' + tempXMLname
     request.exec_no_wait(command)
     #os.remove(tempXMLname)
     first = request.stdout.find("<ID>") 
@@ -226,7 +299,7 @@ class OcciClient:
     Terminate a VM instance corresponding to the instanceId parameter
     """
     request = Request()
-    command = 'occi-compute' + ' -U ' + self.user + ' -P ' + self.passwd + ' -R ' + self.URI + ' delete ' + instanceId
+    command = 'occi-compute' + ' -U ' + self.__user + ' -P ' + self.__password + ' -R ' + self.endpointConfig['occiURI'] + ' delete ' + instanceId
     request.exec_no_wait(command)
     if request.stdout == "nil":
       request.returncode = 0
@@ -242,7 +315,7 @@ class OcciClient:
 
     request = Request()
     pattern = "name=\\'" + bootImageName + "+"
-    command = 'occi-compute' + ' -U ' + self.user + ' -P ' + self.passwd + ' -R ' + self.URI + ' list '
+    command = 'occi-compute' + ' -U ' + self.__user + ' -P ' + self.__password + ' -R ' + self.endpointConfig['occiURI'] + ' list '
     request.exec_no_wait(command)
 
     auxstart = request.stdout.find(pattern) 
@@ -269,7 +342,7 @@ class OcciClient:
     request = Request()
     auxreq = Request()
     pattern = "name=\\'" + bootImageName + "+"
-    command = 'occi-compute' + ' -U ' + self.user + ' -P ' + self.passwd + ' -R ' + self.URI + ' list '
+    command = 'occi-compute' + ' -U ' + self.__user + ' -P ' + self.__password + ' -R ' + self.endpointConfig['occiURI'] + ' list '
     request.exec_no_wait(command)
       
     auxstart = request.stdout.find(pattern) 
@@ -296,7 +369,7 @@ class OcciClient:
     Get the status VM instance for a given VMinstanceId 
     """
     request = Request()
-    command = 'occi-compute' + ' -U ' + self.user + ' -P ' + self.passwd + ' -R ' + self.URI + ' show ' + VMinstanceId
+    command = 'occi-compute' + ' -U ' + self.__user + ' -P ' + self.__password + ' -R ' + self.endpointConfig['occiURI'] + ' show ' + VMinstanceId
     request.exec_no_wait(command)
     first = request.stdout.find("<STATE>") 
     if first < 0:

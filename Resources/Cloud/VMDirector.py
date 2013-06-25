@@ -88,7 +88,7 @@ class VMDirector:
       self.runningPods[runningPodName]['Priority']         = int( runningPodDict['Priority'] )
       self.runningPods[runningPodName]['CloudEndpoints']   = runningPodDict['CloudEndpoints']
 
-  def submitInstance( self, imageName, workDir, endpoint, numVMsToSubmit, runningPodName ):
+  def submitInstance( self, imageName, endpoint, numVMsToSubmit, runningPodName ):
     """
     """
     # warning: instanceID is the DIRAC instance id, while uniqueID is unique for a particular endpoint
@@ -111,7 +111,12 @@ class VMDirector:
         return newInstance
       instanceID = newInstance[ 'Value' ]
 
-      dictVMSubmitted = self._submitInstance( imageName, workDir, endpoint, instanceID )
+      runningRequirementsDict = self.runningPods[runningPodName]['RequirementsDict']
+      cpuTime = runningRequirementsDict['CPUTime']
+      if not cpuTime:
+        return S_ERROR( 'Unknown CPUTime in Requirements of the RunningPod %s' % runningPodName )
+
+      dictVMSubmitted = self._submitInstance( imageName, endpoint, cpuTime, instanceID )
       if not dictVMSubmitted[ 'OK' ]:
         return dictVMSubmitted
 

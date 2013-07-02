@@ -157,6 +157,9 @@ class NovaImage:
     This method is not a regular method in the sense that is not generic at all.
     It will be called only of those VMs which need after-booting contextualisation,
     for the time being, just ssh contextualisation.
+    On the other hand, one can say this is the most generic method because you don't
+    need any particular "golden" image, like HEPiX, just whatever linux image with 
+    available ssh connectivity
         
     :Parameters:
       **uniqueId** - `string`

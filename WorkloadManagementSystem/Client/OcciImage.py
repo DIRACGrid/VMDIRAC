@@ -48,9 +48,8 @@ class OcciImage:
   def connectOcci( self ):
     """
     Method that issues the connection with the OpenNebula server. In order to do
-    it, validates the CS configurations. For the time being, we authenticate
-    with user / password. It gets it and passes all information to the OcciClient
-    which will check the connection.
+    it, validates the CS configurations. 
+    OcciClient which will check the connection.
 
     :return: S_OK | S_ERROR
     """
@@ -66,7 +65,17 @@ class OcciImage:
       return validOcci
 
     # Get authentication configuration
-    user, secret = self.__occiConfig.authConfig()
+    auth, u, p = self.__occiConfig.authConfig()
+    if auth is 'userpasswd':
+      user = u
+      secret = p
+    elif auth is 'proxycacert':
+      userCredPath = u
+      proxyCa = p
+    else
+      self.__errorStatus = "auth not supported" 
+      self.log.error( self.__errorStatus )
+      return
 
     # Create the occiclient objects in OcciClient:
     if self.__occiConfig.cloudDriver() == "occi-0.8":
@@ -75,6 +84,9 @@ class OcciImage:
     elif self.__occiConfig.cloudDriver() == "occi-0.9":
       from VMDIRAC.WorkloadManagementSystem.Client.Occi09 import OcciClient
       self.__cliocci = OcciClient(user, secret, self.__occiConfig.config(), self.__imageConfig.config())
+    elif self.__occiConfig.cloudDriver() == "occi-1.1":
+      from VMDIRAC.WorkloadManagementSystem.Client.Occi11 import OcciClient
+      self.__cliocci = OcciClient(userCredPath, proxyCaPath, self.__occiConfig.config(), self.__imageConfig.config())
     else:
       self.__errorStatus = "Driver %s not supported" % self.__cloudDriver
       self.log.error( self.__errorStatus )
@@ -120,3 +132,37 @@ class OcciImage:
 
     return S_OK( request.stdout )
 
+
+  def contextualizeInstance( self, uniqueId, public_ip ):
+    """
+    This method is not a regular method in the sense that is not generic at all.
+    It will be called only of those VMs which need after-booting contextualisation,
+    for the time being, just ssh contextualisation.
+    On the other hand, one can say this is the most generic method because you don't
+    need any particular "golden" image, like HEPiX, just whatever linux image with 
+    available ssh connectivity
+
+    :Parameters:
+      **uniqueId** - `string`
+        node ID, given by the OpenStack service
+      **public_ip** - `string`
+        public IP of the VM, needed for asynchronous contextualisation
+
+
+    :return: S_OK | S_ERROR
+    """
+
+    # FIXME: maybe is worth hiding the public_ip attribute and getting it on
+    # FIXME: the contextualize step.
+
+    result = self.__cliocci.contextualize_VMInstance( uniqueId, public_ip )
+
+    if not result[ 'OK' ]:
+      self.log.error( "contextualizeInstance: %s, %s" % ( uniqueId, public_ip ) )
+      self.log.error( result[ 'Message' ] )
+      return result
+
+    return S_OK( uniqueId )
+
+#...............................................................................
+#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF

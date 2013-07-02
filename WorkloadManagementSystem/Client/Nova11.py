@@ -395,8 +395,7 @@ class NovaClient:
     :return: S_OK( public_ip ) | S_ERROR   
     """
 
-    # Sometimes we do not have public IP
-    ipPool = self.imageConfig[ 'contextConfig' ].get( 'vmOsIpPool', None )
+    ipPool = endpointConfig.get( 'ipPool' )
 
     if ipPool is not None:
 

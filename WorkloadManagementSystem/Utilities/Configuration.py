@@ -58,7 +58,7 @@ class OcciConfiguration( EndpointConfiguration ):
   """
 
   # Keys that MUST be present on ANY Occi CloudEndpoint configuration in the CS
-  MANDATORY_KEYS = [ 'cloudDriver', 'vmPolicy', 'vmStopPolicy', 'siteName', 'occiURI', 'maxEndpointInstances' ]
+  MANDATORY_KEYS = [ 'cloudDriver', 'vmPolicy', 'vmStopPolicy', 'siteName', 'occiURI', 'maxEndpointInstances', 'auth' ]
     
   def __init__( self, occiEndpoint ):
     """
@@ -98,6 +98,7 @@ class OcciConfiguration( EndpointConfiguration ):
     self.__dns2                    = occiOptions.get( 'DNS2'                    , None )
     self.__domain                  = occiOptions.get( 'domain'                  , None )
     self.__cvmfs_http_proxy        = occiOptions.get( 'CVMFS_HTTP_PROXY'        , None )
+    self.__ipPool                  = occiOptions.get( 'ipPool'                  , None )
 
   def config( self ):
     
@@ -120,6 +121,7 @@ class OcciConfiguration( EndpointConfiguration ):
     config[ 'dns2' ]                    = self.__dns2
     config[ 'domain' ]                  = self.__domain
     config[ 'cvmfs_http_proxy' ]        = self.__cvmfs_http_proxy
+    config[ 'ipPool' ]                  = self.__ipPool
     
     # Do not return dictionary with None values
     for key, value in config.items():

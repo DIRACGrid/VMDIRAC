@@ -187,6 +187,19 @@ class VirtualmachinesController( BaseController ):
       data.append( rL )
     return S_OK( data )
 
+  @jsonify
+  def checkVmWebOperation( self ):
+    try:
+      operation = str( request.params[ 'operation' ] )
+    except Exception, e:
+      print e
+      return S_ERROR( "Oops! Couldn't understand the request" )
+    rpcClient = getRPCClient( "WorkloadManagement/VirtualMachineManager" )
+    result = rpcClient.checkVmWebOperation( operation )
+    if not result[ 'OK' ]:
+      return S_ERROR( result[ 'Message' ] )
+    data = result[ 'Value' ]
+    return S_OK( data )
 
   @jsonify
   def declareInstancesStopping( self ):

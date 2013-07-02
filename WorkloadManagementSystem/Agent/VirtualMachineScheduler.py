@@ -270,7 +270,7 @@ class VirtualMachineScheduler( AgentModule ):
           numVMs = jobsToSubmitDict['NumVMsToSubmit']
 
           ret = pool.generateJobAndQueueIt( director.submitInstance,
-                                            args = ( imageName, self.workDir, endpoint, numVMs, runningPodName ),
+                                            args = ( imageName, endpoint, numVMs, runningPodName ),
                                             oCallback = self.callBack,
                                             oExceptionCallback = director.exceptionCallBack,
                                             blocking = False )

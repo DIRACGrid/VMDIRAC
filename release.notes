@@ -1,3 +1,7 @@
+[v0r8]
+     VM local dirac.cfg updater agent for pilot/dirac release is updated
+     OcciImage and Occi09 migrated to new WMS/Utilities style
+
 [v0r7]
 NEW: endpoint vmPolicy "static" -> slots driven, indicated by maxEndpointInstances, endpoint CS parameter
      endpoint vmPolicy "elastic" -> jobs driven, one by one

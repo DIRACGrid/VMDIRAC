@@ -79,18 +79,33 @@ class OcciImage:
 
     # Create the occiclient objects in OcciClient:
     if self.__occiConfig.cloudDriver() == "occi-0.8":
-      from VMDIRAC.WorkloadManagementSystem.Client.Occi08 import OcciClient
-      self.__cliocci = OcciClient(user, secret, self.__occiConfig.config(), self.__imageConfig.config())
+      if auth is 'userpasswd':
+        from VMDIRAC.WorkloadManagementSystem.Client.Occi08 import OcciClient
+        self.__cliocci = OcciClient(user, secret, self.__occiConfig.config(), self.__imageConfig.config())
+      else
+        self.__errorStatus = "%s is not supported auth method for %s driver" % (auth,self.__occiConfig.cloudDriver())
+        self.log.error( self.__errorStatus )
+        return S_ERROR( self.__errorStatus )
     elif self.__occiConfig.cloudDriver() == "occi-0.9":
-      from VMDIRAC.WorkloadManagementSystem.Client.Occi09 import OcciClient
-      self.__cliocci = OcciClient(user, secret, self.__occiConfig.config(), self.__imageConfig.config())
+      if auth is 'userpasswd':
+        from VMDIRAC.WorkloadManagementSystem.Client.Occi09 import OcciClient
+        self.__cliocci = OcciClient(user, secret, self.__occiConfig.config(), self.__imageConfig.config())
+      else
+        self.__errorStatus = "%s is not supported auth method for %s driver" % (auth,self.__occiConfig.cloudDriver())
+        self.log.error( self.__errorStatus )
+        return S_ERROR( self.__errorStatus )
     elif self.__occiConfig.cloudDriver() == "occi-1.1":
-      from VMDIRAC.WorkloadManagementSystem.Client.Occi11 import OcciClient
-      self.__cliocci = OcciClient(userCredPath, proxyCaPath, self.__occiConfig.config(), self.__imageConfig.config())
+      if auth is 'proxycacert':
+        from VMDIRAC.WorkloadManagementSystem.Client.Rocci11 import OcciClient
+        self.__cliocci = OcciClient(userCredPath, proxyCaPath, self.__occiConfig.config(), self.__imageConfig.config())
+      else
+        self.__errorStatus = "%s is not supported auth method for %s driver" % (auth,self.__occiConfig.cloudDriver())
+        self.log.error( self.__errorStatus )
+        return S_ERROR( self.__errorStatus )
     else:
       self.__errorStatus = "Driver %s not supported" % self.__cloudDriver
       self.log.error( self.__errorStatus )
-      return
+      return S_ERROR( self.__errorStatus )
 
     # Check connection to the server
     request = self.__cliocci.check_connection()

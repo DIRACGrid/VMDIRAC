@@ -83,15 +83,17 @@
 
 """
 
+#import DIRAC
 import random, time
-import DIRAC
+import threading
 
 from numpy.random import poisson
 from random       import shuffle
 
 # DIRAC
-from DIRAC                                             import gConfig
+from DIRAC                                             import abort, gConfig, S_OK
 from DIRAC.Core.Base.AgentModule                       import AgentModule
+from DIRAC.Core.Utilities.List                         import randomize
 from DIRAC.Core.Utilities.ThreadPool                   import ThreadPool
 from DIRAC.WorkloadManagementSystem.DB.TaskQueueDB     import maxCPUSegments
 from DIRAC.WorkloadManagementSystem.Client.ServerUtils import taskQueueDB
@@ -107,11 +109,26 @@ random.seed()
 
 class VirtualMachineScheduler( AgentModule ):
 
-  def initialize( self ):
-    """ Standard constructor
+  def __init__( self, *args, **kwargs ):
+    """ c'tor
     """
-    import threading
+    
+    AgentModule.__init__( self, *args, **kwargs )
 
+    #self.cloudDirector = None
+   
+    self.directors     = {}
+    self.pools         = {}
+    self.directorDict  = {}
+
+    self.callBackLock  = threading.Lock()
+
+    self.workDir       = ''
+
+  def initialize( self ):
+    """ initialize
+    """
+    
     self.am_setOption( "PollingTime", 60.0 )
 
     self.am_setOption( "VMsPerIteration", 1 )
@@ -125,15 +142,12 @@ class VirtualMachineScheduler( AgentModule ):
     self.am_setOption( "minThreadsInPool", 0 )
     self.am_setOption( "maxThreadsInPool", 2 )
     self.am_setOption( "totalThreadsInPool", 40 )
+    
+    self.workDir = self.am_getOption( 'WorkDirectory' )
 
-    self.directors = {}
-    self.pools     = {}
+    #self.cloudDirector = CloudDirector()
 
-    self.directorDict = {}
-
-    self.callBackLock = threading.Lock()
-
-    return DIRAC.S_OK()
+    return S_OK()
 
   def execute( self ):
     """Main Agent code:
@@ -166,13 +180,16 @@ class VirtualMachineScheduler( AgentModule ):
           instances += len( result['Value'][imageName] )
         self.log.verbose( 'Checking Image %s:' % imageName, instances )
         maxInstances = runningPodDict['MaxInstances']
+        
         if instances >= maxInstances:
-          self.log.info( '%s >= %s Running instances reach MaxInstances for runningPod: %s, skipping' % ( instances, maxInstances, runningPodName ) )
+        
+          tuple_ = ( instances, maxInstances, runningPodName )
+          self.log.info( '%s >= %s Running instances reach MaxInstances for runningPod: %s, skipping' % tuple_ )
           continue
 
         endpointFound = False
         cloudEndpointsStr = runningPodDict['CloudEndpoints']
-	      # random
+        # random
         cloudEndpoints = [element for element in cloudEndpointsStr.split( ',' )]
         shuffle( cloudEndpoints )
         self.log.info( 'cloudEndpoints random failover: %s' % cloudEndpoints )
@@ -183,13 +200,13 @@ class VirtualMachineScheduler( AgentModule ):
           if not strMaxEndpointInstances:
             self.log.info( 'CS CloudEndpoint %s has no define maxEndpointInstances option' % endpoint )
             continue
-          self.log.info( 'CS CloudEndpoint %s maxEndpointInstance: %s' % (endpoint,strMaxEndpointInstances) )
+          self.log.info( 'CS CloudEndpoint %s maxEndpointInstance: %s' % ( endpoint, strMaxEndpointInstances ) )
 
           vmPolicy = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, 'vmPolicy' ), "" )
           if not vmPolicy:
             self.log.info( 'CS CloudEndpoint %s has no define vmPolicy option' % endpoint )
             continue
-          self.log.info( 'CS CloudEndpoint %s vmPolicy: %s' % (endpoint,vmPolicy) )
+          self.log.info( 'CS CloudEndpoint %s vmPolicy: %s' % ( endpoint, vmPolicy) )
 
           endpointInstances = 0
           result = virtualMachineDB.getInstancesByStatusAndEndpoint( 'Running', endpoint )
@@ -204,7 +221,7 @@ class VirtualMachineScheduler( AgentModule ):
           result = virtualMachineDB.getInstancesByStatusAndEndpoint( 'Contextualizing', endpoint )
           if result['OK'] and imageName in result['Value']:
             endpointInstances += len( result['Value'][imageName] )
-          self.log.info( 'CS CloudEndpoint %s instances: %s, maxEndpointInstances: %s' % (endpoint,endpointInstances,strMaxEndpointInstances) )
+          self.log.info( 'CS CloudEndpoint %s instances: %s, maxEndpointInstances: %s' % ( endpoint, endpointInstances, strMaxEndpointInstances ) )
           maxEndpointInstances = int(strMaxEndpointInstances)
           if endpointInstances < maxEndpointInstances:
             if vmPolicy == 'elastic':
@@ -248,14 +265,16 @@ class VirtualMachineScheduler( AgentModule ):
         if imageName not in imagesToSubmit[directorName]:
           imagesToSubmit[directorName][imageName] = {}
         numVMs = numVMsToSubmit.get( endpoint )
-        imagesToSubmit[directorName][imageName] = { 'Jobs': jobs,
-                                                    'TQPriority': priority,
-                                                    'CPUTime': cpu,
-                                                    'CloudEndpoint': endpoint,
-                                                    'NumVMsToSubmit': numVMs,
-                                                    'VMPolicy': vmPolicy,
-                                                    'RunningPodName': runningPodName,
-                                                    'VMPriority': runningPodDict['Priority'] }
+        imagesToSubmit[ directorName ][ imageName ] = { 'Jobs'           : jobs,
+                                                        'TQPriority'     : priority,
+                                                        'CPUTime'        : cpu,
+                                                        'CloudEndpoint'  : endpoint,
+                                                        'NumVMsToSubmit' : numVMs,
+                                                        'VMPolicy'       : vmPolicy,
+                                                        'RunningPodName' : runningPodName,
+                                                        'VMPriority'     : runningPodDict[ 'Priority' ] }
+
+    ##
 
     for directorName, imageOfJobsToSubmitDict in imagesToSubmit.items():
       for imageName, jobsToSubmitDict in imageOfJobsToSubmitDict.items():
@@ -281,12 +300,14 @@ class VirtualMachineScheduler( AgentModule ):
           else:
             time.sleep( self.am_getOption( 'ThreadStartDelay' ) )
 
+    ##
+
     if 'Default' in self.pools:
       # only for those in "Default' thread Pool
       # for pool in self.pools:
       self.pools['Default'].processAllResults()
 
-    return DIRAC.S_OK()
+    return S_OK()
 
   def submitPilotsForTaskQueue( self, taskQueueDict, waitingPilots ):    
 
@@ -312,7 +333,7 @@ class VirtualMachineScheduler( AgentModule ):
     pilotsToSubmit = min( pilotsToSubmit, int( ( 1 + extraPilotFraction ) * taskQueueJobs ) + extraPilots - waitingPilots )
 
     if pilotsToSubmit <= 0:
-      return DIRAC.S_OK( 0 )
+      return S_OK( 0 )
     self.log.verbose( 'Submitting %s pilots for TaskQueue %s' % ( pilotsToSubmit, taskQueueID ) )
 
     return self.__submitPilots( taskQueueDict, pilotsToSubmit )
@@ -327,7 +348,7 @@ class VirtualMachineScheduler( AgentModule ):
       submitPools = taskQueueDict[ 'SubmitPools' ]
     else:
       submitPools = self.am_getOption( 'DefaultSubmitPools' )
-    submitPools = DIRAC.List.randomize( submitPools )
+    submitPools = randomize( submitPools )
 
     for submitPool in submitPools:
       self.log.verbose( 'Trying SubmitPool:', submitPool )
@@ -350,7 +371,7 @@ class VirtualMachineScheduler( AgentModule ):
         time.sleep( self.am_getOption( 'ThreadStartDelay' ) )
         break
 
-    return DIRAC.S_OK( pilotsToSubmit )
+    return S_OK( pilotsToSubmit )
 
   def __checkSubmitPools( self ):
     # this method is called at initialization and at the beginning of each execution cycle
@@ -371,11 +392,10 @@ class VirtualMachineScheduler( AgentModule ):
       self.__configureDirector( submitPool )
 
       # Now enable the director for this iteration, if some RB/WMS/CE is defined
-      if submitPool in self.directors:
-        if 'resourceBrokers' in dir( self.directors[submitPool]['director'] ) and self.directors[submitPool]['director'].resourceBrokers:
-          self.directors[submitPool]['isEnabled'] = True
-        if 'computingElements' in dir( self.directors[submitPool]['director'] ) and self.directors[submitPool]['director'].computingElements:
-          self.directors[submitPool]['isEnabled'] = True
+      if 'resourceBrokers' in dir( self.directors[submitPool]['director'] ) and self.directors[submitPool]['director'].resourceBrokers:
+        self.directors[submitPool]['isEnabled'] = True
+      if 'computingElements' in dir( self.directors[submitPool]['director'] ) and self.directors[submitPool]['director'].computingElements:
+        self.directors[submitPool]['isEnabled'] = True
 
     # Now remove directors that are not Enable (they have been used but are no
     # longer required in the CS).
@@ -395,6 +415,27 @@ class VirtualMachineScheduler( AgentModule ):
         pool = self.pools.pop( pool )
         # del self.pools[pool]
         del pool
+
+  def __configureDirector( self, submitPool = None ):
+    # Update Configuration from CS
+    # if submitPool == None then,
+    #     disable all Directors
+    # else
+    #    Update Configuration for the VMDirector of that SubmitPool
+    if submitPool == None:
+      
+      # By default disable all directors
+      for director in self.directors:
+        self.directors[director]['isEnabled'] = False
+
+    else:
+
+      director = self.directors[submitPool]['director']
+      # Pass reference to our CS section so that defaults can be taken from there
+      director.configure( self.am_getModuleParam( 'section' ), submitPool )
+
+      # Enable director for pilot submission
+      self.directors[submitPool]['isEnabled'] = True
 
   def __createDirector( self, submitPool ):
     """
@@ -427,29 +468,6 @@ class VirtualMachineScheduler( AgentModule ):
     self.log.verbose( 'Created Director for SubmitPool', submitPool )
 
     return
-
-  def __configureDirector( self, submitPool = None ):
-    # Update Configuration from CS
-    # if submitPool == None then,
-    #     disable all Directors
-    # else
-    #    Update Configuration for the VMDirector of that SubmitPool
-    if submitPool == None:
-      self.workDir = self.am_getOption( 'WorkDirectory' )
-      # By default disable all directors
-      for director in self.directors:
-        self.directors[director]['isEnabled'] = False
-
-    else:
-      if submitPool not in self.directors:
-        DIRAC.abort( -1, "Submit Pool not available", submitPool )
-      director = self.directors[submitPool]['director']
-
-      # Pass reference to our CS section so that defaults can be taken from there
-      director.configure( self.am_getModuleParam( 'section' ), submitPool )
-
-      # Enable director for pilot submission
-      self.directors[submitPool]['isEnabled'] = True
 
   def __addPool( self, poolName ):
     # create a new thread Pool, by default it has 2 executing threads and 40 requests

@@ -16,9 +16,10 @@ __RCSID__ = "$Id: VMDirector.py 16 2010-03-15 11:39:29Z ricardo.graciani@gmail.c
 FROM_MAIL = "dirac.project@gmail.com"
 
 class VMDirector:
-  def __init__( self, submitPool ):
+  
+  def __init__( self  ):
 
-    self.log = gLogger.getSubLogger( '%sDirector' % submitPool )
+    self.log = gLogger.getSubLogger( self.__class__.__name__ )
 
     self.errorMailAddress = errorMail
     self.alarmMailAddress = alarmMail
@@ -46,12 +47,14 @@ class VMDirector:
     else:
       self.log.info( ' None' )
 
+
   def reloadConfiguration( self, csSection, submitPool ):
     """
      For the SubmitPool
     """
     mySection = csSection + '/' + submitPool
     self.configureFromSection( mySection )
+
 
   def configureFromSection( self, mySection ):
     """
@@ -87,6 +90,15 @@ class VMDirector:
       self.runningPods[runningPodName]['CPUPerInstance']   = int( runningPodDict['CPUPerInstance'] )
       self.runningPods[runningPodName]['Priority']         = int( runningPodDict['Priority'] )
       self.runningPods[runningPodName]['CloudEndpoints']   = runningPodDict['CloudEndpoints']
+
+
+  def _submitInstance( self, _imageName, _endpoint, _cpuTime, _instanceID ):
+    """
+      Real backend method to submit a new Instance of a given Image
+    """
+    self.log.error( 'VMDirector._submitInstance: IMPLEMENT IT !')
+    return S_OK()
+
 
   def submitInstance( self, imageName, endpoint, numVMsToSubmit, runningPodName ):
     """
@@ -173,6 +185,7 @@ class VMDirector:
           dictVMDBrecord = virtualMachineDB.declareInstanceSubmitted( str( int( uniqueID ) - 1 ) )
 
     return S_OK( imageName )
+
 
   def exceptionCallBack( self, threadedJob, exceptionInfo ):
     self.log.exception( 'Error in VM Instance Submission:', lExcInfo = exceptionInfo )

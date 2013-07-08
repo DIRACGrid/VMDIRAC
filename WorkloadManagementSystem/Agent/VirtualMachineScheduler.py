@@ -84,23 +84,18 @@
 """
 
 #import DIRAC
-import random, time
+import random
 import threading
-
-from numpy.random import poisson
-from random       import shuffle
+import time
 
 # DIRAC
-from DIRAC                                             import abort, gConfig, S_OK
+from DIRAC                                             import gConfig, S_OK
 from DIRAC.Core.Base.AgentModule                       import AgentModule
-from DIRAC.Core.Utilities.List                         import randomize
 from DIRAC.Core.Utilities.ThreadPool                   import ThreadPool
-from DIRAC.WorkloadManagementSystem.DB.TaskQueueDB     import maxCPUSegments
 from DIRAC.WorkloadManagementSystem.Client.ServerUtils import taskQueueDB
 
 from VMDIRAC.Resources.Cloud.CloudDirector               import CloudDirector
 from VMDIRAC.WorkloadManagementSystem.Client.ServerUtils import virtualMachineDB
-#from VMDIRAC.WorkloadManagementSystem.private.KVMDirector   import KVMDirector
 
 __RCSID__ = "$Id: $"
 
@@ -191,7 +186,7 @@ class VirtualMachineScheduler( AgentModule ):
         cloudEndpointsStr = runningPodDict['CloudEndpoints']
         # random
         cloudEndpoints = [element for element in cloudEndpointsStr.split( ',' )]
-        shuffle( cloudEndpoints )
+        random.shuffle( cloudEndpoints )
         self.log.info( 'cloudEndpoints random failover: %s' % cloudEndpoints )
         numVMsToSubmit = {}
         for endpoint in cloudEndpoints:

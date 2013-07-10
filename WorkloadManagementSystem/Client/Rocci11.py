@@ -14,7 +14,7 @@ from subprocess import Popen, PIPE, STDOUT
 from DIRAC import gLogger, S_OK, S_ERROR
 
 # VMDIRAC
-from VMDIRAC.WorkloadManagementSystem.Agent.VirtualMachineContextualization   import SshContextualise
+from VMDIRAC.WorkloadManagementSystem.Client.SshContextualize   import SshContextualize
 
 __RCSID__ = '$Id: $'
 
@@ -260,7 +260,7 @@ class OcciClient:
     :return: S_OK | S_ERROR
     """
 
-    sshContext = SshContextualise()
+    sshContext = SshContextualize()
     return sshContext.contextualise( self.__ self.imageConfig, self.endpointConfig,
                                       uniqueId = uniqueId,
                                       publicIp = publicIp,

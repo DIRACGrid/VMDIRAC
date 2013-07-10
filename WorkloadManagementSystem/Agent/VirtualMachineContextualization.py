@@ -15,9 +15,6 @@
 """
 
 import random
-import paramiko
-import os
-import time
 
 
 # DIRAC
@@ -110,7 +107,8 @@ class VirtualMachineContextualization( AgentModule ):
 
     return S_OK() 
 
-class SshContextualise:
+
+class SshContextualize:
 
   def contextualise( self, imageConfig, endpointConfig, **kwargs ):
    
@@ -243,4 +241,3 @@ class SshContextualise:
 
 #...............................................................................
 #EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF
-

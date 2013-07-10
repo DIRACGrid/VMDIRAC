@@ -30,7 +30,6 @@ from VMDIRAC.WorkloadManagementSystem.Client.OcciImage   import OcciImage
 from VMDIRAC.WorkloadManagementSystem.Client.ServerUtils import virtualMachineDB
 
 
-
 __RCSID__ = "$Id: $"
 
 #FIXME: why do we need the random seed ?
@@ -53,7 +52,7 @@ class VirtualMachineContextualization( AgentModule ):
     if not result['OK']:
       return result
 
-    for uniqueId, endpoint, publicIP in result['Value']:
+    for uniqueId, endpoint, publicIP, runningPodName in result['Value']:
 
       retDict = virtualMachineDB.getImageNameFromInstance ( uniqueId )
       if not retDict['OK']:
@@ -83,12 +82,23 @@ class VirtualMachineContextualization( AgentModule ):
       if not result[ 'OK' ]:
         return result
 
+      runningPodDict = virtualMachineDB.getRunningPodDict( runningPodName )
+      if not runningPodDict['OK']:
+        self.log.error('Error in RunningPodDict: %s' % runningPodDict['Message'])
+        return runningPodDict
+      runningPodDict = runningPodDict[ 'Value' ]
+
+      runningRequirementsDict = runningPodDict['RequirementsDict']
+      cpuTime = runningRequirementsDict['CPUTime']
+      if not cpuTime:
+        return S_ERROR( 'Unknown CPUTime in Requirements of the RunningPod %s' % runningPodName )
+
       if ( cloudDriver == 'nova-1.1' ):
         if result['Value'] == 'RUNNING':
-          result = nima.contextualizeInstance( uniqueId, publicIP )
+          result = nima.contextualizeInstance( uniqueId, publicIP, cpuTime )
       elif ( cloudDriver == 'occi-1.1' ):
         if result['Value'] == 'active':
-          result = oima.contextualizeInstance( uniqueId, publicIP )
+          result = oima.contextualizeInstance( uniqueId, publicIP, cpuTime )
         else:
           return S_ERROR( 'cloudDriver %s, has not ssh contextualization' % cloudDriver )
         self.log.info( "result of contextualize:" )

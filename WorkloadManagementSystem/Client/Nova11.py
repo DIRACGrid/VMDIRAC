@@ -22,6 +22,9 @@ from novaclient.v1_1            import client
 # DIRAC
 from DIRAC import gLogger, S_OK, S_ERROR
 
+# VMDIRAC
+from VMDIRAC.WorkloadManagementSystem.Agent.VirtualMachineContextualization   import SshContextualise
+
 __RCSID__ = '$Id: $'
 
 class NovaClient:
@@ -360,7 +363,7 @@ class NovaClient:
 
     return S_OK()
 
-  def contextualize_VMInstance( self, uniqueId, publicIp ):
+  def contextualize_VMInstance( self, uniqueId, publicIp, cpuTime ):
     """
     This method is only used ( at the moment ) by the ssh contextualization method.
     It is called once the vm has been booted.
@@ -375,10 +378,11 @@ class NovaClient:
     :return: S_OK | S_ERROR
     """
 
-    novaContext = NovaContextualise()
+    novaContext = SshContextualise()
     return novaContext.contextualise( self.imageConfig, self.endpointConfig,
                                       uniqueId = uniqueId, 
-                                      publicIp = publicIp ) 
+                                      publicIp = publicIp,
+                                      cpuTime = cpuTime ) 
 
   #.............................................................................
   # Private methods

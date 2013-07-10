@@ -152,7 +152,7 @@ class NovaImage:
     
     return result
 
-  def contextualizeInstance( self, uniqueId, public_ip ):
+  def contextualizeInstance( self, uniqueId, public_ip, cpuTime ):
     """
     This method is not a regular method in the sense that is not generic at all.
     It will be called only of those VMs which need after-booting contextualisation,
@@ -174,7 +174,7 @@ class NovaImage:
     # FIXME: maybe is worth hiding the public_ip attribute and getting it on
     # FIXME: the contextualize step. 
 
-    result = self.__clinova.contextualize_VMInstance( uniqueId, public_ip )
+    result = self.__clinova.contextualize_VMInstance( uniqueId, public_ip, cpuTime )
     
     if not result[ 'OK' ]:
       self.log.error( "contextualizeInstance: %s, %s" % ( uniqueId, public_ip ) )

@@ -511,14 +511,14 @@ class VirtualMachineDB( DB ):
 
   def getInstancesInfoByStatus( self, status ):
     """
-    Get from Instances fields UniqueID, Endpoint, PublicIP  for instances in the given status 
+    Get from Instances fields UniqueID, Endpoint, PublicIP, RunningPod  for instances in the given status 
     """
     if status not in self.validInstanceStates:
       return S_ERROR( 'Status %s is not known' % status )
 
     tableName, _validStates, _idName = self.__getTypeTuple( 'Instance' )
 
-    runningInstances = self._getFields( tableName, [ 'UniqueID', 'Endpoint', 'PublicIP' ], 
+    runningInstances = self._getFields( tableName, [ 'UniqueID', 'Endpoint', 'PublicIP', 'RunningPod' ], 
                                         [ 'Status' ], [ status ] )
     if not runningInstances[ 'OK' ]:
       return runningInstances

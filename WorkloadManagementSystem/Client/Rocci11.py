@@ -81,7 +81,7 @@ class Request:
 
 class OcciClient:
   
-  def __init__(  self, imageClient, userCredPath, proxyCaPath, endpointConfig, imageConfig):
+  def __init__(  self, userCredPath, proxyCaPath, endpointConfig, imageConfig):
     """
     Constructor: uses user / secret authentication for the time being. 
     copy the endpointConfig and ImageConfig dictionaries to the OcciClient
@@ -103,7 +103,6 @@ class OcciClient:
 
     self.endpointConfig   = endpointConfig
     self.imageConfig      = imageConfig
-    self.imageClient      = imageClient
     self.__userCredPath   = userCredPath
     self.__proxyCaPath    = proxyCaPath
 
@@ -261,7 +260,7 @@ class OcciClient:
     """
 
     sshContext = SshContextualize()
-    return sshContext.contextualise( self.__ self.imageConfig, self.endpointConfig,
+    return sshContext.contextualise(  self.imageConfig, self.endpointConfig,
                                       uniqueId = uniqueId,
                                       publicIp = publicIp,
                                       cpuTime = cpuTime )

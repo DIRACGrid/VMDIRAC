@@ -23,7 +23,7 @@ from novaclient.v1_1            import client
 from DIRAC import gLogger, S_OK, S_ERROR
 
 # VMDIRAC
-from VMDIRAC.WorkloadManagementSystem.Agent.VirtualMachineContextualization   import SshContextualise
+from VMDIRAC.WorkloadManagementSystem.Client.SshContextualize   import SshContextualize
 
 __RCSID__ = '$Id: $'
 
@@ -378,7 +378,7 @@ class NovaClient:
     :return: S_OK | S_ERROR
     """
 
-    novaContext = SshContextualise()
+    novaContext = SshContextualize()
     return novaContext.contextualise( self.imageConfig, self.endpointConfig,
                                       uniqueId = uniqueId, 
                                       publicIp = publicIp,

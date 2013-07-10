@@ -195,15 +195,7 @@ class OcciImage:
     :return: S_OK | S_ERROR
     """
 
-    request = self.__cliocci.contextualize_VMInstance( uniqueId, public_ip, cpuTime )
-
-
-    if request.returncode != 0:
-      self.__errorStatus = "contextualizeInstance: %s, ip: %s msg: %s" % (uniqueId, public_ip, request.stderr) 
-      self.log.error( self.__errorStatus )
-      return S_ERROR( self.__errorStatus )
-
-    return S_OK( uniqueId )
+    return self.__cliocci.contextualize_VMInstance( uniqueId, public_ip, cpuTime )
 
 #...............................................................................
 #EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF

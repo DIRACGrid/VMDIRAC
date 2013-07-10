@@ -66,36 +66,36 @@ class OcciImage:
 
     # Get authentication configuration
     auth, u, p = self.__occiConfig.authConfig()
-    if auth is 'userpasswd':
+    if auth == 'userpasswd':
       user = u
       secret = p
-    elif auth is 'proxycacert':
+    elif auth == 'proxycacert':
       userCredPath = u
-      proxyCa = p
+      proxyCaPath = p
     else:
       self.__errorStatus = "auth not supported" 
       self.log.error( self.__errorStatus )
       return
 
     # Create the occiclient objects in OcciClient:
-    if self.__occiConfig.cloudDriver() is 'occi-0.8':
-      if auth is 'userpasswd':
+    if self.__occiConfig.cloudDriver() == 'occi-0.8':
+      if auth == 'userpasswd':
         from VMDIRAC.WorkloadManagementSystem.Client.Occi08 import OcciClient
         self.__cliocci = OcciClient(user, secret, self.__occiConfig.config(), self.__imageConfig.config())
       else:
         self.__errorStatus = "%s is not supported auth method for %s driver" % (auth,self.__occiConfig.cloudDriver())
         self.log.error( self.__errorStatus )
         return S_ERROR( self.__errorStatus )
-    elif self.__occiConfig.cloudDriver() is 'occi-0.9':
-      if auth is 'userpasswd':
+    elif self.__occiConfig.cloudDriver() == 'occi-0.9':
+      if auth == 'userpasswd':
         from VMDIRAC.WorkloadManagementSystem.Client.Occi09 import OcciClient
         self.__cliocci = OcciClient(user, secret, self.__occiConfig.config(), self.__imageConfig.config())
       else:
         self.__errorStatus = "%s is not supported auth method for %s driver" % (auth,self.__occiConfig.cloudDriver())
         self.log.error( self.__errorStatus )
         return S_ERROR( self.__errorStatus )
-    elif self.__occiConfig.cloudDriver() is 'occi-1.1':
-      if auth is 'proxycacert':
+    elif self.__occiConfig.cloudDriver() == 'occi-1.1':
+      if auth == 'proxycacert':
         from VMDIRAC.WorkloadManagementSystem.Client.Rocci11 import OcciClient
         self.__cliocci = OcciClient(userCredPath, proxyCaPath, self.__occiConfig.config(), self.__imageConfig.config())
       else:
@@ -125,13 +125,22 @@ class OcciImage:
     if self.__errorStatus:
       return S_ERROR( self.__errorStatus )
 
-    self.log.info( "Starting new instance for DIRAC image (boot,hdc): %s; to endpoint %s" % ( self.imageName, self.endPoint) )
+    self.log.info( "Starting new instance for DIRAC image: %s; to endpoint %s" % ( self.imageName, self.endPoint) )
     request = self.__cliocci.create_VMInstance(cpuTime)
     if request.returncode != 0:
-      self.__errorStatus = "Can't create instance for DIRAC image (boot,hdc): %s; to endpoint %s" % ( self.imageName, self.endPoint) 
+      self.__errorStatus = "Can't create instance for DIRAC image: %s; to endpoint %s" % ( self.imageName, self.endPoint) 
       self.log.error( self.__errorStatus )
       return S_ERROR( self.__errorStatus )
 
+    if self.__occiConfig.cloudDriver() == 'occi-1.1':
+      print "Por aqui"
+      firstcoma = request.stdout.find(",")
+      idVM = request.stdout[0:firstcoma]
+      last = len(request.stdout)
+      firstcoma += 1
+      publicIP = request.stdout[firstcoma:last]
+      return S_OK( ( idVM, publicIP ) )
+ 
     return S_OK( request.stdout )
 
   def stopInstance( self, VMinstanceId ):

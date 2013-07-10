@@ -13,6 +13,9 @@ from subprocess import Popen, PIPE, STDOUT
 # DIRAC
 from DIRAC import gLogger, S_OK, S_ERROR
 
+# VMDIRAC
+from VMDIRAC.WorkloadManagementSystem.Agent.VirtualMachineContextualization   import SshContextualise
+
 __RCSID__ = '$Id: $'
 
 # Classes
@@ -110,7 +113,7 @@ class OcciClient:
     """
 
     request = Request()
-    command = 'occi --endpoint ' + self.endpointConfig['occiURI'] + '  --action list --resource network --auth x509 --user-cred ' self.__userCredPath + ' --proxy-ca ' + self.__proxyCaPath 
+    command = 'occi --endpoint ' + self.endpointConfig['occiURI'] + ' --action list --resource compute --auth x509 --user-cred ' + self.__userCredPath + ' --proxy-ca ' + self.__proxyCaPath
     request.exec_and_wait(command, timelife)
     return request
    
@@ -138,11 +141,14 @@ class OcciClient:
 
     occiURI  = self.endpointConfig[ 'occiURI' ]
 
-    vmName = bootImageName + '_' + contextMethod + '_' + str( time.time() )[0:10]
+    vmName = osTemplateName + '_' + contextMethod + '_' + str( time.time() )[0:10]
 
     request = Request()
 
-    command = 'occi --endpoint ' + occiURI + '  --action create --resource compute --mixin os_tpl#' + osTemplateName + ' --mixin resource_tpl#' + flavorName + ' --attributes title="' + vmName + '" --output-format json --auth x509 --user-cred ' self.__userCredPath + ' --proxy-ca ' + self.__proxyCaPath 
+    command = 'occi --endpoint ' + occiURI + '  --action create --resource compute --mixin os_tpl#' + osTemplateName + ' --mixin resource_tpl#' + flavorName + ' --attributes title="' + vmName + '" --output-format json --auth x509 --user-cred ' + self.__userCredPath + ' --proxy-ca ' + self.__proxyCaPath 
+
+    print "command" 
+    print command 
 
     request.exec_no_wait(command)
 
@@ -152,21 +158,31 @@ class OcciClient:
 
     # FIXME use simplejson, filtering non-json output lines
 
+    print "request.stdout" 
+    print request.stdout 
+
     searchstr = occiURI + '/compute/'
     first = request.stdout.find(searchstr) 
     if first < 0:
       request.returncode = 1
       return request
     first += len(searchstr)
-    iD = request.stdout[first]
+    last = len(request.stdout)
+    iD = request.stdout[first:last]
 
     # giving time sleep to REST API caching the instance to be available:
     time.sleep( 5 )
 
 
-    command = 'occi --endpoint ' + occiURI + '  --action describe --resource /compute/' + iD + ' -output-format json --auth x509 --user-cred ' self.__userCredPath + ' --proxy-ca ' + self.__proxyCaPath 
+    command = 'occi --endpoint ' + occiURI + '  --action describe --resource /compute/' + iD + ' --output-format json --auth x509 --user-cred ' + self.__userCredPath + ' --proxy-ca ' + self.__proxyCaPath 
+
+    print "command" 
+    print command 
 
     request.exec_no_wait(command)
+
+    print "request.stdout" 
+    print request.stdout 
 
     searchstr = '\"networkinterface\":{\"address\":\"'
     first = request.stdout.find(searchstr) 
@@ -187,13 +203,13 @@ class OcciClient:
     Terminate a VM instance corresponding to the instanceId parameter
     """
     request = Request()
-    command = 'occi --endpoint ' + occiURI + '  --action delete --resource /compute/' + instanceId ' --output-format json --auth x509 --user-cred ' self.__userCredPath + ' --proxy-ca ' + self.__proxyCaPath 
+    command = 'occi --endpoint ' + occiURI + '  --action delete --resource /compute/' + instanceId + ' --output-format json --auth x509 --user-cred ' + self.__userCredPath + ' --proxy-ca ' + self.__proxyCaPath 
 
     request.exec_no_wait(command)
 
     if request.stdout == "nil":
       request.returncode = 1
-    else
+    else:
       request.returncode = 0
 
     return request
@@ -203,7 +219,7 @@ class OcciClient:
     Get the status VM instance for a given VMinstanceId 
     """
     request = Request()
-    command = 'occi --endpoint ' + occiURI + '  --action describe --resource /compute/' + instanceId ' --output-format json --auth x509 --user-cred ' self.__userCredPath + ' --proxy-ca ' + self.__proxyCaPath 
+    command = 'occi --endpoint ' + occiURI + '  --action describe --resource /compute/' + instanceId + ' --output-format json --auth x509 --user-cred ' + self.__userCredPath + ' --proxy-ca ' + self.__proxyCaPath 
 
     request.exec_no_wait(command)
 
@@ -225,6 +241,26 @@ class OcciClient:
     print "request.stdout status"
     print request.stdout
     return request
-        
+
+  def contextualize_VMInstance( self, uniqueId, publicIp ):
+    """
+    This method is only used ( at the moment ) by the ssh contextualization method.
+    It is called once the vm has been booted.
+    </>
+
+    :Parameters:
+      **uniqueId** - `string`
+        openstack node id ( not uuid ! )
+      **publicIp** - `string`
+        public IP assigned to the node if any
+
+    :return: S_OK | S_ERROR
+    """
+
+    sshContext = SshContextualise()
+    return sshContext.contextualise( self.imageConfig, self.endpointConfig,
+                                      uniqueId = uniqueId,
+                                      publicIp = publicIp )
+
 #...............................................................................
 #EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF

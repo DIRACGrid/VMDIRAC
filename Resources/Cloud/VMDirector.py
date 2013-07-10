@@ -129,6 +129,8 @@ class VMDirector:
         virtualMachineDB.insertInstance( imageName, imageName, endpoint, runningPodName )
 
       if driver == "nova-1.1" or driver =="occi-1.1":
+        print "dictVMSubmitted['Value']"
+        print dictVMSubmitted['Value']
         ( uniqueID, publicIP ) = dictVMSubmitted['Value']
         dictVMDBrecord = virtualMachineDB.setPublicIP( instanceID, publicIP )
         if not dictVMDBrecord['OK']:
@@ -145,32 +147,20 @@ class VMDirector:
       if driver == "CloudStack":
         virtualMachineDB.setInstanceUniqueID( str( int( instanceID ) + 1 ), str( int( uniqueID ) - 1 ) )
 
-      if not ( driver == "nova-1.1" ):
-        dictVMDBrecord = virtualMachineDB.declareInstanceSubmitted( uniqueID )
+      # check contextMethod and update status if need ssh contextualization:
+      contextMethod = gConfig.getValue( "/Resources/VirtualMachines/Images/%s/%s" % ( imageName, "contextMethod" ) )
+      if contextMethod == 'ssh':
+        dictVMDBrecord = virtualMachineDB.declareInstanceWait_ssh_context( uniqueID )
         if not dictVMDBrecord['OK']:
           return dictVMDBrecord
       else:
-        # if nova driver then check contextMethod and update status if need ssh contextualization:
-        contextMethod = gConfig.getValue( "/Resources/VirtualMachines/Images/%s/%s" % ( imageName, "contextMethod" ) )
-        if contextMethod == 'ssh':
-          dictVMDBrecord = virtualMachineDB.declareInstanceWait_ssh_context( uniqueID )
-          if not dictVMDBrecord['OK']:
-            return dictVMDBrecord
-        else:
-          # if nova driver then check contextMethod and update status if need ssh contextualization:
-          contextMethod = gConfig.getValue( "/Resources/VirtualMachines/Images/%s/%s" % ( imageName, "contextMethod" ) )
-          if contextMethod == 'ssh':
-            dictVMDBrecord = virtualMachineDB.declareInstanceWait_ssh_context( uniqueID )
-            if not dictVMDBrecord['OK']:
-              return dictVMDBrecord
-          else:
-            dictVMDBrecord = virtualMachineDB.declareInstanceSubmitted( uniqueID )
-            if not dictVMDBrecord['OK']:
-              return dictVMDBrecord
+        dictVMDBrecord = virtualMachineDB.declareInstanceSubmitted( uniqueID )
+        if not dictVMDBrecord['OK']:
+          return dictVMDBrecord
 
-        #########CloudStack check to preaty feature
-        if driver == "CloudStack":
-          dictVMDBrecord = virtualMachineDB.declareInstanceSubmitted( str( int( uniqueID ) - 1 ) )
+      #########CloudStack check to preaty feature
+      if driver == "CloudStack":
+        dictVMDBrecord = virtualMachineDB.declareInstanceSubmitted( str( int( uniqueID ) - 1 ) )
 
     return S_OK( imageName )
 

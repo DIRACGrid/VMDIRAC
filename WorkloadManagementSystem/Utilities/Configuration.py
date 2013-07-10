@@ -148,18 +148,18 @@ class OcciConfiguration( EndpointConfiguration ):
       return S_ERROR( 'Missing mandatory keys on endpointConfig %s' % str( missingKeys ) )
     
     # on top of the MANDATORY_KEYS, we make sure the corresponding auth parameters are set:
-    if self.__auth is 'userpasswd':
+    if self.__auth == 'userpasswd':
       if self.__user is None:
         return S_ERROR( 'user is None' )
       if self.__password is None:
         return S_ERROR( 'password is None' )
-    elif self.__auth is 'proxycacert':
+    elif self.__auth == 'proxycacert':
       if self.__userCredPath is None:
         return S_ERROR( 'userCredPath is None' )
       if self.__proxyCaPath is None:
         return S_ERROR( 'proxyCaPath is None' )
     else:
-      return S_ERROR( 'endpoint auth not defined (userpasswd/proxycacert' )
+      return S_ERROR( 'endpoint auth: %s not defined (userpasswd/proxycacert)' % self.__auth)
     
     self.log.info( '*' * 50 )
     self.log.info( 'Displaying endpoint info' )
@@ -177,12 +177,12 @@ class OcciConfiguration( EndpointConfiguration ):
 
   def authConfig( self ):
     
-    if self.__auth is 'userpasswd':
+    if self.__auth == 'userpasswd':
       return ( self.__auth, self.__user, self.__password )
-    elif self.__auth is 'proxycacert':
+    elif self.__auth == 'proxycacert':
       return ( self.__auth, self.__userCredPath, self.__proxyCaPath )
     else:
-      return S_ERROR( 'endpoint auth not defined (userpasswd/proxycacert' )
+      return S_ERROR( 'endpoint auth: %s not defined (userpasswd/proxycacert)' % self.__auth)
   
   def cloudDriver( self ):
     

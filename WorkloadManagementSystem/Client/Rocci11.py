@@ -126,8 +126,9 @@ class OcciClient:
     Successful creation returns instance id  and the IP
     """
 
+    # TODO: cpuTime is here to implement HEPiX when ready with rOCCI
     #Comming from running pod specific:
-    self.__strCpuTime = str(cpuTime)
+    #self.__strCpuTime = str(cpuTime)
 
     #DIRAC image context:
     # bootImageName is in current rOCCI driver the OS template
@@ -214,10 +215,11 @@ class OcciClient:
 
     return request
 
-  def getStatus_VMInstance( self, VMinstanceId ):
+  def getStatus_VMInstance( self, instanceId ):
     """
     Get the status VM instance for a given VMinstanceId 
     """
+    occiURI  = self.endpointConfig[ 'occiURI' ]
     request = Request()
     command = 'occi --endpoint ' + occiURI + '  --action describe --resource /compute/' + instanceId + ' --output-format json --auth x509 --user-cred ' + self.__userCredPath + ' --proxy-ca ' + self.__proxyCaPath 
 
@@ -242,7 +244,7 @@ class OcciClient:
     print request.stdout
     return request
 
-  def contextualize_VMInstance( self, uniqueId, publicIp ):
+  def contextualize_VMInstance( self, uniqueId, publicIp, cpuTime ):
     """
     This method is only used ( at the moment ) by the ssh contextualization method.
     It is called once the vm has been booted.
@@ -260,7 +262,8 @@ class OcciClient:
     sshContext = SshContextualise()
     return sshContext.contextualise( self.imageConfig, self.endpointConfig,
                                       uniqueId = uniqueId,
-                                      publicIp = publicIp )
+                                      publicIp = publicIp,
+                                      cpuTime = cpuTime )
 
 #...............................................................................
 #EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF

@@ -67,7 +67,7 @@ class VirtualMachineContextualization( AgentModule ):
         connection = nima.connectOcci()
       elif ( cloudDriver == 'occi-1.1' ):
         oima     = OcciImage( diracImageName, endpoint )
-        connection = oima.connectNova()
+        connection = oima.connectOcci()
       else:
         return S_ERROR( 'cloudDriver %s, has not ssh contextualization' % cloudDriver )
 
@@ -83,10 +83,11 @@ class VirtualMachineContextualization( AgentModule ):
       if not result[ 'OK' ]:
         return result
 
-      if result['Value'] == 'RUNNING':
-        if ( cloudDriver == 'nova-1.1' ):
+      if ( cloudDriver == 'nova-1.1' ):
+        if result['Value'] == 'RUNNING':
           result = nima.contextualizeInstance( uniqueId, publicIP )
-        elif ( cloudDriver == 'occi-1.1' ):
+      elif ( cloudDriver == 'occi-1.1' ):
+        if result['Value'] == 'active':
           result = oima.contextualizeInstance( uniqueId, publicIP )
         else:
           return S_ERROR( 'cloudDriver %s, has not ssh contextualization' % cloudDriver )
@@ -122,10 +123,10 @@ class SshContextualise:
       vmRunLogAgentURL              = contextConfig[ 'vmRunLogAgentURL' ]
       vmCvmfsContextURL             = contextConfig[ 'vmCvmfsContextURL' ]
       vmDiracContextURL             = contextConfig[ 'vmDiracContextURL' ]
-      cpuTime                       = contextConfig[ 'cpuTime' ]
 
       uniqueId = kwargs.get( 'uniqueId' )
       publicIP = kwargs.get( 'publicIp' )
+      cpuTime = kwargs.get( 'cpuTime' )
 
       result = self.__sshContextualise( uniqueId = uniqueId,
                                         publicIP = publicIP,

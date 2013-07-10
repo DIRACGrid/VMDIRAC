@@ -128,7 +128,7 @@ class VMDirector:
       if driver == "CloudStack":
         virtualMachineDB.insertInstance( imageName, imageName, endpoint, runningPodName )
 
-      if driver == "nova-1.1":
+      if driver == "nova-1.1" or driver =="occi-1.1":
         ( uniqueID, publicIP ) = dictVMSubmitted['Value']
         dictVMDBrecord = virtualMachineDB.setPublicIP( instanceID, publicIP )
         if not dictVMDBrecord['OK']:

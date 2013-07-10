@@ -65,7 +65,7 @@ class CloudDirector( VMDirector ):
       return S_OK( idInstance )
 
 
-    if ( driver == 'occi-0.9' or driver == 'occi-0.8'):
+    if ( driver == 'occi-0.9' or driver == 'occi-0.8' or driver =='occi-1.1'):
       oima   = OcciImage( imageName, endpoint )
       connOcci = oima.connectOcci()
       if not connOcci[ 'OK' ]:

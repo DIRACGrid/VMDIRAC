@@ -158,7 +158,7 @@ class OcciConfiguration( EndpointConfiguration ):
         return S_ERROR( 'userCredPath is None' )
       if self.__proxyCaPath is None:
         return S_ERROR( 'proxyCaPath is None' )
-    else
+    else:
       return S_ERROR( 'endpoint auth not defined (userpasswd/proxycacert' )
     
     self.log.info( '*' * 50 )
@@ -181,7 +181,7 @@ class OcciConfiguration( EndpointConfiguration ):
       return ( self.__auth, self.__user, self.__password )
     elif self.__auth is 'proxycacert':
       return ( self.__auth, self.__userCredPath, self.__proxyCaPath )
-    else
+    else:
       return S_ERROR( 'endpoint auth not defined (userpasswd/proxycacert' )
   
   def cloudDriver( self ):

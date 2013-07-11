@@ -183,6 +183,7 @@ class OcciClient:
     last = request.stdout.find("\"", first) 
     publicIP = request.stdout[first:last]
     request.stdout = iD + ', ' + publicIP 
+    return request
   
   def terminate_VMinstance( self, instanceId ):
     """

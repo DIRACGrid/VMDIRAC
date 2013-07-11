@@ -133,7 +133,6 @@ class OcciImage:
       return S_ERROR( self.__errorStatus )
 
     if self.__occiConfig.cloudDriver() == 'occi-1.1':
-      print "Por aqui"
       firstcoma = request.stdout.find(",")
       idVM = request.stdout[0:firstcoma]
       last = len(request.stdout)

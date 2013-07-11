@@ -148,8 +148,8 @@ class SshContextualize:
       remotecmd = remotecmd % ( uniqueId, putCertPath, putKeyPath, vmRunJobAgentURL,
                                 vmRunVmMonitorAgentURL, vmRunVmUpdaterAgentURL, vmRunLogAgentURL,
                                 vmCvmfsContextURL, vmDiracContextURL, cvmfs_http_proxy, siteName, cloudDriver, cpuTime, vmStopPolicy )
-      print "remotecmd"
-      print remotecmd
+      # print "remotecmd"
+      # print remotecmd
       _stdin, _stdout, _stderr = ssh.exec_command( remotecmd )
     except Exception, errmsg:
       return S_ERROR( "Can't run remote ssh to %s errmsg: %s" % ( publicIP, errmsg ) )

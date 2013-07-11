@@ -129,8 +129,6 @@ class VMDirector:
         virtualMachineDB.insertInstance( imageName, imageName, endpoint, runningPodName )
 
       if driver == "nova-1.1" or driver =="occi-1.1":
-        print "dictVMSubmitted['Value']"
-        print dictVMSubmitted['Value']
         ( uniqueID, publicIP ) = dictVMSubmitted['Value']
         dictVMDBrecord = virtualMachineDB.setPublicIP( instanceID, publicIP )
         if not dictVMDBrecord['OK']:

@@ -1,6 +1,9 @@
 [v0r8]
-     VM local dirac.cfg updater agent for pilot/dirac release is updated
-     OcciImage and Occi09 migrated to new WMS/Utilities style
+NEW: rOCCI 1.1 DIRAC driver. 
+     rOCCI authentication by X509 proxies with third-party VOMS (rOCCI do the matching work in a transparent manner)
+     Generic contextualization by SSH (Generic to all Operating System Images and Cloud Managers, software convergence) Currently SSH contextualization available for OpenNebula and OpenStack.
+NEW: VM local dirac.cfg updater agent for pilot/dirac release is updated
+CHANGE: OcciImage and Occi09 migrated to new WMS/Utilities style
 
 [v0r7]
 NEW: endpoint vmPolicy "static" -> slots driven, indicated by maxEndpointInstances, endpoint CS parameter

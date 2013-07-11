@@ -221,7 +221,7 @@ class VirtualMachineManagerHandler( RequestHandler ):
       self.__logResult( 'declareInstanceHalting on change status: ', result )
       return result
    
-    if ( cloudDriver == 'occi-0.9' or cloudDriver == 'occi-0.8' ):
+    if ( cloudDriver == 'occi-0.9' or cloudDriver == 'occi-0.8' or cloudDriver == 'rocci-1.1' ):
       imageName = gVirtualMachineDB.getImageNameFromInstance( uniqueID )
       if not imageName[ 'OK' ]:
         self.__logResult( 'declareInstanceHalting getImageNameFromInstance: ', imageName )

@@ -148,9 +148,6 @@ class OcciClient:
 
     command = 'occi --endpoint ' + occiURI + '  --action create --resource compute --mixin os_tpl#' + osTemplateName + ' --mixin resource_tpl#' + flavorName + ' --attributes title="' + vmName + '" --output-format json --auth x509 --user-cred ' + self.__userCredPath + ' --proxy-ca ' + self.__proxyCaPath 
 
-    print "command" 
-    print command 
-
     request.exec_no_wait(command)
 
     if request.stdout == "nil":
@@ -158,9 +155,6 @@ class OcciClient:
         return request
 
     # FIXME use simplejson, filtering non-json output lines
-
-    print "request.stdout" 
-    print request.stdout 
 
     searchstr = occiURI + '/compute/'
     first = request.stdout.find(searchstr) 
@@ -177,13 +171,7 @@ class OcciClient:
 
     command = 'occi --endpoint ' + occiURI + '  --action describe --resource /compute/' + iD + ' --output-format json --auth x509 --user-cred ' + self.__userCredPath + ' --proxy-ca ' + self.__proxyCaPath 
 
-    print "command" 
-    print command 
-
     request.exec_no_wait(command)
-
-    print "request.stdout" 
-    print request.stdout 
 
     searchstr = '\"networkinterface\":{\"address\":\"'
     first = request.stdout.find(searchstr) 
@@ -195,9 +183,6 @@ class OcciClient:
     last = request.stdout.find("\"", first) 
     publicIP = request.stdout[first:last]
     request.stdout = iD + ', ' + publicIP 
-    print "request.stdout created"
-    print request.stdout
-    return request
   
   def terminate_VMinstance( self, instanceId ):
     """
@@ -240,8 +225,6 @@ class OcciClient:
     first += len(searchstr)
     last = request.stdout.find("\"", first) 
     request.stdout = request.stdout[first:last]
-    print "request.stdout status"
-    print request.stdout
     return request
 
   def contextualize_VMInstance( self, uniqueId, publicIp, cpuTime ):

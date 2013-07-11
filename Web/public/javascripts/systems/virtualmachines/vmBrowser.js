@@ -26,7 +26,7 @@ function generateBrowseGrid( config )
 		root : 'instances',
 		totalProperty : 'numRecords',
 		id : 'inst_InstanceID',
-		fields : [ 'inst_Name', 'img_CloudEndpoints', 'inst_Endpoint', 'inst_ErrorMessage', 'inst_InstanceID', 
+		fields : [ 'inst_RunningPod', 'inst_Name', 'img_CloudEndpoints', 'inst_Endpoint', 'inst_ErrorMessage', 'inst_InstanceID', 
                            'inst_Status', 'inst_UniqueID', 
                            'img_VMImageID', 'img_Name', 'inst_VMImageID', 'inst_PublicIP', 'inst_LastUpdate',
 		           'inst_Load', 'inst_Uptime', 'inst_Jobs']
@@ -65,7 +65,8 @@ function generateBrowseGrid( config )
 		}),*/
 		columns: [
 		    { id : 'check', header : '', width : 30, dataIndex: 'inst_InstanceID', renderer : renderSelect },
-	            { header: "Image", width: 150, sortable: true, dataIndex: 'img_Name'},
+	            { header: "Image", width: 120, sortable: true, dataIndex: 'img_Name'},
+	            { header: "RunningPod", width: 120, sortable: true, dataIndex: 'inst_RunningPod'},
 	            { header: "EndPoint", width: 100, sortable: true, dataIndex: 'img_CloudEndpoints'},
 	            { header: "Status", width: 100, sortable: true, dataIndex: 'inst_Status'},
 	            { header: "Endpoint VM ID", width: 220, sortable: true, dataIndex: 'inst_UniqueID'},

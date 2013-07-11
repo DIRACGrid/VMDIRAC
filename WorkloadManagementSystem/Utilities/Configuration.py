@@ -58,7 +58,7 @@ class OcciConfiguration( EndpointConfiguration ):
   """
 
   # Keys that MUST be present on ANY Occi CloudEndpoint configuration in the CS
-  MANDATORY_KEYS = [ 'cloudDriver', 'vmPolicy', 'vmStopPolicy', 'siteName', 'occiURI', 'maxEndpointInstances' ]
+  MANDATORY_KEYS = [ 'cloudDriver', 'vmPolicy', 'vmStopPolicy', 'siteName', 'occiURI', 'maxEndpointInstances', 'auth', 'iface' ]
     
   def __init__( self, occiEndpoint ):
     """
@@ -81,8 +81,11 @@ class OcciConfiguration( EndpointConfiguration ):
 
     # Purely endpoint configuration ............................................              
     # This two are passed as arguments, not keyword arguments
+    self.__auth                    = occiOptions.get( 'auth'                    , None )
     self.__user                    = occiOptions.get( 'user'                    , None )
     self.__password                = occiOptions.get( 'password'                , None )
+    self.__userCredPath            = occiOptions.get( 'userCredPath'            , None )
+    self.__proxyCaPath             = occiOptions.get( 'proxyCaPath'             , None )
 
     self.__cloudDriver             = occiOptions.get( 'cloudDriver'             , None )
     self.__vmStopPolicy            = occiOptions.get( 'vmStopPolicy'            , None )
@@ -98,28 +101,34 @@ class OcciConfiguration( EndpointConfiguration ):
     self.__dns2                    = occiOptions.get( 'DNS2'                    , None )
     self.__domain                  = occiOptions.get( 'domain'                  , None )
     self.__cvmfs_http_proxy        = occiOptions.get( 'CVMFS_HTTP_PROXY'        , None )
+    self.__ipPool                  = occiOptions.get( 'ipPool'                  , None )
 
   def config( self ):
     
     config = {}
     
+    config[ 'auth' ]                    = self.__auth
     config[ 'user' ]                    = self.__user
     config[ 'password' ]                = self.__password
+    config[ 'userCredPath' ]            = self.__userCredPath
+    config[ 'proxyCaPath' ]             = self.__proxyCaPath
 
     config[ 'cloudDriver' ]             = self.__cloudDriver
     config[ 'vmPolicy' ]                = self.__vmPolicy
     config[ 'vmStopPolicy' ]            = self.__vmStopPolicy
     config[ 'siteName' ]                = self.__siteName
     config[ 'maxEndpointInstances' ]    = self.__maxEndpointInstances
-
     config[ 'occiURI' ]                 = self.__occiURI 
+    config[ 'iface' ]                   = self.__iface
+
+    # optionals depending on endpoint/image setup:
     config[ 'imageDriver' ]             = self.__imageDriver
     config[ 'netId' ]                   = self.__netId
-    config[ 'iface' ]                   = self.__iface
     config[ 'dns1' ]                    = self.__dns1
     config[ 'dns2' ]                    = self.__dns2
     config[ 'domain' ]                  = self.__domain
     config[ 'cvmfs_http_proxy' ]        = self.__cvmfs_http_proxy
+    config[ 'ipPool' ]                  = self.__ipPool
     
     # Do not return dictionary with None values
     for key, value in config.items():
@@ -138,11 +147,19 @@ class OcciConfiguration( EndpointConfiguration ):
     if missingKeys:
       return S_ERROR( 'Missing mandatory keys on endpointConfig %s' % str( missingKeys ) )
     
-    # on top of the MANDATORY_KEYS, we make sure the user & password are set
-    if self.__user is None:
-      return S_ERROR( 'User is None' )
-    if self.__password is None:
-      return S_ERROR( 'Password is None' )
+    # on top of the MANDATORY_KEYS, we make sure the corresponding auth parameters are set:
+    if self.__auth == 'userpasswd':
+      if self.__user is None:
+        return S_ERROR( 'user is None' )
+      if self.__password is None:
+        return S_ERROR( 'password is None' )
+    elif self.__auth == 'proxycacert':
+      if self.__userCredPath is None:
+        return S_ERROR( 'userCredPath is None' )
+      if self.__proxyCaPath is None:
+        return S_ERROR( 'proxyCaPath is None' )
+    else:
+      return S_ERROR( 'endpoint auth: %s not defined (userpasswd/proxycacert)' % self.__auth)
     
     self.log.info( '*' * 50 )
     self.log.info( 'Displaying endpoint info' )
@@ -160,7 +177,12 @@ class OcciConfiguration( EndpointConfiguration ):
 
   def authConfig( self ):
     
-    return ( self.__user, self.__password )
+    if self.__auth == 'userpasswd':
+      return ( self.__auth, self.__user, self.__password )
+    elif self.__auth == 'proxycacert':
+      return ( self.__auth, self.__userCredPath, self.__proxyCaPath )
+    else:
+      return S_ERROR( 'endpoint auth: %s not defined (userpasswd/proxycacert)' % self.__auth)
   
   def cloudDriver( self ):
     

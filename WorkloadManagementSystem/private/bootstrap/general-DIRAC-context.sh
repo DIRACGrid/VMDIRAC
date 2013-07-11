@@ -70,7 +70,8 @@ cpuTime=`cat /etc/CPU_TIME`
 	export PATH
 	export LD_LIBRARY_PATH
         # for the VM Monitor
-        easy_install simplejson >> /var/log/dirac-context-scritp.log 2>&1
+        echo "Installing easy_install simplejson for the VM Monitor" >> /var/log/dirac-context-script.log 2>&1
+        easy_install simplejson >> /var/log/dirac-context-script.log 2>&1
 	# also the options for the agents: CPUTime, Occi SumbitPools, Site...
         # if CAs are not download we retry
         for retry in 0 1 2 3 4 5 6 7 8 9
@@ -103,11 +104,11 @@ cpuTime=`cat /etc/CPU_TIME`
 	mkdir -p startup/WorkloadManagement_VirtualMachineMonitorAgent/log >> /var/log/dirac-context-script.log 2>&1
 	mkdir -p startup/WorkloadManagement_VirtualMachineConfigUpdater/log >> /var/log/dirac-context-script.log 2>&1
 	mv ${localVmRunJobAgent} startup/WorkloadManagement_JobAgent/run >> /var/log/dirac-context-script.log 2>&1
-	mv ${localVmRunLogAgent} startup/WorkloadManagement_JobAgent/log/run >> /var/log/dirac-context-script.log 2>&1
+	cp ${localVmRunLogAgent} startup/WorkloadManagement_JobAgent/log/run >> /var/log/dirac-context-script.log 2>&1
 	mv ${localVmRunVmMonitorAgent} startup/WorkloadManagement_VirtualMachineMonitorAgent/run >> /var/log/dirac-context-script.log 2>&1
-	mv ${localVmRunLogAgent} startup/WorkloadManagement_VirtualMachineMonitorAgent/log/run >> /var/log/dirac-context-script.log 2>&1
+	cp ${localVmRunLogAgent} startup/WorkloadManagement_VirtualMachineMonitorAgent/log/run >> /var/log/dirac-context-script.log 2>&1
 	mv ${localVmRunVmUpdaterAgent} startup/WorkloadManagement_VirtualMachineConfigUpdater/run >> /var/log/dirac-context-script.log 2>&1
-	mv ${localVmRunLogAgent} startup/WorkloadManagement_VirtualMachineConfigUpdater/log/run >> /var/log/dirac-context-script.log 2>&1
+	cp ${localVmRunLogAgent} startup/WorkloadManagement_VirtualMachineConfigUpdater/log/run >> /var/log/dirac-context-script.log 2>&1
 
 	chmod 755 startup/WorkloadManagement_JobAgent/log/run 
 	chmod 755 startup/WorkloadManagement_JobAgent/run 

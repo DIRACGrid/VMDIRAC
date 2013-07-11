@@ -81,6 +81,7 @@ class VirtualMachineDB( DB ):
                              }
 
   tablesDesc[ 'vm_Instances' ] = { 'Fields' : { 'InstanceID' : 'BIGINT UNSIGNED AUTO_INCREMENT NOT NULL',
+                                                'RunningPod' : 'VARCHAR(255) NOT NULL',
                                                 'Name' : 'VARCHAR(255) NOT NULL',
                                                 'Endpoint' : 'VARCHAR(32) NOT NULL',
                                                 'UniqueID' : 'VARCHAR(64) NOT NULL DEFAULT ""',
@@ -510,14 +511,14 @@ class VirtualMachineDB( DB ):
 
   def getInstancesInfoByStatus( self, status ):
     """
-    Get from Instances fields UniqueID, Endpoint, PublicIP  for instances in the given status 
+    Get from Instances fields UniqueID, Endpoint, PublicIP, RunningPod  for instances in the given status 
     """
     if status not in self.validInstanceStates:
       return S_ERROR( 'Status %s is not known' % status )
 
     tableName, _validStates, _idName = self.__getTypeTuple( 'Instance' )
 
-    runningInstances = self._getFields( tableName, [ 'UniqueID', 'Endpoint', 'PublicIP' ], 
+    runningInstances = self._getFields( tableName, [ 'UniqueID', 'Endpoint', 'PublicIP', 'RunningPod' ], 
                                         [ 'Status' ], [ status ] )
     if not runningInstances[ 'OK' ]:
       return runningInstances
@@ -593,8 +594,8 @@ class VirtualMachineDB( DB ):
 
     tableName, validStates, _idName = self.__getTypeTuple( 'Instance' )
 
-    fields = [ 'Name', 'Endpoint', 'VMImageID', 'Status', 'LastUpdate' ]
-    values = [ instanceName, endpoint, imageID, validStates[ 0 ], Time.toString() ]
+    fields = [ 'RunningPod', 'Name', 'Endpoint', 'VMImageID', 'Status', 'LastUpdate' ]
+    values = [ runningPodName, instanceName, endpoint, imageID, validStates[ 0 ], Time.toString() ]
     
     runningPodDict = self.getRunningPodDict( runningPodName )
     if not runningPodDict[ 'OK' ]:
@@ -958,7 +959,7 @@ class VirtualMachineDB( DB ):
     #Main fields
     tables = ( "`vm_Images` AS img", "`vm_Instances` AS inst" )
     imageFields = ( 'VMImageID', 'Name', 'CloudEndpoints' )
-    instanceFields = ( 'InstanceID', 'Name', 'UniqueID', 'VMImageID',
+    instanceFields = ( 'RunningPod', 'InstanceID', 'Name', 'UniqueID', 'VMImageID',
                        'Status', 'PublicIP', 'Status', 'ErrorMessage', 'LastUpdate', 'Load', 'Uptime', 'Jobs' )
 
     fields = [ 'img.%s' % f for f in imageFields ] + [ 'inst.%s' % f for f in instanceFields ]

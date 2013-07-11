@@ -7,6 +7,7 @@
   and it will make sure is the right one.
   
   This module provides Context helpers for the contextualisation methods:
+  * occiOpenNebula
   * ssh
   * adhoc
   * amiconfig
@@ -125,7 +126,6 @@ class SSHContext( ContextConfig ):
   SSHContext defines the following mandatory keys:
   
   * flavorName
-  * vmOsIpPool
   * vmCertPath : the virtualmachine cert to be copied on the VM of a specific endpoint
   * vmKeyPath  : the virtualmachine key to be copied on the VM of a specific endpoint
   * vmContextualizeScriptPath
@@ -139,7 +139,7 @@ class SSHContext( ContextConfig ):
   * cloudDriver : the endpoint dirac cloud driver
   
   """
-  MANDATORY_KEYS = [ 'vmOsIpPool', 'vmCertPath', 
+  MANDATORY_KEYS = [ 'vmCertPath', 
                      'vmKeyPath', 'vmContextualizeScriptPath', 'vmCvmfsContextURL', 
                      'vmDiracContextURL', 'vmRunJobAgentURL', 'vmRunVmMonitorAgentURL', 
                      'vmRunVmUpdaterAgentURL', 'vmRunLogAgentURL' ]

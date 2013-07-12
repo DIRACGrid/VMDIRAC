@@ -1,0 +1,40 @@
+[v0r8]
+NEW: rOCCI 1.1 DIRAC driver. 
+     rOCCI authentication by X509 proxies with third-party VOMS (rOCCI do the matching work in a transparent manner)
+     Generic contextualization by SSH (Generic to all Operating System Images and Cloud Managers, software convergence) Currently SSH contextualization available for OpenNebula and OpenStack.
+NEW: VM local dirac.cfg updater agent for pilot/dirac release is updated
+CHANGE: OcciImage and Occi09 migrated to new WMS/Utilities style
+TODO: OCCI 1.1 for openstack if no rOCCI available
+
+[v0r7]
+NEW: endpoint vmPolicy "static" -> slots driven, indicated by maxEndpointInstances, endpoint CS parameter
+     endpoint vmPolicy "elastic" -> jobs driven, one by one
+
+NEW: endpoint vmStopPolicy "never" 
+     endpoint vmStopPolicy "elastic" -> no more jobs + VM halting margin time
+CHANGE: Both cases: VMs can be stoped from "Instances Overview" screen: VirtualMachineDB.py in function instanceIDHeartBeat:
+					 Send empty dir just in case we want to send flags (such as stop vm)
+TODO: The particular HEPiX method to ask VMs to shootdown from the IaaS site provider site (requirement to be specified by HEPiX)
+
+[v0r6]
+
+NEW: nova-1.1 driver and ssh contextualization method, ready to extend to amiconfig contextualization.
+
+[v0r5]
+
+Multi-endpoint OpenNebula and CloudStack in a fed way. Running-pads, DIRAC-Images and Endpoints scheme.
+
+[v0r4]
+
+FIX: Added missing occi and cloud director files
+
+[v0r3]
+
+NEW: Redesign of VMDirector to allow for more Cloud provider drivers without modifications to the VM core components.
+NEW: An image is componed of a bootstrap image and context files. Optionally a context image can be included also.
+CHANGE: A CS Cloud Endpoint has all the contextualization and configuration parameters for a specific endpoint
+CHANGE: A running Pod contains a DIRAC image, a list of endpoings and the necessary parameters and requirements.
+
+[v0r2]
+
+Initial version of VMDIRAC. It includes support for Occi and Amazon clouds.

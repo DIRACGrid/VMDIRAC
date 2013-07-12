@@ -1,6 +1,6 @@
 # $HeadURL $
 """
-  VMDIRAC.WorkloadManagementSystem.Client package
+  VMDIRAC.WorkloadManagementSystem.Utilities package
 """
 
 __RCSID__  = '$Id: $'

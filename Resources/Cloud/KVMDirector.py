@@ -1,22 +1,25 @@
 ########################################################################
 # $HeadURL$
-# File :   AmazonDirector.py
+# File :   KVMDirector.py
 # Author : Ricardo Graciani
 ########################################################################
-__RCSID__ = "$Id: AmazonDirector.py 16 2010-03-15 11:39:29Z ricardo.graciani@gmail.com $"
 
-from DIRAC import S_OK, S_ERROR
-from DIRACVM.WorkloadManagementSystem.private.VMDirector import VMDirector
-from DIRACVM.WorkloadManagementSystem.Client.AmazonImage import AmazonImage
+# DIRAC
+from DIRAC import S_OK
 
-class AmazonDirector( VMDirector ):
+#VMDIRAC
+from VMDIRAC.Resources.Cloud.VMDirector import VMDirector
+
+__RCSID__ = "$Id: KVMDirector.py 16 2010-03-15 11:39:29Z ricardo.graciani@gmail.com $"
+
+class KVMDirector( VMDirector ):
   def __init__( self, submitPool ):
-    self.Flavor = 'Amazon'
+    self.Flavor = 'KVM'
     VMDirector.__init__( self, submitPool )
 
   def configure( self, csSection, submitPool ):
     """
-     Here goes common configuration for Amazon Director
+     Here goes common configuration for KVM Director
     """
 
     VMDirector.configure( self, csSection, submitPool )
@@ -28,12 +31,8 @@ class AmazonDirector( VMDirector ):
     """
     VMDirector.configureFromSection( self, mySection )
 
-  def _submitInstance( self, imageName, workDir ):
+  def _submitInstance( self, imageName, workDir, instanceID ):
     """
       Real backend method to submit a new Instance of a given Image
     """
-    ami = AmazonImage( imageName )
-    result = ami.startNewInstances()
-    if not result[ 'OK' ]:
-      return result
-    return S_OK( result[ 'Value' ][0] )
+    return S_OK()

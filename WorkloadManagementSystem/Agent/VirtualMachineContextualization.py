@@ -16,13 +16,15 @@
 
 import random
 
+
 # DIRAC
-from DIRAC                       import S_OK 
+from DIRAC                       import S_OK, S_ERROR, gConfig
 from DIRAC.Core.Base.AgentModule import AgentModule
 
 # VMDIRAC
-from VMDIRAC.WorkloadManagementSystem.Client.NovaImage   import NovaImage
 from VMDIRAC.WorkloadManagementSystem.Client.ServerUtils import virtualMachineDB
+from VMDIRAC.WorkloadManagementSystem.Client.NovaImage       import NovaImage
+from VMDIRAC.WorkloadManagementSystem.Client.OcciImage       import OcciImage
 
 __RCSID__ = "$Id: $"
 
@@ -46,30 +48,70 @@ class VirtualMachineContextualization( AgentModule ):
     if not result['OK']:
       return result
 
-    for uniqueId, endpoint, publicIP in result['Value']:
+    for uniqueId, endpoint, publicIP, runningPodName in result['Value']:
 
       retDict = virtualMachineDB.getImageNameFromInstance ( uniqueId )
       if not retDict['OK']:
         return retDict
 
       diracImageName = retDict['Value']
-      nima     = NovaImage( diracImageName, endpoint )
-      connNova = nima.connectNova()
-      if not connNova[ 'OK' ]:
-        return connNova
 
-      result = nima.getInstanceStatus( uniqueId )
+      cloudDriver = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, "cloudDriver" ) )
+      if ( cloudDriver == 'nova-1.1' ):
+        nima     = NovaImage( diracImageName, endpoint )
+        connection = nima.connectOcci()
+      elif ( cloudDriver == 'rocci-1.1' ):
+        oima     = OcciImage( diracImageName, endpoint )
+        connection = oima.connectOcci()
+      else:
+        return S_ERROR( 'cloudDriver %s, has not ssh contextualization' % cloudDriver )
+
+      if not connection[ 'OK' ]:
+        return connection
+
+      if ( cloudDriver == 'nova-1.1' ):
+        result = nima.getInstanceStatus( uniqueId )
+      elif ( cloudDriver == 'rocci-1.1' ):
+        result = oima.getInstanceStatus( uniqueId )
+      else:
+        return S_ERROR( 'cloudDriver %s, has not ssh contextualization' % cloudDriver )
       if not result[ 'OK' ]:
         return result
 
-      if result['Value'] == 'RUNNING':
-        result = nima.contextualizeInstance( uniqueId, publicIP )
-        self.log.info( "result of contextualize:" )
-        self.log.info( result )
-        if not result[ 'OK' ]:
-          return result
-        retDict = virtualMachineDB.declareInstanceContextualizing( uniqueId )
-        if not retDict['OK']:
-          return retDict
+      runningPodDict = virtualMachineDB.getRunningPodDict( runningPodName )
+      if not runningPodDict['OK']:
+        self.log.error('Error in RunningPodDict: %s' % runningPodDict['Message'])
+        return runningPodDict
+      runningPodDict = runningPodDict[ 'Value' ]
+
+      runningRequirementsDict = runningPodDict['Requirements']
+      cpuTime = runningRequirementsDict['CPUTime']
+      if not cpuTime:
+        return S_ERROR( 'Unknown CPUTime in Requirements of the RunningPod %s' % runningPodName )
+
+      if ( cloudDriver == 'nova-1.1' ):
+        if result['Value'] == 'RUNNING':
+          result = nima.contextualizeInstance( uniqueId, publicIP, cpuTime )
+          self.log.info( "result of contextualize:" )
+          self.log.info( result )
+          if not result[ 'OK' ]:
+            return result
+          retDict = virtualMachineDB.declareInstanceContextualizing( uniqueId )
+          if not retDict['OK']:
+            return retDict
+      elif ( cloudDriver == 'rocci-1.1' ):
+        if result['Value'] == 'active':
+          result = oima.contextualizeInstance( uniqueId, publicIP, cpuTime )
+          self.log.info( "result of contextualize:" )
+          self.log.info( result )
+          if not result[ 'OK' ]:
+            return result
+          retDict = virtualMachineDB.declareInstanceContextualizing( uniqueId )
+          if not retDict['OK']:
+            return retDict
 
     return S_OK() 
+
+
+#...............................................................................
+#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF

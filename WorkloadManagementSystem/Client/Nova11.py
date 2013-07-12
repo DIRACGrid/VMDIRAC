@@ -22,6 +22,9 @@ from novaclient.v1_1            import client
 # DIRAC
 from DIRAC import gLogger, S_OK, S_ERROR
 
+# VMDIRAC
+from VMDIRAC.WorkloadManagementSystem.Client.SshContextualize   import SshContextualize
+
 __RCSID__ = '$Id: $'
 
 class NovaClient:
@@ -360,7 +363,7 @@ class NovaClient:
 
     return S_OK()
 
-  def contextualize_VMInstance( self, uniqueId, publicIp ):
+  def contextualize_VMInstance( self, uniqueId, publicIp, cpuTime ):
     """
     This method is only used ( at the moment ) by the ssh contextualization method.
     It is called once the vm has been booted.
@@ -375,10 +378,11 @@ class NovaClient:
     :return: S_OK | S_ERROR
     """
 
-    novaContext = NovaContextualise()
+    novaContext = SshContextualize()
     return novaContext.contextualise( self.imageConfig, self.endpointConfig,
                                       uniqueId = uniqueId, 
-                                      publicIp = publicIp ) 
+                                      publicIp = publicIp,
+                                      cpuTime = cpuTime ) 
 
   #.............................................................................
   # Private methods
@@ -395,8 +399,7 @@ class NovaClient:
     :return: S_OK( public_ip ) | S_ERROR   
     """
 
-    # Sometimes we do not have public IP
-    ipPool = self.imageConfig[ 'contextConfig' ].get( 'vmOsIpPool', None )
+    ipPool = endpointConfig.get( 'ipPool' )
 
     if ipPool is not None:
 
@@ -449,142 +452,6 @@ class NovaClient:
       #FIXME: double check if pynovaclient raises Exception
       except Exception, errmsg:
         return S_ERROR( errmsg )
-
-    return S_OK()
-
-#...............................................................................
-# Contextualisation methods
-
-class NovaContextualise: 
-      
-  def contextualise( self, imageConfig, endpointConfig, **kwargs ):
-    
-    contextMethod = imageConfig[ 'contextMethod' ]
-    if contextMethod == 'ssh':
-      
-      cvmfs_http_proxy = endpointConfig.get( 'CVMFS_HTTP_PROXY' )
-      siteName         = endpointConfig.get( 'siteName' )
-      cloudDriver      = endpointConfig.get( 'cloudDriver' )
-      vmStopPolicy     = endpointConfig.get( 'vmStopPolicy' )
-
-      contextConfig                 = imageConfig.get( 'contextConfig' )
-      vmKeyPath                     = contextConfig[ 'vmKeyPath' ]
-      vmCertPath                    = contextConfig[ 'vmCertPath' ]
-      vmContextualizeScriptPath     = contextConfig[ 'vmContextualizeScriptPath' ]
-      vmRunJobAgentURL              = contextConfig[ 'vmRunJobAgentURL' ]
-      vmRunVmMonitorAgentURL        = contextConfig[ 'vmRunVmMonitorAgentURL' ]
-      vmRunVmUpdaterAgentURL        = contextConfig[ 'vmRunVmUpdaterAgentURL' ]
-      vmRunLogAgentURL              = contextConfig[ 'vmRunLogAgentURL' ]
-      vmCvmfsContextURL             = contextConfig[ 'vmCvmfsContextURL' ]
-      vmDiracContextURL             = contextConfig[ 'vmDiracContextURL' ]
-      cpuTime                       = contextConfig[ 'cpuTime' ]
-
-      uniqueId = kwargs.get( 'uniqueId' )
-      publicIP = kwargs.get( 'publicIp' ) 
-
-      result = self.__sshContextualise( uniqueId = uniqueId,
-                                        publicIP = publicIP, 
-                                        cloudDriver = cloudDriver,
-                                        cvmfs_http_proxy = cvmfs_http_proxy,
-                                        vmStopPolicy = vmStopPolicy,
-                                        contextMethod = contextMethod,
-                                        vmCertPath = vmCertPath,
-                                        vmKeyPath = vmKeyPath,
-                                        vmContextualizeScriptPath = vmContextualizeScriptPath,
-                                        vmRunJobAgentURL = vmRunJobAgentURL,
-                                        vmRunVmMonitorAgentURL = vmRunVmMonitorAgentURL, 
-                                        vmRunVmUpdaterAgentURL = vmRunVmUpdaterAgentURL, 
-                                        vmRunLogAgentURL = vmRunLogAgentURL,
-                                        vmCvmfsContextURL = vmCvmfsContextURL,
-                                        vmDiracContextURL = vmDiracContextURL,
-                                        siteName = siteName,
-                                        cpuTime = cpuTime
-                                      )
-
-  
-    elif contextMethod == 'adhoc':
-      result = S_OK()
-    elif contextMethod == 'amiconfig':
-      result = S_OK()
-    else:
-      result = S_ERROR( '%s is not a known NovaContext method' % contextMethod ) 
-      
-    return result         
-    
-
-  def __sshContextualise( self,
-                                        uniqueId,
-                                        publicIP, 
-                                        cloudDriver,
-                                        cvmfs_http_proxy,
-                                        vmStopPolicy,
-                                        contextMethod,
-                                        vmCertPath,
-                                        vmKeyPath,
-                                        vmContextualizeScriptPath,
-                                        vmRunJobAgentURL,
-                                        vmRunVmMonitorAgentURL,
-                                        vmRunVmUpdaterAgentURL,
-                                        vmRunLogAgentURL,
-                                        vmCvmfsContextURL,
-                                        vmDiracContextURL,
-                                        siteName,
-                                        cpuTime
-                        ): 
-    # the contextualization using ssh needs the VM to be ACTIVE, so VirtualMachineContextualization 
-    # check status and launch contextualize_VMInstance
-
-    # 1) copy the necesary files
-
-    # prepare paramiko sftp client
-    try:
-      privatekeyfile = os.path.expanduser( '~/.ssh/id_rsa' )
-      mykey = paramiko.RSAKey.from_private_key_file( privatekeyfile )
-      sshusername = 'root'
-      transport = paramiko.Transport( ( publicIP, 22 ) )
-      transport.connect( username = sshusername, pkey = mykey )
-      sftp = paramiko.SFTPClient.from_transport( transport )
-    except Exception, errmsg:
-      return S_ERROR( "Can't open sftp conection to %s: %s" % ( publicIP, errmsg ) )
-
-    # scp VM cert/key
-    putCertPath = "/root/vmservicecert.pem"
-    putKeyPath = "/root/vmservicekey.pem"
-    try:
-      sftp.put( vmCertPath, putCertPath )
-      sftp.put( vmKeyPath, putKeyPath )
-      # while the ssh.exec_command is asyncronous request I need to put on the VM the contextualize-script to ensure the file existence before exec
-      sftp.put(vmContextualizeScriptPath, '/root/contextualize-script.bash')
-    except Exception, errmsg:
-      return S_ERROR( errmsg )
-    finally:
-      sftp.close()
-      transport.close()      
-
-    # giving time sleep asyncronous sftp
-    time.sleep( 5 )
-
-
-    #2)  prepare paramiko ssh client
-    try:
-      ssh = paramiko.SSHClient()
-      ssh.set_missing_host_key_policy( paramiko.AutoAddPolicy() )
-      ssh.connect( publicIP, username = sshusername, port = 22, pkey = mykey )
-    except Exception, errmsg:
-      return S_ERROR( "Can't open ssh conection to %s: %s" % ( publicIP, errmsg ) )
-
-    #3) Run the DIRAC contextualization orchestator script:    
-
-    try:
-      remotecmd = "/bin/bash /root/contextualize-script.bash \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\'"  
-      remotecmd = remotecmd % ( uniqueId, putCertPath, putKeyPath, vmRunJobAgentURL, 
-                                vmRunVmMonitorAgentURL, vmRunVmUpdaterAgentURL, vmRunLogAgentURL, 
-                                vmCvmfsContextURL, vmDiracContextURL, cvmfs_http_proxy, siteName, cloudDriver, cpuTime, vmStopPolicy )
-      print "remotecmd"
-      print remotecmd
-      _stdin, _stdout, _stderr = ssh.exec_command( remotecmd )
-    except Exception, errmsg:
-      return S_ERROR( "Can't run remote ssh to %s: %s" % ( publicIP, errmsg ) )
 
     return S_OK()
 

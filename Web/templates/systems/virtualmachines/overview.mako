@@ -48,4 +48,5 @@ ${ h.javascript_link( "/javascripts/systems/virtualmachines/vmOverview.js" ) }
 <script type="text/javascript">
   initVMDashboard();
 </script>
+
 </%def>

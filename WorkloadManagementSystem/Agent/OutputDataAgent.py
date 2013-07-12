@@ -17,14 +17,15 @@
 
 """
 
+# DIRAC
+from DIRAC                       import S_OK
+from DIRAC.Core.Base.AgentModule import AgentModule
+
+# VMDIRAC
+from VMDIRAC.WorkloadManagementSystem.private.OutputDataExecutor import OutputDataExecutor
+
+
 __RCSID__ = "$Id$"
-
-from DIRAC.Core.Base.AgentModule                                    import AgentModule
-from DIRAC.Core.Utilities.ThreadPool                                import ThreadPool
-from DIRAC.Core.Utilities.Shifter                                   import setupShifterProxyInEnv
-from DIRACVM.WorkloadManagementSystem.private.OutputDataExecutor import OutputDataExecutor
-from DIRAC import S_OK, S_ERROR, gConfig, gLogger
-
 
 class OutputDataAgent( AgentModule ):
 
@@ -46,12 +47,12 @@ class OutputDataAgent( AgentModule ):
 
     maxCycles = self.am_getMaxCycles()
     if maxCycles > 0 and maxCycles - self.am_getCyclesDone() == 1:
-      gLogger.info( "Waiting to all transfers to finish before ending the last cycle" )
+      self.log.info( "Waiting to all transfers to finish before ending the last cycle" )
       #We are in the last cycle. Need to purge the thread pool
       self.__outDataExecutor.processAllPendingTransfers()
 
-    gLogger.info( "Transferred %d files" % self.__outDataExecutor.getNumOKTransferredFiles() )
-    gLogger.info( "Transferred %d bytes" % self.__outDataExecutor.getNumOKTransferredBytes() )
+    self.log.info( "Transferred %d files" % self.__outDataExecutor.getNumOKTransferredFiles() )
+    self.log.info( "Transferred %d bytes" % self.__outDataExecutor.getNumOKTransferredBytes() )
 
 
     return S_OK()

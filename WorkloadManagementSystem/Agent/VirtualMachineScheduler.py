@@ -1,7 +1,9 @@
 ########################################################################
 # $HeadURL$
 # File :   VirtualMachineScheduler.py
-# Author : Ricardo Graciani
+# Author : Ricardo Graciani, for single site suport
+# Author : Victor Mendez, for multiple endpoints, HEPIX, running pod, occi, etc
+# Author : Victor Fernandez, for cloudstack support
 ########################################################################
 
 """  The Virtual Machine Scheduler controls the submission of VM via the
@@ -26,30 +28,35 @@
      For each backend there should be a section with at least the following:
        - Images: List of available Images
        - [ImageName]: Section with requirements associated to that Image
-         (Site, JobType, PilotType, LHCbPlatform, ...), This should be in agreement with what 
+         (Site, JobType, PilotType, LHCbPlatform, ...), This should be in agreement with what
          is defined in the local configuration of the VM JobAgent: /AgentJobRequirements
 
      It will use those Directors to submit VMs for each of the Supported SubmitPools
        - SubmitPools (see above)
 
      SubmitPools may refer to:
-       - a full Cloud provider (AmazonEC2) 
+       - a full Cloud provider (AmazonEC2, Occi, CloudStack)
        - a locally accessible Xen or KVM server
 
-     For every SubmitPool category (Amazon, Xen, KVM) and there must be a corresponding Section with the
-     necessary parameters:
+     For every Cloud SubmitPool there must be a corresponding Section with the necessary parameters:
 
        - Pool: if a dedicated Threadpool is desired for this SubmitPool
+       - RunningPods: a list with the pods between DIRAC images and cloud endpoints for a run
 
+     The DIRAC VM is configured based in three statements with their options
+
+       - RunningPods: relates a single DIRAC VM with their VM scheduler options and the cloud ends for a run
+       - Images: bootstrap image, context image and URL context files, the HEPIX of a DIRAC VM
+       - CloudEndpoints: With the driver and the on-the-fly context image
 
       The VM submission logic is as follows:
 
         For each configured backend and VM image:
-        
+
         - Determine the pending workload that could be executed by the VM instance.
 
         - Check number of already running instances.
-        
+
         - Require Instantiation of a new VM for each "required" type.
 
         - Report the sum of the Target number of VMs to be instantiated.
@@ -61,7 +68,7 @@
         In summary:
 
         All VMs are considered on every iteration, so the same build up factor applies to each Cloud
-        
+
         All TaskQueues are considered on every iteration, pilots are submitted
         statistically proportional to the priority and the Number of waiting tasks
         of the TaskQueue, boosted for the TaskQueues with lower CPU requirements and
@@ -75,23 +82,27 @@
 
 
 """
-__RCSID__ = "$Id$"
-
-from DIRAC.Core.Base.AgentModule import AgentModule
-
-
-from DIRAC.Resources.Computing.ComputingElement                 import getResourceDict
-
-from DIRAC.WorkloadManagementSystem.Client.ServerUtils          import taskQueueDB
-from DIRACVM.WorkloadManagementSystem.Client.ServerUtils     import virtualMachineDB
-from DIRACVM.WorkloadManagementSystem.private.AmazonDirector import AmazonDirector
-from DIRACVM.WorkloadManagementSystem.private.KVMDirector    import KVMDirector
-
-from DIRAC.Core.Utilities.ThreadPool                            import ThreadPool
 
 import random, time
 import DIRAC
 
+from numpy.random import poisson
+from random       import shuffle
+
+# DIRAC
+from DIRAC                                             import gConfig
+from DIRAC.Core.Base.AgentModule                       import AgentModule
+from DIRAC.Core.Utilities.ThreadPool                   import ThreadPool
+from DIRAC.WorkloadManagementSystem.DB.TaskQueueDB     import maxCPUSegments
+from DIRAC.WorkloadManagementSystem.Client.ServerUtils import taskQueueDB
+
+from VMDIRAC.Resources.Cloud.CloudDirector               import CloudDirector
+from VMDIRAC.WorkloadManagementSystem.Client.ServerUtils import virtualMachineDB
+#from VMDIRAC.WorkloadManagementSystem.private.KVMDirector   import KVMDirector
+
+__RCSID__ = "$Id: $"
+
+#FIXME: why do we need the random seed ?
 random.seed()
 
 class VirtualMachineScheduler( AgentModule ):
@@ -116,7 +127,7 @@ class VirtualMachineScheduler( AgentModule ):
     self.am_setOption( "totalThreadsInPool", 40 )
 
     self.directors = {}
-    self.pools = {}
+    self.pools     = {}
 
     self.directorDict = {}
 
@@ -137,8 +148,9 @@ class VirtualMachineScheduler( AgentModule ):
 
     for directorName, directorDict in self.directors.items():
       self.log.verbose( 'Checking Director:', directorName )
-      for imageName in directorDict['director'].images:
-        imageDict = directorDict['director'].images[imageName]
+      for runningPodName in directorDict['director'].runningPods:
+        runningPodDict = directorDict['director'].runningPods[runningPodName]
+        imageName = runningPodDict['Image']
         instances = 0
         result = virtualMachineDB.getInstancesByStatus( 'Running' )
         if result['OK'] and imageName in result['Value']:
@@ -146,18 +158,75 @@ class VirtualMachineScheduler( AgentModule ):
         result = virtualMachineDB.getInstancesByStatus( 'Submitted' )
         if result['OK'] and imageName in result['Value']:
           instances += len( result['Value'][imageName] )
+        result = virtualMachineDB.getInstancesByStatus( 'Wait_ssh_context' )
+        if result['OK'] and imageName in result['Value']:
+          instances += len( result['Value'][imageName] )
+        result = virtualMachineDB.getInstancesByStatus( 'Contextualizing' )
+        if result['OK'] and imageName in result['Value']:
+          instances += len( result['Value'][imageName] )
         self.log.verbose( 'Checking Image %s:' % imageName, instances )
-        maxInstances = imageDict['MaxInstances']
+        maxInstances = runningPodDict['MaxInstances']
         if instances >= maxInstances:
-          self.log.info( '%s >= %s Running instances of %s, skipping' % ( instances, maxInstances, imageName ) )
+          self.log.info( '%s >= %s Running instances reach MaxInstances for runningPod: %s, skipping' % ( instances, maxInstances, runningPodName ) )
           continue
 
-        imageRequirementsDict = imageDict['RequirementsDict']
+        endpointFound = False
+        cloudEndpointsStr = runningPodDict['CloudEndpoints']
+	      # random
+        cloudEndpoints = [element for element in cloudEndpointsStr.split( ',' )]
+        shuffle( cloudEndpoints )
+        self.log.info( 'cloudEndpoints random failover: %s' % cloudEndpoints )
+        numVMsToSubmit = {}
+        for endpoint in cloudEndpoints:
+          self.log.info( 'Checking to submit to: %s' % endpoint )
+          strMaxEndpointInstances = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, 'maxEndpointInstances' ), "" )
+          if not strMaxEndpointInstances:
+            self.log.info( 'CS CloudEndpoint %s has no define maxEndpointInstances option' % endpoint )
+            continue
+          self.log.info( 'CS CloudEndpoint %s maxEndpointInstance: %s' % (endpoint,strMaxEndpointInstances) )
+
+          vmPolicy = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, 'vmPolicy' ), "" )
+          if not vmPolicy:
+            self.log.info( 'CS CloudEndpoint %s has no define vmPolicy option' % endpoint )
+            continue
+          self.log.info( 'CS CloudEndpoint %s vmPolicy: %s' % (endpoint,vmPolicy) )
+
+          endpointInstances = 0
+          result = virtualMachineDB.getInstancesByStatusAndEndpoint( 'Running', endpoint )
+          if result['OK'] and imageName in result['Value']:
+            endpointInstances += len( result['Value'][imageName] )
+          result = virtualMachineDB.getInstancesByStatusAndEndpoint( 'Submitted', endpoint )
+          if result['OK'] and imageName in result['Value']:
+            endpointInstances += len( result['Value'][imageName] )
+          result = virtualMachineDB.getInstancesByStatusAndEndpoint( 'Wait_ssh_context', endpoint )
+          if result['OK'] and imageName in result['Value']:
+            endpointInstances += len( result['Value'][imageName] )
+          result = virtualMachineDB.getInstancesByStatusAndEndpoint( 'Contextualizing', endpoint )
+          if result['OK'] and imageName in result['Value']:
+            endpointInstances += len( result['Value'][imageName] )
+          self.log.info( 'CS CloudEndpoint %s instances: %s, maxEndpointInstances: %s' % (endpoint,endpointInstances,strMaxEndpointInstances) )
+          maxEndpointInstances = int(strMaxEndpointInstances)
+          if endpointInstances < maxEndpointInstances:
+            if vmPolicy == 'elastic':
+              numVMs = 1
+            if vmPolicy == 'static':
+              numVMs = maxEndpointInstances - endpointInstances
+            numVMsToSubmit.update({str(endpoint): int(numVMs) })
+            endpointFound = True
+            break
+
+        if not endpointFound:
+          self.log.info( 'Skipping, from list %s; there is no endpoint with free slots found for image %s' % ( runningPodDict['CloudEndpoints'], imageName ) )
+          continue
+
+        imageRequirementsDict = runningPodDict['RequirementsDict']
+        #self.log.info( 'Image Requirements Dict: ', imageRequirementsDict )
         result = taskQueueDB.getMatchingTaskQueues( imageRequirementsDict )
         if not result['OK']:
           self.log.error( 'Could not retrieve TaskQueues from TaskQueueDB', result['Message'] )
           return result
         taskQueueDict = result['Value']
+        #self.log.info( 'Task Queues Dict: ', taskQueueDict )
         jobs = 0
         priority = 0
         cpu = 0
@@ -170,32 +239,41 @@ class VirtualMachineScheduler( AgentModule ):
           self.log.info( 'No matching jobs for %s found, skipping' % imageName )
           continue
 
-        if instances and ( cpu / instances ) < imageDict['CPUPerInstance']:
-          self.log.info( 'Waiting CPU per Running instance %s < %s, skipping' % ( cpu / instances, imageDict['CPUPerInstance'] ) )
+        if instances and ( cpu / instances ) < runningPodDict['CPUPerInstance']:
+          self.log.info( 'Waiting CPU per Running instance %s < %s, skipping' % ( cpu / instances, runningPodDict['CPUPerInstance'] ) )
           continue
 
         if directorName not in imagesToSubmit:
           imagesToSubmit[directorName] = {}
         if imageName not in imagesToSubmit[directorName]:
           imagesToSubmit[directorName][imageName] = {}
+        numVMs = numVMsToSubmit.get( endpoint )
         imagesToSubmit[directorName][imageName] = { 'Jobs': jobs,
                                                     'TQPriority': priority,
                                                     'CPUTime': cpu,
-                                                    'VMPriority': imageDict['Priority'] }
+                                                    'CloudEndpoint': endpoint,
+                                                    'NumVMsToSubmit': numVMs,
+                                                    'VMPolicy': vmPolicy,
+                                                    'RunningPodName': runningPodName,
+                                                    'VMPriority': runningPodDict['Priority'] }
 
-    for directorName, imageDict in imagesToSubmit.items():
-      for imageName, jobsDict in imageDict.items():
+    for directorName, imageOfJobsToSubmitDict in imagesToSubmit.items():
+      for imageName, jobsToSubmitDict in imageOfJobsToSubmitDict.items():
         if self.directors[directorName]['isEnabled']:
           self.log.info( 'Requesting submission of %s to %s' % ( imageName, directorName ) )
 
           director = self.directors[directorName]['director']
           pool = self.pools[self.directors[directorName]['pool']]
 
+          endpoint = jobsToSubmitDict['CloudEndpoint']
+          runningPodName = jobsToSubmitDict['RunningPodName']
+          numVMs = jobsToSubmitDict['NumVMsToSubmit']
+
           ret = pool.generateJobAndQueueIt( director.submitInstance,
-                                            args=( imageName, self.workDir ),
-                                            oCallback=self.callBack,
-                                            oExceptionCallback=director.exceptionCallBack,
-                                            blocking=False )
+                                            args = ( imageName, endpoint, numVMs, runningPodName ),
+                                            oCallback = self.callBack,
+                                            oExceptionCallback = director.exceptionCallBack,
+                                            blocking = False )
 
           if not ret['OK']:
             # Disable submission until next iteration
@@ -210,10 +288,7 @@ class VirtualMachineScheduler( AgentModule ):
 
     return DIRAC.S_OK()
 
-  def submitPilotsForTaskQueue( self, taskQueueDict, waitingPilots ):
-
-    from numpy.random import poisson
-    from DIRAC.WorkloadManagementSystem.DB.TaskQueueDB         import maxCPUSegments
+  def submitPilotsForTaskQueue( self, taskQueueDict, waitingPilots ):    
 
     taskQueueID = taskQueueDict['TaskQueueID']
     maxCPU = maxCPUSegments[-1]
@@ -228,8 +303,10 @@ class VirtualMachineScheduler( AgentModule ):
     self.log.verbose( 'Jobs in TaskQueue %s:' % taskQueueID, taskQueueJobs )
 
     # Determine number of pilots to submit, boosting TaskQueues with low CPU requirements
-    pilotsToSubmit = poisson( ( self.pilotsPerPriority * taskQueuePriority +
-                                self.pilotsPerJob * taskQueueJobs ) * maxCPU / taskQueueCPU )
+    #pilotsToSubmit = poisson( ( self.pilotsPerPriority * taskQueuePriority +
+    #                            self.pilotsPerJob * taskQueueJobs ) * maxCPU / taskQueueCPU )
+    pilotsToSubmit = poisson( ( taskQueuePriority +
+                                taskQueueJobs ) * maxCPU / taskQueueCPU )
     # limit the number of pilots according to the number of waiting job in the TaskQueue
     # and the number of already submitted pilots for that TaskQueue
     pilotsToSubmit = min( pilotsToSubmit, int( ( 1 + extraPilotFraction ) * taskQueueJobs ) + extraPilots - waitingPilots )
@@ -262,10 +339,10 @@ class VirtualMachineScheduler( AgentModule ):
       pool = self.pools[self.directors[submitPool]['pool']]
       director = self.directors[submitPool]['director']
       ret = pool.generateJobAndQueueIt( director.submitPilots,
-                                        args=( taskQueueDict, pilotsToSubmit, self.workDir ),
-                                        oCallback=self.callBack,
-                                        oExceptionCallback=director.exceptionCallBack,
-                                        blocking=False )
+                                        args = ( taskQueueDict, pilotsToSubmit, self.workDir ),
+                                        oCallback = self.callBack,
+                                        oExceptionCallback = director.exceptionCallBack,
+                                        blocking = False )
       if not ret['OK']:
         # Disable submission until next iteration
         self.directors[submitPool]['isEnabled'] = False
@@ -325,22 +402,10 @@ class VirtualMachineScheduler( AgentModule ):
     """
 
     self.log.info( 'Creating Director for SubmitPool:', submitPool )
-    # 1. check the Flavor
-    # Comprobar esto
-    directorFlavor = self.am_getOption( submitPool + '/Flavor', '' )
-    if not directorFlavor:
-      self.log.error( 'No Director Flavor defined for SubmitPool:', submitPool )
-      return
+    # 1. get the CloudDirector
 
-    directorName = '%sDirector' % directorFlavor
-
-    self.log.info( 'Instantiating Director Object:', directorName )
-    if directorName == "KVMDirector":
-      director = KVMDirector( submitPool )
-    elif directorName == "AmazonDirector":
-      director = AmazonDirector( submitPool )
-    else:
-      return
+    director = CloudDirector( submitPool )
+    directorName = '%sDirector' % submitPool
 
     self.log.info( 'Director Object instantiated:', directorName )
 
@@ -363,7 +428,7 @@ class VirtualMachineScheduler( AgentModule ):
 
     return
 
-  def __configureDirector( self, submitPool=None ):
+  def __configureDirector( self, submitPool = None ):
     # Update Configuration from CS
     # if submitPool == None then,
     #     disable all Directors

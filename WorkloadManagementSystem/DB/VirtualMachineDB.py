@@ -2,53 +2,66 @@
 # $HeadURL$
 # File :   VirtualMachineDB.py
 # Author : Ricardo Graciani
+# occi and multi endpoint author : Victor Mendez
 ########################################################################
 """ VirtualMachineDB class is a front-end to the virtual machines DB
 
   Life cycle of VMs Images in DB
-  - New:       Inserted by Director (Name - Flavor - Requirements - Status = New ) if not existing when launching a new instance
+  - New:       Inserted by Director (Name - Requirements - Status = New ) if not existing when launching a new instance
   - Validated: Declared by VMMonitoring Server when an Instance reports back correctly
   - Error:     Declared by VMMonitoring Server when an Instance reports back wrong requirements
 
   Life cycle of VMs Instances in DB
   - New:       Inserted by Director before launching a new instance, to check if image is valid
   - Submitted: Inserted by Director (adding UniqueID) when launches a new instance
+  - Wait_ssh_context:     Declared by Director for submitted instance wich need later contextualization using ssh (VirtualMachineContextualization will check)
+  - Contextualizing:     on the waith_ssh_context path is the next status before Running
   - Running:   Declared by VMMonitoring Server when an Instance reports back correctly (add LastUpdate, publicIP and privateIP)
+  - Stopping:  Declared by VMManager Server when an Instance has been deleted outside of the VM (f.e "Delete" button on Browse Instances)
   - Halted:    Declared by VMMonitoring Server when an Instance reports halting
-  - Stalled:   Declared by VMMonitoring Server when detects Instance no more running
+  - Stalled:   Declared by VMManager Server when detects Instance no more running
   - Error:     Declared by VMMonitoring Server when an Instance reports back wrong requirements or reports as running when Halted
 
   New Instances can be launched by Director if VMImage is not in Error Status.
 
-  Instance UniqueID: depends on Flavor, for KVM it could be the MAC, for Amazon the returned InstanceID(i-5dec3236)
+  Instance UniqueID: for KVM it could be the MAC, for Amazon the returned InstanceID(i-5dec3236), for Occi returned the VMID
 
 
 """
 
-__RCSID__ = "$Id: VirtualMachineDB.py 16 2010-03-15 11:39:29Z ricardo.graciani@gmail.com $"
-
 import types
-from DIRAC.Core.Base.DB import DB
-import DIRAC
+
+# DIRAC
+from DIRAC                import gConfig, S_ERROR, S_OK
+from DIRAC.Core.Base.DB   import DB
+from DIRAC.Core.Utilities import DEncode, Time
+
+__RCSID__ = "$Id: VirtualMachineDB.py 16 2010-03-15 11:39:29Z ricardo.graciani@gmail.com $"
 
 class VirtualMachineDB( DB ):
 
   # When checking the Status on the DB it must be one of these values, if not, the last one (Error) is set
   # When declaring a new Status, it will be set to Error if not in the list
-  validImageStates = [ 'New', 'Validated', 'Error' ]
-  validInstanceStates = [ 'New', 'Submitted', 'Running', 'Halted', 'Stalled', 'Error' ]
+  validImageStates    = [ 'New', 'Validated', 'Error' ]
+  validInstanceStates = [ 'New', 'Submitted', 'Wait_ssh_context', 'Contextualizing', 
+                          'Running', 'Stopping', 'Halted', 'Stalled', 'Error' ]
 
-  stallingInterval = 30 * 60 # This are seconds
+  # In seconds !
+  stallingInterval = 30 * 60 
 
   # When attempting a transition it will be checked if the current state is allowed 
   allowedTransitions = { 'Image' : {
                                        'Validated' : [ 'New', 'Validated' ],
                                    },
                         'Instance' : {
+                                       'Wait_ssh_context' : [ 'New' ],
                                        'Submitted' : [ 'New' ],
-                                       'Running' : [ 'Submitted', 'Running', 'Stalled' ],
-                                       'Halted' : [ 'Running', 'Stalled' ],
-                                       'Stalled': [ 'New', 'Submitted', 'Running' ],
+                                       'Contextualizing' : [ 'Wait_ssh_context' ],
+                                       'Running' : [ 'Submitted', 'Contextualizing', 'Running', 'Stalled' ],
+                                       'Stopping' : [ 'Running', 'Stalled' ],
+                                       'Halted' : [ 'New','Running', 'Stopping', 'Stalled' ],
+                                       'Stalled': [ 'New', 'Submitted', 'Wait_ssh_context', 
+                                                    'Contextualizing', 'Running' ],
                                       }
                        }
 
@@ -56,20 +69,22 @@ class VirtualMachineDB( DB ):
 
   tablesDesc[ 'vm_Images' ] = { 'Fields' : { 'VMImageID' : 'BIGINT UNSIGNED AUTO_INCREMENT NOT NULL',
                                              'Name' : 'VARCHAR(255) NOT NULL',
-                                             'Flavor' : 'VARCHAR(32) NOT NULL',
+                                             'CloudEndpoints' : 'VARCHAR(1024) NOT NULL',
                                              'Requirements' : 'VARCHAR(1024) NOT NULL',
                                              'Status' : 'VARCHAR(16) NOT NULL',
                                              'LastUpdate' : 'DATETIME',
                                              'ErrorMessage' : 'VARCHAR(255) NOT NULL DEFAULT ""',
                                            },
                                'PrimaryKey' : 'VMImageID',
-                               'Indexes': { 'Image': [ 'Name', 'Flavor' ]
+                               'Indexes': { 'Image': [ 'Name', 'CloudEndpoints' ]
                                           }
                              }
 
-  tablesDesc[ 'vm_Instances' ] = { 'Fields' : { 'VMInstanceID' : 'BIGINT UNSIGNED AUTO_INCREMENT NOT NULL',
+  tablesDesc[ 'vm_Instances' ] = { 'Fields' : { 'InstanceID' : 'BIGINT UNSIGNED AUTO_INCREMENT NOT NULL',
+                                                'RunningPod' : 'VARCHAR(255) NOT NULL',
                                                 'Name' : 'VARCHAR(255) NOT NULL',
-                                                'UniqueID' : 'VARCHAR(32) NOT NULL DEFAULT ""',
+                                                'Endpoint' : 'VARCHAR(32) NOT NULL',
+                                                'UniqueID' : 'VARCHAR(64) NOT NULL DEFAULT ""',
                                                 'VMImageID' : 'INTEGER UNSIGNED NOT NULL',
                                                 'Status' : 'VARCHAR(32) NOT NULL',
                                                 'LastUpdate' : 'DATETIME',
@@ -78,13 +93,14 @@ class VirtualMachineDB( DB ):
                                                 'ErrorMessage' : 'VARCHAR(255) NOT NULL DEFAULT ""',
                                                 'MaxAllowedPrice' : 'FLOAT DEFAULT NULL',
                                                 'Uptime' : 'INTEGER UNSIGNED DEFAULT 0',
-                                                'Load' : 'FLOAT DEFAULT 0'
+                                                'Load' : 'FLOAT DEFAULT 0',
+                                                'Jobs' : 'INTEGER UNSIGNED NOT NULL DEFAULT 0'
                                              },
-                                   'PrimaryKey' : 'VMInstanceID',
+                                   'PrimaryKey' : 'InstanceID',
                                    'Indexes': { 'Status': [ 'Status' ] },
                                  }
 
-  tablesDesc[ 'vm_History' ] = { 'Fields' : { 'VMInstanceID' : 'INTEGER UNSIGNED NOT NULL',
+  tablesDesc[ 'vm_History' ] = { 'Fields' : { 'InstanceID' : 'INTEGER UNSIGNED NOT NULL',
                                               'Status' : 'VARCHAR(32) NOT NULL',
                                               'Load' : 'FLOAT NOT NULL',
                                               'Jobs' : 'INTEGER UNSIGNED NOT NULL DEFAULT 0',
@@ -92,28 +108,30 @@ class VirtualMachineDB( DB ):
                                               'TransferredBytes' : 'BIGINT UNSIGNED NOT NULL DEFAULT 0',
                                               'Update' : 'DATETIME'
                                             },
-                                 'Indexes': { 'VMInstanceID': [ 'VMInstanceID' ] },
+                                 'Indexes': { 'InstanceID': [ 'InstanceID' ] },
                                }
 
 
   def __init__( self, maxQueueSize = 10 ):
+    
     DB.__init__( self, 'VirtualMachineDB', 'WorkloadManagement/VirtualMachineDB', maxQueueSize )
     if not self._MySQL__initialized:
       raise Exception( 'Can not connect to VirtualMachineDB, exiting...' )
 
     result = self.__initializeDB()
     if not result[ 'OK' ]:
-      raise Exception( "Can't create tables: %s" % result[ 'Message' ] )
+      raise Exception( 'Can\'t create tables: %s' % result[ 'Message' ] )
 
   def __initializeDB( self ):
     """
     Create the tables
     """
-    result = self._query( "show tables" )
-    if not result[ 'OK' ]:
-      return result
+    tables = self._query( "show tables" )
+    if not tables[ 'OK' ]:
+      return tables
 
-    tablesInDB = [ t[0] for t in result[ 'Value' ] ]
+    tablesInDB = [ table[0] for table in tables[ 'Value' ] ]
+    
     tablesToCreate = {}
     for tableName in self.tablesDesc:
       if not tableName in tablesInDB:
@@ -121,25 +139,25 @@ class VirtualMachineDB( DB ):
 
     return self._createTables( tablesToCreate )
 
-  def __getTypeTuple( self, object ):
+  def __getTypeTuple( self, element ):
     """
     return tuple of (tableName, validStates, idName) for object
     """
-    tableName = ''
-    validStates = []
-    idName = ''
-    if object == 'Image':
-      tableName = 'vm_Images'
+    # defaults
+    tableName, validStates, idName = '', [], ''
+        
+    if element == 'Image':
+      tableName   = 'vm_Images'
       validStates = self.validImageStates
-      idName = 'VMImageID'
-    elif object == 'Instance':
-      tableName = 'vm_Instances'
+      idName      = 'VMImageID'
+    elif element == 'Instance':
+      tableName   = 'vm_Instances'
       validStates = self.validInstanceStates
-      idName = 'VMInstanceID'
+      idName      = 'InstanceID'
 
     return ( tableName, validStates, idName )
 
-  def checkImageStatus( self, imageName ):
+  def checkImageStatus( self, imageName, runningPodName = "" ):
     """ 
     Check Status of a given image
     Will insert a new Image in the DB if it does not exits
@@ -147,12 +165,12 @@ class VirtualMachineDB( DB ):
       S_OK(Status) if Status is valid and not Error 
       S_ERROR(ErrorMessage) otherwise
     """
-    ret = self.__getImageID( imageName )
-    if not ret['OK']:
+    ret = self.__getImageID( imageName, runningPodName )
+    if not ret[ 'OK' ]:
       return ret
-    return self.__getStatus( 'Image', ret['Value'] )
+    return self.__getStatus( 'Image', ret[ 'Value' ] )
 
-  def insertInstance( self, imageName, instanceName ):
+  def insertInstance( self, imageName, instanceName, endpoint, runningPodName ):
     """ 
     Check Status of a given image
     Will insert a new Instance in the DB
@@ -160,67 +178,182 @@ class VirtualMachineDB( DB ):
       S_OK( InstanceID ) if new Instance is properly inserted 
       S_ERROR(ErrorMessage) otherwise
     """
-    imageStatus = self.checkImageStatus( imageName )
-    if not imageStatus['OK']:
+    imageStatus = self.checkImageStatus( imageName, runningPodName )
+    if not imageStatus[ 'OK' ]:
       return imageStatus
 
-    return self.__insertInstance( imageName, instanceName )
+    return self.__insertInstance( imageName, instanceName, endpoint, runningPodName )
 
   def setInstanceUniqueID( self, instanceID, uniqueID ):
     """
     Assign a uniqueID to an instance
     """
     result = self.__getInstanceID( uniqueID )
-    if result['OK']:
-      return DIRAC.S_ERROR( 'UniqueID is not unique: %s' % uniqueID )
+    if result[ 'OK' ]:
+      return S_ERROR( 'UniqueID is not unique: %s' % uniqueID )
 
     result = self._escapeString( uniqueID )
-    if not result['OK']:
+    if not result[ 'OK' ]:
       return result
     uniqueID = result[ 'Value' ]
+    
     try:
       instanceID = int( instanceID )
-    except Exception, e:
-      raise e
-      return DIRAC.S_ERROR( "Instance id has to be a number" )
-    ( tableName, validStates, idName ) = self.__getTypeTuple( 'Instance' )
+    except ValueError:
+    #except Exception, e:
+      #FIXME: do we really want to raise an Exception ?
+      #raise e
+      return S_ERROR( "uniqueID has to be a number" )
+    
+    tableName, _validStates, idName = self.__getTypeTuple( 'Instance' )
+    
     sqlUpdate = "UPDATE `%s` SET UniqueID = %s WHERE %s = %d" % ( tableName, uniqueID, idName, instanceID )
     return self._update( sqlUpdate )
 
+  def getUniqueID( self, instanceID ):
+    """
+    For a given dirac instanceID get the corresponding cloud endpoint uniqueID
+    """
+    tableName, _validStates, idName = self.__getTypeTuple( 'Instance' )
+    
+    uniqueID = self._getFields( tableName, [ 'UniqueID' ], [ 'InstanceID' ], [ instanceID ] )
+    if not uniqueID[ 'OK' ]:
+      return uniqueID
+    uniqueID = uniqueID[ 'Value' ][0][0]
+
+    if not uniqueID:
+      return S_ERROR( 'Unknown %s = %s' % ( 'InstanceID', instanceID ) )
+
+    return S_OK( uniqueID )
+
   def declareInstanceSubmitted( self, uniqueID ):
     """
-    After submission of the instance the Director should declare the new Status
+    After submission of the instance the Director should declare the submitted Status
     """
     instanceID = self.__getInstanceID( uniqueID )
-    if not instanceID['OK']:
+    if not instanceID[ 'OK' ]:
       return instanceID
-    instanceID = instanceID['Value']
+    instanceID = instanceID[ 'Value' ]
 
     status = self.__setState( 'Instance', instanceID, 'Submitted' )
-    if status['OK']:
+    if status[ 'OK' ]:
       self.__addInstanceHistory( instanceID, 'Submitted' )
 
     return status
+
+  def declareInstanceWait_ssh_context ( self, uniqueID ):
+    """
+    After new instance the Director should declare the waiting for ssh contextualization Status
+    """
+    instanceID = self.__getInstanceID( uniqueID )
+    if not instanceID[ 'OK' ]:
+      return instanceID
+    instanceID = instanceID[ 'Value' ]
+
+    status = self.__setState( 'Instance', instanceID, 'Wait_ssh_context' )
+    if status[ 'OK' ]:
+      self.__addInstanceHistory( instanceID, 'Wait_ssh_context' )
+
+    return status
+
+  def declareInstanceContextualizing ( self, uniqueID ):
+    """
+    After new instance the Director should declare the waiting for ssh contextualization Status
+    """
+    instanceID = self.__getInstanceID( uniqueID )
+    if not instanceID[ 'OK' ]:
+      return instanceID
+    instanceID = instanceID['Value']
+
+    status = self.__setState( 'Instance', instanceID, 'Contextualizing' )
+    if status[ 'OK' ]:
+      self.__addInstanceHistory( instanceID, 'Contextualizing' )
+
+    return status
+
+  def setPublicIP( self, instanceID, publicIP ):
+    """
+    Update publicIP when used for contextualization previus to declareInstanceRunning
+    """
+    result = self._escapeString( publicIP )
+    if not result[ 'OK' ]:
+      return result
+    publicIP = result[ 'Value' ]
+    
+    try:
+      instanceID = int( instanceID )
+    except ValueError:
+      return S_ERROR( "instanceID has to be an integer value" )
+
+    tableName, _validStates, idName = self.__getTypeTuple( 'Instance' )
+    sqlUpdate = 'UPDATE `%s` SET PublicIP = %s WHERE %s = %d' %  ( tableName, publicIP, idName, instanceID )
+
+    return self._update( sqlUpdate )
 
   def declareInstanceRunning( self, uniqueID, publicIP, privateIP = "" ):
     """
     Declares an instance Running and sets its associated info (uniqueID, publicIP, privateIP)
     Returns S_ERROR if:
-      - instanceName does not have a "Submitted" entry 
+      - instanceName does not have a "Submitted" or "Contextualizing" entry 
       - uniqueID is not unique
     """
     instanceID = self.__getInstanceID( uniqueID )
-    if not instanceID['OK']:
+    if not instanceID[ 'OK' ]:
       return instanceID
-    instanceID = instanceID['Value']
+    instanceID = instanceID[ 'Value' ]
 
     self.__setInstanceIPs( instanceID, publicIP, privateIP )
 
     status = self.__setState( 'Instance', instanceID, 'Running' )
-    if status['OK']:
+    if status[ 'OK' ]:
       self.__addInstanceHistory( instanceID, 'Running' )
 
     return self.getAllInfoForUniqueID( uniqueID )
+
+  def declareInstanceStopping( self, instanceID ):
+    """
+    From "Stop" buttom of Browse Instance
+    Declares "Stopping" the instance, next heat-beat from VM will recibe a stop response to do an ordenate termination 
+    It returns S_ERROR if the status is not OK
+    """
+    status = self.__setState( 'Instance', instanceID, 'Stopping' )
+    if status[ 'OK' ]:
+      self.__addInstanceHistory( instanceID, 'Stopping' )
+
+    return status
+
+  def getInstanceStatus( self, instanceID ):
+    """
+    By dirac instanceID
+    """
+    tableName, validStates, idName = self.__getTypeTuple( 'Instance' )
+    if not tableName:
+      return S_ERROR( 'Unknown DB object Instance' )
+
+    ret = self.__getStatus( 'Instance', instanceID )
+    if not ret[ 'OK' ]:
+      return ret
+
+    if not ret[ 'Value' ]:
+      return S_ERROR( 'Unknown InstanceID = %s' % ( instanceID ) )
+
+    status = ret[ 'Value' ]
+    if not status in validStates:
+      return self.__setError( 'Instances', instanceID, 'Invalid Status: %s' % status )
+
+    return S_OK( status )
+
+  def recordDBHalt( self, instanceID, load ):
+    """
+    Insert the heart beat info from a halting instance
+    Declares "Halted" the instance and the image 
+    It returns S_ERROR if the status is not OK
+    """
+    status = self.__setState( 'Instance', instanceID, 'Halted' )
+    if status[ 'OK' ]:
+      self.__addInstanceHistory( instanceID, 'Halted', load )
+
+    return status
 
   def declareInstanceHalting( self, uniqueID, load ):
     """
@@ -229,12 +362,12 @@ class VirtualMachineDB( DB ):
     It returns S_ERROR if the status is not OK
     """
     instanceID = self.__getInstanceID( uniqueID )
-    if not instanceID['OK']:
+    if not instanceID[ 'OK' ]:
       return instanceID
-    instanceID = instanceID['Value']
+    instanceID = instanceID[ 'Value' ]
 
     status = self.__setState( 'Instance', instanceID, 'Halted' )
-    if status['OK']:
+    if status[ 'OK' ]:
       self.__addInstanceHistory( instanceID, 'Halted', load )
 
     return status
@@ -243,24 +376,26 @@ class VirtualMachineDB( DB ):
     """
     Check last Heart Beat for all Running instances and declare them Stalled if older than interval
     """
-    oldInstances = self.__getOldInstanceIDs( self.stallingInterval, self.allowedTransitions['Instance']['Stalled'] )
-    if not oldInstances['OK']:
+    oldInstances = self.__getOldInstanceIDs( self.stallingInterval, 
+                                             self.allowedTransitions[ 'Instance' ][ 'Stalled' ] )
+    if not oldInstances[ 'OK' ]:
       return oldInstances
 
     stallingInstances = []
 
-    if not oldInstances['Value']:
-      return DIRAC.S_OK( stallingInstances )
+    if not oldInstances[ 'Value' ]:
+      return S_OK( stallingInstances )
 
-    for id in oldInstances['Value']:
-      id = id[0]
-      stalled = self.__setState( 'Instance', id, 'Stalled' )
-      if not stalled['OK']:
+    for instanceID in oldInstances['Value']:
+      instanceID = instanceID[ 0 ]
+      stalled    = self.__setState( 'Instance', instanceID, 'Stalled' )
+      if not stalled[ 'OK' ]:
         continue
-      self.__addInstanceHistory( id, 'Stalled' )
-      stallingInstances.append( id )
+      
+      self.__addInstanceHistory( instanceID, 'Stalled' )
+      stallingInstances.append( instanceID )
 
-    return DIRAC.S_OK( stallingInstances )
+    return S_OK( stallingInstances )
 
 
   def instanceIDHeartBeat( self, uniqueID, load, jobs, transferredFiles, transferredBytes, uptime ):
@@ -271,97 +406,215 @@ class VirtualMachineDB( DB ):
     It returns S_ERROR if the status is not OK
     """
     instanceID = self.__getInstanceID( uniqueID )
-    if not instanceID['OK']:
+    if not instanceID[ 'OK' ]:
       return instanceID
-    instanceID = instanceID['Value']
+    instanceID = instanceID[ 'Value' ]
 
     status = self.__runningInstance( instanceID, load, jobs, transferredFiles, transferredBytes )
-    if not status['OK']:
+    if not status[ 'OK' ]:
       return status
 
-    self.__setLastLoadAndUptime( instanceID, load, uptime )
+    self.__setLastLoadJobsAndUptime( instanceID, load, jobs, uptime )
 
-    #TODO: Send empty dir just in case we want to send flags (such as stop vm)
-    return DIRAC.S_OK( {} )
+    if status == 'Stopping':
+      return S_OK( 'stop' )
+    return S_OK()
+
+  def getPublicIpFromInstance( self, uniqueId ):
+    """
+    For a given instance uniqueId it returns the asociated PublicIP in the instance table, 
+    thus the ImageName of such instance 
+    Using _getFields( self, tableName, outFields = None, inFields = None, inValues = None, limit = 0, conn = None )
+    """
+    tableName, _validStates, _idName = self.__getTypeTuple( 'Instance' )
+    
+    publicIP = self._getFields( tableName, [ 'PublicIP' ], [ 'UniqueID' ], [ uniqueId ] )
+    if not publicIP[ 'OK' ]:
+      return publicIP
+    publicIP = publicIP[ 'Value' ] 
+
+    if not publicIP:
+      return S_ERROR( 'Unknown %s = %s' % ( 'UniqueID', uniqueId ) )
+
+    return S_OK( publicIP[ 0 ][ 0 ] )
+
+  def getEndpointFromInstance( self, uniqueId ):
+    """
+    For a given instance uniqueId it returns the asociated Endpoint in the instance 
+    table, thus the ImageName of such instance 
+    Using _getFields( self, tableName, outFields = None, inFields = None, inValues = None, limit = 0, conn = None )
+    """
+    tableName, _validStates, _idName = self.__getTypeTuple( 'Instance' )
+    
+    endpoint = self._getFields( tableName, [ 'Endpoint' ], [ 'UniqueID' ], [ uniqueId ] )
+    if not endpoint[ 'OK' ]:
+      return endpoint
+    endpoint = endpoint[ 'Value' ]
+
+    if not endpoint:
+      return S_ERROR( 'Unknown %s = %s' % ( 'UniqueID', uniqueId ) )
+
+    return S_OK( endpoint[ 0 ][ 0 ] )
+
+  def getImageNameFromInstance( self, uniqueId ):
+    """
+    For a given uniqueId it returns the asociated Name in the instance table, thus the ImageName of such instance 
+    Using _getFields( self, tableName, outFields = None, inFields = None, inValues = None, limit = 0, conn = None )
+    """
+    tableName, _validStates, _idName = self.__getTypeTuple( 'Instance' )
+    
+    imageName = self._getFields( tableName, [ 'Name' ], [ 'UniqueID' ], [ uniqueId ] )
+    if not imageName[ 'OK' ]:
+      return imageName
+    imageName = imageName[ 'Value' ]
+
+    if not imageName:
+      return S_ERROR( 'Unknown %s = %s' % ( 'UniqueID', uniqueId ) )
+
+    return S_OK( imageName[ 0 ][ 0 ] )
 
   def getInstancesByStatus( self, status ):
     """
     Get dictionary of Image Names with InstanceIDs in given status 
     """
     if status not in self.validInstanceStates:
-      return DIRAC.S_ERROR( 'Status %s is not known' % status )
+      return S_ERROR( 'Status %s is not known' % status )
 
-    ( tableName, validStates, idName ) = self.__getTypeTuple( 'Instance' )
+    # InstanceTuple
+    tableName, _validStates, _idName = self.__getTypeTuple( 'Instance' )
 
     runningInstances = self._getFields( tableName, [ 'VMImageID', 'UniqueID' ], ['Status'], [status] )
-    if not runningInstances['OK']:
+    if not runningInstances[ 'OK' ]:
       return runningInstances
-    runningInstances = runningInstances['Value']
+    runningInstances = runningInstances[ 'Value' ]
+    
     instancesDict = {}
-    imagesDict = {}
+    imagesDict    = {}
+    
+    # ImageTuple
+    tableName, _validStates, idName = self.__getTypeTuple( 'Image' )  
+    
+    for imageID, uniqueID in runningInstances:
+      
+      if not imageID in imagesDict:       
+        
+        imageName = self._getFields( tableName, [ 'Name' ], [ idName ], [ imageID ] )
+        if not imageName[ 'OK' ]:
+          continue
+        imagesDict[ imageID ] = imageName[ 'Value' ][ 0 ][ 0 ]
+        
+      if not imagesDict[ imageID ] in instancesDict:
+        instancesDict[ imagesDict[ imageID ] ] = []
+      instancesDict[ imagesDict[ imageID ] ].append( uniqueID )
+
+    return S_OK( instancesDict )
+
+  def getInstancesInfoByStatus( self, status ):
+    """
+    Get from Instances fields UniqueID, Endpoint, PublicIP, RunningPod  for instances in the given status 
+    """
+    if status not in self.validInstanceStates:
+      return S_ERROR( 'Status %s is not known' % status )
+
+    tableName, _validStates, _idName = self.__getTypeTuple( 'Instance' )
+
+    runningInstances = self._getFields( tableName, [ 'UniqueID', 'Endpoint', 'PublicIP', 'RunningPod' ], 
+                                        [ 'Status' ], [ status ] )
+    if not runningInstances[ 'OK' ]:
+      return runningInstances
+    runningInstances = runningInstances[ 'Value' ]
+    
+    return S_OK( runningInstances )
+
+  def getInstancesByStatusAndEndpoint( self, status, endpoint ):
+    """
+    Get dictionary of Image Names with InstanceIDs in given status 
+    """
+    if status not in self.validInstanceStates:
+      return S_ERROR( 'Status %s is not known' % status )
+
+    # InstanceTuple
+    tableName, _validStates, _idName = self.__getTypeTuple( 'Instance' )
+
+    runningInstances = self._getFields( tableName, [ 'VMImageID', 'UniqueID' ], 
+                                        [ 'Status', 'Endpoint' ], [ status, endpoint ] )
+    if not runningInstances[ 'OK' ]:
+      return runningInstances
+    runningInstances = runningInstances[ 'Value' ]
+    
+    instancesDict = {}
+    imagesDict    = {}
+    
+    # InstanceTuple
+    tableName, _validStates, idName = self.__getTypeTuple( 'Image' )
+    
     for imageID, uniqueID in runningInstances:
       if not imageID in imagesDict:
-        ( tableName, validStates, idName ) = self.__getTypeTuple( 'Image' )
-        imageName = self._getFields( tableName, ['Name'], [idName], [imageID] )
-        if not imageName['OK']:
+        
+        imageName = self._getFields( tableName, [ 'Name' ], [ idName ], [ imageID ] )
+        if not imageName[ 'OK' ]:
           continue
-        imagesDict[imageID] = imageName['Value'][0][0]
-      if not imagesDict[imageID] in instancesDict:
-        instancesDict[imagesDict[imageID]] = []
-      instancesDict[imagesDict[imageID]].append( uniqueID )
+        imagesDict[ imageID ] = imageName[ 'Value' ][ 0 ][ 0 ]
+        
+      if not imagesDict[ imageID ] in instancesDict:
+        instancesDict[ imagesDict[ imageID ] ] = []
+      instancesDict[ imagesDict[ imageID ] ].append( uniqueID )
 
-    return DIRAC.S_OK( instancesDict )
+    return S_OK( instancesDict )
 
   def getAllInfoForUniqueID( self, uniqueID ):
     """
     Get all fields for a uniqueID
     """
-    result = self.__getInstanceID( uniqueID )
-    if not result['OK']:
-      return result
-    instanceID = result['Value']
-    result = self.__getInfo( 'Instance', instanceID )
-    if not result[ 'OK' ]:
-      return result
-    instData = result[ 'Value' ]
-    result = self.__getInfo( 'Image', instData[ 'VMImageID' ] )
-    if not result[ 'OK' ]:
-      return result
-    imgData = result[ 'Value' ]
-    return DIRAC.S_OK( { 'Image' : imgData, 'Instance' : instData } )
+    instanceID = self.__getInstanceID( uniqueID )
+    if not instanceID[ 'OK' ]:
+      return instanceID
+    instanceID = instanceID[ 'Value' ]
+    
+    instData = self.__getInfo( 'Instance', instanceID )
+    if not instData[ 'OK' ]:
+      return instData
+    instData = instData[ 'Value' ]
+    
+    imgData = self.__getInfo( 'Image', instData[ 'VMImageID' ] )
+    if not imgData[ 'OK' ]:
+      return imgData
+    imgData = imgData[ 'Value' ]
+    
+    return S_OK( { 'Image' : imgData, 'Instance' : instData } )
 
-
-  def __insertInstance( self, imageName, instanceName ):
+  def __insertInstance( self, imageName, instanceName, endpoint, runningPodName ):
     """
-    Attempts to insert a new Instance for the given Image
+    Attempts to insert a new Instance for the given Image in a given Endpoint of a runningPodName
     """
-    image = self.__getImageID( imageName )
-    if not image['OK']:
+    image = self.__getImageID( imageName, runningPodName )
+    if not image[ 'OK' ]:
       return image
-    imageID = image['Value']
+    imageID = image[ 'Value' ]
 
-    ( tableName, validStates, idName ) = self.__getTypeTuple( 'Instance' )
+    tableName, validStates, _idName = self.__getTypeTuple( 'Instance' )
 
-    fields = ['Name', 'VMImageID', 'Status', 'LastUpdate' ]
-    values = [instanceName, imageID, validStates[0], DIRAC.Time.toString() ]
-    result = getImageDict( imageName )
-    if not result[ 'OK' ]:
-      return result
-    imgDict = result[ 'Value' ]
-    if 'MaxAllowedPrice' in imgDict:
+    fields = [ 'RunningPod', 'Name', 'Endpoint', 'VMImageID', 'Status', 'LastUpdate' ]
+    values = [ runningPodName, instanceName, endpoint, imageID, validStates[ 0 ], Time.toString() ]
+    
+    runningPodDict = self.getRunningPodDict( runningPodName )
+    if not runningPodDict[ 'OK' ]:
+      return runningPodDict
+    runningPodDict = runningPodDict[ 'Value' ]
+    
+    if 'MaxAllowedPrice' in runningPodDict:
       fields.append( 'MaxAllowedPrice' )
-      values.append( imgDict[ 'MaxAllowedPrice' ] )
+      values.append( runningPodDict[ 'MaxAllowedPrice' ] )
 
     instance = self._insert( tableName , fields, values )
-
-    if instance['OK'] and 'lastRowId' in instance:
-      self.__addInstanceHistory( instance['lastRowId'], validStates[0] )
-      return DIRAC.S_OK( instance['lastRowId'] )
-
-    if not instance['OK']:
+    if not instance[ 'OK' ]:
       return instance
 
-    return DIRAC.S_ERROR( 'Failed to insert new Instance' )
+    if 'lastRowId' in instance:
+      self.__addInstanceHistory( instance[ 'lastRowId' ], validStates[ 0 ] )
+      return S_OK( instance[ 'lastRowId' ] )   
+
+    return S_ERROR( 'Failed to insert new Instance' )
 
   def __runningInstance( self, instanceID, load, jobs, transferredFiles, transferredBytes ):
     """
@@ -369,25 +622,25 @@ class VirtualMachineDB( DB ):
     """
     # Check the Image is OK
     imageID = self.__getImageForRunningInstance( instanceID )
-    if not imageID['OK']:
-      self.__setError( 'Instance', instanceID, imageID['Message'] )
+    if not imageID[ 'OK' ]:
+      self.__setError( 'Instance', instanceID, imageID[ 'Message' ] )
       return imageID
-    imageID = imageID['Value']
+    imageID = imageID[ 'Value' ]
 
     # Update Instance to Running
     stateInstance = self.__setState( 'Instance', instanceID, 'Running' )
-    if not stateInstance['OK']:
+    if not stateInstance[ 'OK' ]:
       return stateInstance
 
     # Update Image to Validated
     stateImage = self.__setState( 'Image', imageID, 'Validated' )
-    if not stateImage['OK']:
-      self.__setError( 'Instance', instanceID, stateImage['Message'] )
+    if not stateImage[ 'OK' ]:
+      self.__setError( 'Instance', instanceID, stateImage[ 'Message' ] )
       return stateImage
 
     # Add History record
     self.__addInstanceHistory( instanceID, 'Running', load, jobs, transferredFiles, transferredBytes )
-    return DIRAC.S_OK()
+    return S_OK()
 
   def __getImageForRunningInstance( self, instanceID ):
     """
@@ -397,185 +650,200 @@ class VirtualMachineDB( DB ):
       S_OK( imageID )
       S_ERROR( Reason ) 
     """
-    result = self.__getInfo( 'Instance', instanceID )
-    if not result['OK']:
-      return result
-    info = result[ 'Value' ]
-    ( tableName, validStates, idName ) = self.__getTypeTuple( 'Image' )
+    info = self.__getInfo( 'Instance', instanceID )
+    if not info[ 'OK' ]:
+      return info
+    info = info[ 'Value' ]
+    
+    _tableName, _validStates, idName = self.__getTypeTuple( 'Image' )
 
     imageID = info[ idName ]
 
     imageStatus = self.__getStatus( 'Image', imageID )
-    if not imageStatus['OK']:
+    if not imageStatus[ 'OK' ]:
       return imageStatus
 
-    return DIRAC.S_OK( imageID )
+    return S_OK( imageID )
 
   def __getOldInstanceIDs( self, secondsIdle, states ):
     """
     Return list of instance IDs that have not updated after the given time stamp
     they are required to be in one of the given states
     """
-    ( tableName, validStates, idName ) = self.__getTypeTuple( 'Instance' )
+    tableName, _validStates, idName = self.__getTypeTuple( 'Instance' )
+    
     sqlCond = []
     sqlCond.append( 'TIMESTAMPDIFF( SECOND, `LastUpdate`, UTC_TIMESTAMP() ) > % d' % secondsIdle )
     sqlCond.append( 'Status IN ( "%s" )' % '", "'.join( states ) )
-    cmd = 'SELECT %s from `%s` WHERE %s' % \
-          ( idName, tableName, " AND ".join( sqlCond ) )
-    return self._query( cmd )
+    
+    sqlSelect = 'SELECT %s from `%s` WHERE %s' % ( idName, tableName, " AND ".join( sqlCond ) )
+          
+    return self._query( sqlSelect )
 
   def __getSubmittedInstanceID( self, imageName ):
     """
     Retrieve and InstanceID associated to a submitted Instance for a given Image
     """
-    ( tableName, validStates, idName ) = self.__getTypeTuple( 'Image' )
+    tableName, _validStates, idName = self.__getTypeTuple( 'Image' )
+    
     imageID = self._getFields( tableName, [ idName ], ['Name'], [imageName] )
-    if not imageID['OK']:
+    if not imageID[ 'OK' ]:
       return imageID
+    imageID = imageID[ 'Value' ]
 
-    if not imageID['Value']:
-      return DIRAC.S_ERROR( 'Unknown Image = %s' % imageName )
+    if not imageID:
+      return S_ERROR( 'Unknown Image = %s' % imageName )
 
-    if len( imageID['Value'] ) <> 1:
-      return DIRAC.S_ERROR( 'Image name "%s" is not unique' % imageName )
+    #FIXME: <> is obsolete
+    if len( imageID ) <> 1:
+      return S_ERROR( 'Image name "%s" is not unique' % imageName )
 
-    imageID = imageID['Value'][0][0]
+    imageID     = imageID[ 0 ][ 0 ]
     imageIDName = idName
 
-    ( tableName, validStates, idName ) = self.__getTypeTuple( 'Instance' )
+    tableName, _validStates, idName = self.__getTypeTuple( 'Instance' )
 
-    instanceID = self._getFields( tableName, [idName], [ imageIDName, 'Status' ], [ imageID, 'Submitted' ] )
-    if not instanceID['OK']:
+    instanceID = self._getFields( tableName, [ idName ], [ imageIDName, 'Status' ], 
+                                  [ imageID, 'Submitted' ] )
+    if not instanceID[ 'OK' ]:
       return instanceID
+    instanceID = instanceID[ 'Value' ]
 
-    if not instanceID['Value']:
-      return DIRAC.S_ERROR( 'No Submitted instance of "%s" found' % imageName )
+    if not instanceID:
+      return S_ERROR( 'No Submitted instance of "%s" found' % imageName )
 
-    return DIRAC.S_OK( instanceID['Value'][0][0] )
+    return S_OK( instanceID[ 0 ][ 0 ] )
 
-  def __setState( self, object, id, state ):
+  def __setState( self, element, iD, state ):
     """
-    Attempt to set object in state, checking if transition is allowed
+    Attempt to set element in state, checking if transition is allowed
     """
-    knownStates = self.allowedTransitions[object].keys()
+    
+    knownStates = self.allowedTransitions[ element ].keys()
     if not state in knownStates:
-      return DIRAC.S_ERROR( 'Transition to %s not possible' % state )
+      return S_ERROR( 'Transition to %s not possible' % state )
 
-    allowedStates = self.allowedTransitions[object][state]
+    allowedStates = self.allowedTransitions[ element ][ state ]
 
-    currentState = self.__getStatus( object, id )
-    if not currentState['OK']:
+    currentState = self.__getStatus( element, iD )
+    if not currentState[ 'OK' ]:
       return currentState
-
-    ( tableName, validStates, idName ) = self.__getTypeTuple( object )
-
-    currentState = currentState['Value']
-    if currentState == state:
-      cmd = 'UPDATE `%s` SET LastUpdate = UTC_TIMESTAMP() WHERE %s = %s' % \
-          ( tableName, idName, id )
-
-      ret = self._update( cmd )
-      if not ret['OK']:
-        return ret
-      return DIRAC.S_OK( state )
+    currentState = currentState[ 'Value' ]
 
     if not currentState in allowedStates:
       msg = 'Transition ( %s -> %s ) not allowed' % ( currentState, state )
-      return DIRAC.S_ERROR( msg )
+      return S_ERROR( msg )
 
-    cmd = 'UPDATE `%s` SET Status = "%s", LastUpdate = UTC_TIMESTAMP() WHERE %s = %s' % \
-        ( tableName, state, idName, id )
+    tableName, _validStates, idName = self.__getTypeTuple( element )
+    
+    if currentState == state:
+      sqlUpdate = 'UPDATE `%s` SET LastUpdate = UTC_TIMESTAMP() WHERE %s = %s' % ( tableName, idName, iD )
 
-    ret = self._update( cmd )
-    if not ret['OK']:
+    else:
+      sqlUpdate = 'UPDATE `%s` SET Status = "%s", LastUpdate = UTC_TIMESTAMP() WHERE %s = %s' % \
+          ( tableName, state, idName, iD )
+      
+
+    ret = self._update( sqlUpdate )
+    if not ret[ 'OK' ]:
       return ret
+    return S_OK( state )
 
-    return DIRAC.S_OK( state )
 
   def __setInstanceIPs( self, instanceID, publicIP, privateIP ):
     """
     Update parameters for an instanceID reporting as running
     """
-    values = self._escapeValues( [ publicIP, privateIP] )
-    if not values['OK']:
+    values = self._escapeValues( [ publicIP, privateIP ] )
+    if not values[ 'OK' ]:
       return S_ERROR( "Cannot escape values: %s" % str( values ) )
-    ( publicIP, privateIP ) = values['Value']
+    publicIP, privateIP = values[ 'Value' ]
 
-    ( tableName, validStates, idName ) = self.__getTypeTuple( 'Instance' )
-    cmd = 'UPDATE `%s` SET PublicIP = %s, PrivateIP = %s WHERE %s = %s' % \
-             ( tableName, publicIP, privateIP, idName, instanceID )
+    tableName, _validStates, idName = self.__getTypeTuple( 'Instance' )
+    sqlUpdate = 'UPDATE `%s` SET PublicIP = %s, PrivateIP = %s WHERE %s = %s' % \
+                ( tableName, publicIP, privateIP, idName, instanceID )
 
-    return self._update( cmd )
+    return self._update( sqlUpdate )
 
   def __getInstanceID( self, uniqueID ):
     """
     For a given uniqueID of an instance return associated internal InstanceID 
     """
-    ( tableName, validStates, idName ) = self.__getTypeTuple( 'Instance' )
+    tableName, _validStates, idName = self.__getTypeTuple( 'Instance' )
+    
     instanceID = self._getFields( tableName, [ idName ], [ 'UniqueID' ], [ uniqueID ] )
-    if not instanceID['OK']:
+    if not instanceID[ 'OK' ]:
       return instanceID
+    instanceID = instanceID[ 'Value' ]
 
-    if not instanceID['Value']:
-      return DIRAC.S_ERROR( 'Unknown %s = %s' % ( 'UniqueID', uniqueID ) )
+    if not instanceID:
+      return S_ERROR( 'Unknown %s = %s' % ( 'UniqueID', uniqueID ) )
 
-    return DIRAC.S_OK( instanceID['Value'][0][0] )
+    return S_OK( instanceID[ 0 ][ 0 ] )
 
-  def __getImageID( self, imageName ):
+  def __getImageID( self, imageName, runningPodName ):
     """
     For a given imageName return corresponding ID
     Will insert the image in New Status if it does not exits
     """
-    ( tableName, validStates, idName ) = self.__getTypeTuple( 'Image' )
-    imageID = self._getFields( tableName, [ idName ], ['Name'], [imageName] )
-    if not imageID['OK']:
+    tableName, validStates, idName = self.__getTypeTuple( 'Image' )
+    
+    imageID = self._getFields( tableName, [ idName ], [ 'Name' ], [ imageName ] )
+    if not imageID[ 'OK' ]:
       return imageID
+    imageID = imageID[ 'Value' ]
 
-    if len( imageID['Value'] ) > 1:
-      return DIRAC.S_ERROR( 'Image name "%s" is not unique' % imageName )
-    if len( imageID['Value'] ) == 0:
+    if len( imageID ) > 1:
+      return S_ERROR( 'Image name "%s" is not unique' % imageName )
+    if len( imageID ) == 0:
       # The image does not exits in DB, has to be inserted
       imageID = 0
     else:
       # The image exits in DB, has to match
-      imageID = imageID['Value'][0][0]
+      imageID = imageID[ 0 ][ 0 ]
 
-    result = getImageDict( imageName )
-    if not result['OK']:
-      return result
-    imageDict = result[ 'Value' ]
-    flavor = imageDict['Flavor']
-    requirements = DIRAC.DEncode.encode( imageDict['Requirements'] )
+    runningPodDict = self.getRunningPodDict( runningPodName )
+    if not runningPodDict[ 'OK' ]:
+      return runningPodDict
+    runningPodDict = runningPodDict[ 'Value' ]
+    
+    cloudendpoints = runningPodDict[ 'CloudEndpoints' ]
+    requirements   = DEncode.encode( runningPodDict[ 'Requirements' ] )
 
     if imageID:
-      ret = self._getFields( tableName, [idName], ['Name', 'Flavor', 'Requirements'],
-                                                  [imageName, flavor, requirements] )
-      if not ret['OK']:
+      ret = self._getFields( tableName, [ idName ], [ 'Name', 'CloudEndpoints', 'Requirements' ],
+                                                  [ imageName, cloudendpoints, requirements ] )
+      if not ret[ 'OK' ]:
         return ret
-      if not ret['Value']:
-        return DIRAC.S_ERROR( 'Image "%s" in DB but it does not match' % imageName )
+      if not ret[ 'Value' ]:
+        return S_ERROR( 'Image "%s" in DB but it does not match' % imageName )
       else:
-        return DIRAC.S_OK( imageID )
+        return S_OK( imageID )
 
-    ret = self._insert( tableName, ['Name', 'Flavor', 'Requirements', 'Status', 'LastUpdate'],
-                                     [imageName, flavor, requirements, validStates[0], DIRAC.Time.toString()] )
-    if ret['OK'] and 'lastRowId' in ret:
-      id = ret['lastRowId']
-      ret = self._getFields( tableName, [idName], ['Name', 'Flavor', 'Requirements'],
-                                                  [imageName, flavor, requirements] )
-      if not ret['OK']:
-        return ret
-      if not ret['Value'] or id <> ret['Value'][0][0]:
-        result = self.__getInfo( 'Image', id )
-        if result['OK']:
+    ret = self._insert( tableName, [ 'Name', 'CloudEndpoints', 'Requirements', 'Status', 'LastUpdate' ],
+                                   [ imageName, cloudendpoints, requirements, validStates[ 0 ], Time.toString() ] )
+    
+    if ret[ 'OK' ] and 'lastRowId' in ret:
+    
+      rowID = ret[ 'lastRowId' ]
+    
+      ret = self._getFields( tableName, [idName], ['Name', 'CloudEndpoints', 'Requirements'],
+                                                  [imageName, cloudendpoints, requirements] )
+      if not ret[ 'OK' ]:
+        return ret 
+      
+      if not ret[ 'Value' ] or rowID <> ret[ 'Value' ][ 0 ][ 0 ]:
+        result = self.__getInfo( 'Image', rowID )
+        if result[ 'OK' ]:
           image = result[ 'Value' ]
-          self.log.error( 'Trying to insert Name: "%s", Flavor: "%s", Requirements: "%s"' %
-                                            ( imageName, flavor, requirements ) )
-          self.log.error( 'But inserted     Name: "%s", Flavor: "%s", Requirements: "%s"' %
-                                            ( image['Name'], image['Flavor'], image['Requirements'] ) )
-        return self.__setError( 'Image', id, 'Failed to insert new Image' )
-      return DIRAC.S_OK( id )
-    return DIRAC.S_ERROR( 'Failed to insert new Image' )
+          self.log.error( 'Trying to insert Name: "%s", CloudEndpoints: "%s", Requirements: "%s"' %
+                                            ( imageName, cloudendpoints, requirements ) )
+          self.log.error( 'But inserted     Name: "%s", CloudEndpoints: "%s", Requirements: "%s"' %
+                                            ( image['Name'], image['CloudEndpoints'], image['Requirements'] ) )
+        return self.__setError( 'Image', rowID, 'Failed to insert new Image' )
+      return S_OK( rowID )
+    
+    return S_ERROR( 'Failed to insert new Image' )
 
   def __addInstanceHistory( self, instanceID, status, load = 0.0, jobs = 0,
                             transferredFiles = 0, transferredBytes = 0 ):
@@ -584,103 +852,102 @@ class VirtualMachineDB( DB ):
     """
     try:
       load = float( load )
-    except:
-      return DIRAC.S_ERROR( "Load has to be a float value" )
+    except ValueError:
+      return S_ERROR( "Load has to be a float value" )
     try:
       jobs = int( jobs )
-    except:
-      return DIRAC.S_ERROR( "Jobs has to be an integer value" )
+    except ValueError:
+      return S_ERROR( "Jobs has to be an integer value" )
     try:
       transferredFiles = int( transferredFiles )
-    except:
-      return DIRAC.S_ERROR( "Transferred files has to be an integer value" )
+    except ValueError:
+      return S_ERROR( "Transferred files has to be an integer value" )
 
-    self._insert( 'vm_History' , [ 'VMInstanceID', 'Status', 'Load',
+    self._insert( 'vm_History' , [ 'InstanceID', 'Status', 'Load',
                                    'Update', 'Jobs', 'TransferredFiles',
                                    'TransferredBytes' ],
                                  [ instanceID, status, load,
-                                   DIRAC.Time.toString(), jobs,
+                                   Time.toString(), jobs,
                                    transferredFiles, transferredBytes ] )
     return
 
-  def __setLastLoadAndUptime( self, instanceID, load, uptime ):
+  def __setLastLoadJobsAndUptime( self, instanceID, load, jobs, uptime ):
     if not uptime:
-      result = self._query( "SELECT MAX( UNIX_TIMESTAMP( `Update` ) ) - MIN( UNIX_TIMESTAMP( `Update` ) ) FROM `vm_History` WHERE VMInstanceID = %d GROUP BY VMInstanceID" % instanceID )
+      sqlQuery = "SELECT MAX( UNIX_TIMESTAMP( `Update` ) ) - MIN( UNIX_TIMESTAMP( `Update` ) ) FROM `vm_History` WHERE InstanceID = %d GROUP BY InstanceID" % instanceID
+      result = self._query( sqlQuery )
       if result[ 'OK' ] and len( result[ 'Value' ] ) > 0:
         uptime = int( result[ 'Value' ][0][0] )
-    sqlUpdate = "UPDATE `vm_Instances` SET `Uptime` = %d, `Load` = %f WHERE `VMInstanceID` = %d" % ( uptime,
+    sqlUpdate = "UPDATE `vm_Instances` SET `Uptime` = %d, `Jobs`= %d, `Load` = %f WHERE `InstanceID` = %d" % ( uptime,
+                                                                                                     jobs,
                                                                                                      load,
                                                                                                      instanceID )
     self._update( sqlUpdate )
-    return DIRAC.S_OK()
+    return S_OK()
 
-  def __getInfo( self, object, id ):
+  def __getInfo( self, element, iD ):
     """
     Return dictionary with info for Images and Instances by ID
     """
-    ( tableName, validStates, idName ) = self.__getTypeTuple( object )
+    tableName, _validStates, idName = self.__getTypeTuple( element )
     if not tableName:
-      return DIRAC.S_ERROR( 'Unknown DB object: %s' % object )
-    fields = self.tablesDesc[ tableName ]['Fields']
-    ret = self._getFields( tableName , fields, [idName], [id] )
-    if not ret['OK']:
+      return S_ERROR( 'Unknown DB object: %s' % element )
+    
+    fields = self.tablesDesc[ tableName ][ 'Fields' ]
+    ret    = self._getFields( tableName , fields, [ idName ], [ iD ] )
+    if not ret[ 'OK' ]:
       return ret
-    if not ret['Value']:
-      return DIRAC.S_ERROR( 'Unknown %s = %s' % ( idName, id ) )
+    if not ret[ 'Value' ]:
+      return S_ERROR( 'Unknown %s = %s' % ( idName, iD ) )
 
-    data = {}
-    values = ret['Value'][0]
+    data   = {}
+    values = ret[ 'Value' ][ 0 ]
     fields = fields.keys()
-    for i in range( len( fields ) ):
-      data[fields[i]] = values[i]
+    
+    for i in xrange( len( fields ) ):
+      data[ fields[ i ] ] = values[ i ]
 
-    return DIRAC.S_OK( data )
+    return S_OK( data )
 
-
-  def __getStatus( self, object, id ):
+  def __getStatus( self, element, iD ):
     """
     Check and return status of Images and Instances by ID
     returns:
       S_OK(Status) if Status is valid and not Error 
       S_ERROR(ErrorMessage) otherwise
     """
-    ( tableName, validStates, idName ) = self.__getTypeTuple( object )
+    tableName, validStates, idName = self.__getTypeTuple( element )
     if not tableName:
-      return DIRAC.S_ERROR( 'Unknown DB object: %s' % object )
+      return S_ERROR( 'Unknown DB object: %s' % element )
 
-    ret = self._getFields( tableName, ['Status', 'ErrorMessage'], [idName], [id] )
-    if not ret['OK']:
+    ret = self._getFields( tableName, [ 'Status', 'ErrorMessage' ], [ idName ], [ iD ] )
+    if not ret[ 'OK' ]:
       return ret
 
-    if not ret['Value']:
-      return DIRAC.S_ERROR( 'Unknown %s = %s' % ( idName, id ) )
+    if not ret[ 'Value' ]:
+      return S_ERROR( 'Unknown %s = %s' % ( idName, iD ) )
 
-    ( status, msg ) = ret['Value'][0]
+    status, msg = ret[ 'Value' ][ 0 ]
     if not status in validStates:
-      return self.__setError( object, id, 'Invalid Status: %s' % status )
-    if status == validStates[-1]:
-      return DIRAC.S_ERROR( msg )
+      return self.__setError( element, iD, 'Invalid Status: %s' % status )
+    if status == validStates[ -1 ]:
+      return S_ERROR( msg )
 
-    return DIRAC.S_OK( status )
+    return S_OK( status )
 
-
-  def __setError( self, object, id, reason ):
+  def __setError( self, element, iD, reason ):
     """
     """
-    ( tableName, validStates, idName ) = self.__getTypeTuple( object )
+    ( tableName, validStates, idName ) = self.__getTypeTuple( element )
     if not tableName:
-      return DIRAC.S_ERROR( 'Unknown DB object: %s' % object )
+      return S_ERROR( 'Unknown DB object: %s' % element )
 
-    cmd = 'UPDATE `%s` SET Status = "%s", ErrorMessage = "%s", LastUpdate = UTC_TIMESTAMP() WHERE %s = %s' % ( tableName,
-                                                                                 validStates[-1],
-                                                                                 reason,
-                                                                                 idName,
-                                                                                 id )
-    ret = self._update( cmd )
-    if not ret['OK']:
+    sqlUpdate = 'UPDATE `%s` SET Status = "%s", ErrorMessage = "%s", LastUpdate = UTC_TIMESTAMP() WHERE %s = %s'
+    sqlUpdate = sqlUpdate % ( tableName, validStates[ -1 ], reason, idName, iD )
+    ret = self._update( sqlUpdate )
+    if not ret[ 'OK' ]:
       return ret
 
-    return DIRAC.S_ERROR( reason )
+    return S_ERROR( reason )
 
   #Monitoring functions
 
@@ -691,9 +958,9 @@ class VirtualMachineDB( DB ):
     """
     #Main fields
     tables = ( "`vm_Images` AS img", "`vm_Instances` AS inst" )
-    imageFields = ( 'VMImageID', 'Name', 'Flavor' )
-    instanceFields = ( 'VMInstanceID', 'Name', 'UniqueID', 'VMImageID',
-                       'Status', 'PublicIP', 'Status', 'ErrorMessage', 'LastUpdate', 'Load', 'Uptime' )
+    imageFields = ( 'VMImageID', 'Name', 'CloudEndpoints' )
+    instanceFields = ( 'RunningPod', 'InstanceID', 'Name', 'UniqueID', 'VMImageID',
+                       'Status', 'PublicIP', 'Status', 'ErrorMessage', 'LastUpdate', 'Load', 'Uptime', 'Jobs' )
 
     fields = [ 'img.%s' % f for f in imageFields ] + [ 'inst.%s' % f for f in instanceFields ]
     sqlQuery = "SELECT %s FROM %s" % ( ", ".join( fields ), ", ".join( tables ) )
@@ -740,29 +1007,30 @@ class VirtualMachineDB( DB ):
       record = list( record )
       data.append( record )
     totalRecords = len( data )
-    sqlQuery = "SELECT COUNT( VMInstanceID ) FROM %s WHERE %s" % ( ", ".join( tables ),
+    sqlQuery = "SELECT COUNT( InstanceID ) FROM %s WHERE %s" % ( ", ".join( tables ),
                                                                    " AND ".join( sqlCond ) )
     retVal = self._query( sqlQuery )
     if retVal[ 'OK' ]:
       totalRecords = retVal[ 'Value' ][0][0]
     #return
-    return DIRAC.S_OK( { 'ParameterNames' : fields,
+    return S_OK( { 'ParameterNames' : fields,
                          'Records' : data,
                          'TotalRecords' : totalRecords } )
 
   def getHistoryForInstanceID( self, instanceId ):
     try:
       instanceId = int( instanceId )
-    except:
-      return DIRAC.S_ERROR( "Instance Id has to be a number!" )
-    fields = ( 'Status', 'Load', 'Update', 'Jobs', 'TransferredFiles', 'TransferredBytes' )
+    except ValueError:
+      return S_ERROR( "Instance Id has to be a number!" )
+    
+    fields    = ( 'Status', 'Load', 'Update', 'Jobs', 'TransferredFiles', 'TransferredBytes' )
     sqlFields = [ '`%s`' % f for f in fields ]
-    sqlQuery = "SELECT %s FROM `vm_History` WHERE VMInstanceId=%d" % ( ", ".join( sqlFields ), instanceId )
+    
+    sqlQuery = "SELECT %s FROM `vm_History` WHERE InstanceId=%d" % ( ", ".join( sqlFields ), instanceId )
     retVal = self._query( sqlQuery )
     if not retVal[ 'OK' ]:
       return retVal
-    return DIRAC.S_OK( { 'ParameterNames' : fields,
-                         'Records' : retVal[ 'Value' ] } )
+    return S_OK( { 'ParameterNames' : fields, 'Records' : retVal[ 'Value' ] } )
 
   def getInstanceCounters( self, groupField = "Status", selDict = {} ):
     validFields = VirtualMachineDB.tablesDesc[ 'vm_Instances' ][ 'Fields' ]
@@ -775,48 +1043,53 @@ class VirtualMachineDB( DB ):
       value = selDict[ field ]
       if type( value ) not in ( types.DictType, types.TupleType ):
         value = ( value, )
-      value = [ self._escapeString( str( v ) )[ 'Value' ] for v in values ]
+      value = [ self._escapeString( str( v ) )[ 'Value' ] for v in value ]
       sqlCond.append( "`%s` in (%s)" % ( field, ", ".join( value ) ) )
     sqlQuery = "SELECT `%s`, COUNT( `%s` ) FROM `vm_Instances`" % ( groupField, groupField )
+    
     if sqlCond:
       sqlQuery += " WHERE %s" % " AND ".join( sqlCond )
     sqlQuery += " GROUP BY `%s`" % groupField
+    
     result = self._query( sqlQuery )
     if not result[ 'OK' ]:
       return result
-    return DIRAC.S_OK( dict( result[ 'Value' ] ) )
+    return S_OK( dict( result[ 'Value' ] ) )
 
   def getHistoryValues( self, averageBucket, selDict = {}, fields2Get = False, timespan = 0 ):
     try:
       timespan = max( 0, int( timespan ) )
-    except:
+    except ValueError:
       return S_ERROR( "Timespan has to be an integer" )
 
     cumulativeFields = [ 'Jobs', 'TransferredFiles', 'TransferredBytes' ]
-    validDataFields = [ 'Load', 'Jobs', 'TransferredFiles', 'TransferredBytes' ]
-    allValidFields = VirtualMachineDB.tablesDesc[ 'vm_History' ][ 'Fields' ]
+    validDataFields  = [ 'Load', 'Jobs', 'TransferredFiles', 'TransferredBytes' ]
+    allValidFields   = VirtualMachineDB.tablesDesc[ 'vm_History' ][ 'Fields' ]
+    
     if not fields2Get:
       fields2Get = list( validDataFields )
     for field in fields2Get:
       if field not in validDataFields:
         return S_ERROR( "%s is not a valid data field" % field )
 
-    paramFields = fields2Get
+    #paramFields = fields2Get
     try:
       bucketSize = int( averageBucket )
-    except:
+    except ValueError:
       return S_ERROR( "Average bucket has to be an integer" )
+    
     sqlGroup = "FROM_UNIXTIME(UNIX_TIMESTAMP( `Update` ) - UNIX_TIMESTAMP( `Update` ) mod %d)" % bucketSize
-    sqlFields = [ '`VMInstanceID`', sqlGroup ] #+ [ "SUM(`%s`)/COUNT(`%s`)" % ( f, f ) for f in fields2Get ]
-    for f in fields2Get:
-      if f in cumulativeFields:
-        sqlFields.append( "MAX(`%s`)" % f )
+    sqlFields = [ '`InstanceID`', sqlGroup ] #+ [ "SUM(`%s`)/COUNT(`%s`)" % ( f, f ) for f in fields2Get ]
+    for field in fields2Get:
+      if field in cumulativeFields:
+        sqlFields.append( "MAX(`%s`)" % field )
       else:
-        sqlFields.append( "SUM(`%s`)/COUNT(`%s`)" % ( f, f ) )
+        sqlFields.append( "SUM(`%s`)/COUNT(`%s`)" % ( field, field ) )
 
-    sqlGroup = "%s, VMInstanceID" % sqlGroup
+    sqlGroup    = "%s, InstanceID" % sqlGroup
     paramFields = [ 'Update' ] + fields2Get
-    sqlCond = []
+    sqlCond     = []
+    
     for field in selDict:
       if field not in allValidFields:
         return S_ERROR( "%s is not a valid field" % field )
@@ -903,55 +1176,92 @@ class VirtualMachineDB( DB ):
           else:
             finalData[-1].append( values[i] )
 
-    return DIRAC.S_OK( { 'ParameterNames' : paramFields,
+    return S_OK( { 'ParameterNames' : paramFields,
                          'Records' : finalData } )
 
   def getRunningInstancesHistory( self, timespan = 0, bucketSize = 900 ):
+    
     try:
       bucketSize = max( 300, int( bucketSize ) )
-    except:
-      return DIRAC.S_ERROR( "Bucket has to be an integer" )
+    except ValueError:
+      return S_ERROR( "Bucket has to be an integer" )
+    
     try:
       timespan = max( 0, int( timespan ) )
-    except:
-      return DIRAC.S_ERROR( "Timespan has to be an integer" )
+    except ValueError:
+      return S_ERROR( "Timespan has to be an integer" )
 
-    groupby = "FROM_UNIXTIME(UNIX_TIMESTAMP( `Update` ) - UNIX_TIMESTAMP( `Update` ) mod %d )" % bucketSize
-    sqlFields = [ groupby, "COUNT( DISTINCT( `VMInstanceID` ) )" ]
-    sqlQuery = "SELECT %s FROM `vm_History`" % ", ".join( sqlFields )
-    sqlCond = [ "`Status` = 'Running'" ]
+    groupby   = "FROM_UNIXTIME(UNIX_TIMESTAMP( `Update` ) - UNIX_TIMESTAMP( `Update` ) mod %d )" % bucketSize
+    sqlFields = [ groupby, "COUNT( DISTINCT( `InstanceID` ) )" ]
+    sqlQuery  = "SELECT %s FROM `vm_History`" % ", ".join( sqlFields )
+    sqlCond   = [ "`Status` = 'Running'" ]
+    
     if timespan > 0:
       sqlCond.append( "TIMESTAMPDIFF( SECOND, `Update`, UTC_TIMESTAMP() ) < %d" % timespan )
     sqlQuery += " WHERE %s" % " AND ".join( sqlCond )
     sqlQuery += " GROUP BY %s ORDER BY `Update` ASC" % groupby
+    
     return self._query( sqlQuery )
 
-def getImageDict( imageName ):
-  """
-  Return from CS a Dictionary with Image definition
-  """
-  imagesCSPath = '/Resources/VirtualMachines/Images'
-  definedImages = DIRAC.gConfig.getSections( imagesCSPath )
-  if not definedImages['OK']:
-    return definedImages
+  def getRunningInstancesBEPHistory( self, timespan = 0, bucketSize = 900 ):
+    try:
+      bucketSize = max( 300, int( bucketSize ) )
+    except ValueError:
+      return S_ERROR( "Bucket has to be an integer" )
+    try:
+      timespan = max( 0, int( timespan ) )
+    except ValueError:
+      return S_ERROR( "Timespan has to be an integer" )
 
-  if imageName not in definedImages['Value']:
-    return DIRAC.S_ERROR( 'Image "%s" not defined' % imageName )
+    groupby   = "FROM_UNIXTIME(UNIX_TIMESTAMP( h.`Update` ) - UNIX_TIMESTAMP( h.`Update` ) mod %d )" % bucketSize
+    sqlFields = [ groupby, " i.Endpoint, COUNT( DISTINCT( h.`InstanceID` ) ) " ]
+    sqlQuery  = "SELECT %s FROM `vm_History` h, `vm_Instances` i" % ", ".join( sqlFields )
+    sqlCond   = [ " h.InstanceID = i.InstanceID AND h.`Status` = 'Running'" ]
+    
+    if timespan > 0:
+      sqlCond.append( "TIMESTAMPDIFF( SECOND, `Update`, UTC_TIMESTAMP() ) < %d" % timespan )
+    sqlQuery += " WHERE %s" % " AND ".join( sqlCond )
+    sqlQuery += " GROUP BY %s , EndPoint ORDER BY `Update` ASC" % groupby
+    
+    return self._query( sqlQuery )
 
-  imageCSPath = '%s/%s' % ( imagesCSPath, imageName )
+  def getRunningPodDict( self, runningPodName ):
+    """
+    Return from CS a Dictionary with RunningPod definition
+    """
+    
+    #FIXME: this MUST not be on the DB module !! 
+    #FIXME: isn't checking for Image
+    
+    runningPodsCSPath = '/Resources/VirtualMachines/RunningPods'
+    
+    definedRunningPods = gConfig.getSections( runningPodsCSPath )
+    if not definedRunningPods[ 'OK' ]:
+      return definedRunningPods
 
-  imageDict = {}
-  flavor = DIRAC.gConfig.getValue( '%s/Flavor' % imageCSPath , '' )
-  if not flavor:
-    return DIRAC.S_ERROR( 'Missing Flavor for image "%s"' % imageName )
-  for option, value in DIRAC.gConfig.getOptionsDict( imageCSPath )['Value'].items():
-    imageDict[option] = value
-  imageRequirementsDict = DIRAC.gConfig.getOptionsDict( '%s/Requirements' % imageCSPath )
-  if not imageRequirementsDict['OK']:
-    return DIRAC.S_ERROR( 'Missing Requirements for image "%s"' % imageName )
-  if 'CPUTime' in imageRequirementsDict['Value']:
-    imageRequirementsDict['Value']['CPUTime'] = int( imageRequirementsDict['Value']['CPUTime'] )
-  imageDict['Requirements'] = imageRequirementsDict['Value']
+    if runningPodName not in definedRunningPods['Value']:
+      return S_ERROR( 'RunningPod "%s" not defined' % runningPodName )
 
-  return DIRAC.S_OK( imageDict )
+    runningPodCSPath = '%s/%s' % ( runningPodsCSPath, runningPodName )
 
+    runningPodDict = {}
+
+    cloudEndpoints = gConfig.getValue( '%s/CloudEndpoints' % runningPodCSPath , '' )
+    if not cloudEndpoints:
+      return S_ERROR( 'Missing CloudEndpoints for RunnningPod "%s"' % runningPodName )
+    
+    for option, value in gConfig.getOptionsDict( runningPodCSPath )['Value'].items():
+      runningPodDict[option] = value
+      
+    runningPodRequirementsDict = gConfig.getOptionsDict( '%s/Requirements' % runningPodCSPath )
+    if not runningPodRequirementsDict[ 'OK' ]:
+      return S_ERROR( 'Missing Requirements for RunningPod "%s"' % runningPodName )
+    if 'CPUTime' in runningPodRequirementsDict[ 'Value' ]:
+      
+      runningPodRequirementsDict['Value']['CPUTime'] = int( runningPodRequirementsDict['Value']['CPUTime'] )
+    runningPodDict['Requirements'] = runningPodRequirementsDict['Value']
+
+    return S_OK( runningPodDict )
+
+#...............................................................................
+#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF

@@ -135,7 +135,7 @@ function plotSpace( panelConfig, spaceConfig )
 		
 		var plotStore = new Ext.data.SimpleStore({
 			fields:[ 'plotName', 'plotText' ],
-			data:[ [ 'load', 'Average load' ], [ 'running', 'Running VMs' ],
+			data:[ [ 'load', 'Average load' ], [ 'running', 'Running VMs' ], [ 'runningbyendpoint', 'Running VMs EndPoints' ],
 			       [ 'jobs', 'Started Jobs' ], [ 'transferbytes', 'Transferred Data' ],
 			       [ 'transferfiles', 'Transferred Files' ] ]
 		});
@@ -201,6 +201,9 @@ function plotSpace( panelConfig, spaceConfig )
 			case 'running':
 				this.requestRunningPlot();
 				break;
+			case 'runningbyendpoint':
+				this.requestRunningByEndPointPlot();
+				break;				
 			case 'jobs':
 				this.requestJobsPlot();
 				break;
@@ -387,6 +390,132 @@ function plotSpace( panelConfig, spaceConfig )
 		});
 	}
 	
+	this.requestRunningByEndPointPlot = function()
+	{
+		Ext.Ajax.request({
+			url : "getRunningInstancesBEPHistory",
+			success : this.plotRunningBEP,
+			failure : ajaxFailure,
+			scope : this,
+			params : { 
+				bucketSize : 900,
+				timespan : this.plotTimespan
+			}
+		});
+	}
+
+	this.plotRunningBEP = function( ajaxResponse, reqArguments )
+	{
+		var retVal = Ext.util.JSON.decode( ajaxResponse.responseText );
+		if( ! retVal.OK )
+		{
+			alert( "Failed to plot running: " + retVal.Message );
+			return
+		}
+		var plotData = retVal.Value;
+		
+		var matrix = [];
+		for( var i = 0; i < plotData.length; i++ )
+		{
+			var record = plotData[i];
+			var dev = 0;
+			for( var n = 0; n < matrix.length; n++ )
+			{	
+				if ( matrix[n] == record[1]){
+					dev = 1;
+				}
+			}
+			if ( dev == 0 ){
+				matrix.push(record[1]);
+			}
+		}		
+		
+		var dates = [];
+		for( var i = 0; i < plotData.length; i++ )
+		{
+			var record = plotData[i];
+			var dev = 0;
+			for( var n = 0; n < dates.length; n++ )
+			{	
+				if ( dates[n] == record[0]){
+					dev = 1;
+				}
+			}
+			if ( dev == 0 ){
+				dates.push(record[0]);
+			}
+		}			
+		var data = new google.visualization.DataTable();
+		  data.addColumn('date', 'Date');
+		  for(var i = 0; i < matrix.length;i++)
+			{
+				data.addColumn( 'number', matrix[i] );	
+			}
+		var utcOffset = ( new Date() ).getTimezoneOffset() * 60000;
+		
+		for(var i = 0; i < dates.length;i++)
+		{
+			var row = [];
+			var field = new Date( ( dates[i] * 1000 ) - utcOffset );
+			row.push(field);			
+			var matrix_times_range = [];
+			var matrix_times_large = 0;
+			for(var j = 0; j < plotData.length;j++)
+			{				
+				row_time = [];
+				var record = plotData[j];
+				if (dates[i] == record[0])
+				{
+					row_time.push(record[1]);
+					row_time.push(record[2]);
+					matrix_times_large = matrix_times_large + 1;
+					matrix_times_range.push(row_time);					
+				}
+			}
+			var dev = 0;
+			for(var n=0; n < matrix.length;n++)
+			{
+				dev = 0;
+				for (var m=0; m < matrix_times_large;m++){
+					if ( matrix[n] == matrix_times_range[m][0] ){
+						row.push(matrix_times_range[m][1]);
+						dev=1;
+					}
+				}
+				if ( dev == 0 ){
+					row.push(0);
+				}
+			}	
+			data.addRow( row );
+		}
+		
+		var chart = new google.visualization.AnnotatedTimeLine(document.getElementById(this.divID));
+		var chartConfig = {
+		    	/*displayAnnotations: true,
+		    	scaleType : 'allmaximized',*/
+		    	fill : 20,
+		    	displayRangeSelector : false,
+		    	thickness : 3,
+		    	displayZoomButtons : false,
+		    	displayGrid : false,
+		    	dateFormat : 'y-MM-dd HH:mm (v)',
+		    	colors : [ '3fa900' ],
+		    	min : 0
+		    };
+		if( this.plotTimespan == 0 )
+			chartConfig.displayRangeSelector = true;
+		if (dates.length == 0){
+			var dataTable = new google.visualization.DataTable();
+			dataTable.addColumn( 'date', 'Date' );
+			dataTable.addColumn( 'number', 'No VMs Endpoints' );			
+			var rows = [];
+			dataTable.addRows( rows );			
+		    chart.draw( dataTable, chartConfig );
+		} else {
+			chart.draw( data, chartConfig );
+		}
+	}		
+
 	this.plotRunning = function( ajaxResponse, reqArguments )
 	{
 		var retVal = Ext.util.JSON.decode( ajaxResponse.responseText );

@@ -53,9 +53,6 @@ class NovaClient:
         dictionary with the image configuration ( WMS.Utilities.Configuration.ImageConfiguration )
     
     """
-    if secret is None:
-      proxyPath=user
- 
     # logger
     self.log = gLogger.getSubLogger( self.__class__.__name__ )
     
@@ -65,7 +62,7 @@ class NovaClient:
     # Variables needed to contact the service  
     ex_force_auth_url       = endpointConfig.get( 'ex_force_auth_url', None )
     ex_force_service_region = endpointConfig.get( 'ex_force_service_region', None ) 
-    ex_force_auth_version   = endpointConfig.get( 'ex_force_auth_version', '2.0_password' )
+    ex_force_auth_version   = endpointConfig.get( 'ex_force_auth_version', None )
     ex_tenant_name          = endpointConfig.get( 'ex_tenant_name', None )
     
     # if we have a more restrictive certificate, force it to be the only one
@@ -78,11 +75,12 @@ class NovaClient:
   
     # The driver has the access secret, we do not want it to be public at all.    
     if secret == None:
-      self.__driver = cloudManagerAPI( None, secret = secret,
+      proxyPath=user
+      self.__driver = cloudManagerAPI( user = None, secret = None,
                                        ex_force_auth_url = ex_force_auth_url,
-                                       ex_force_auth_version='2.0_voms',
-                                       ex_voms_proxy=proxyPath,
                                        ex_force_service_region = ex_force_service_region,
+                                       ex_force_auth_version=ex_force_auth_version,
+                                       ex_voms_proxy=proxyPath,
                                        ex_tenant_name = ex_tenant_name
                                       )
     else:

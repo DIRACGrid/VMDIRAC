@@ -201,7 +201,7 @@ class NovaConfiguration( EndpointConfiguration ):
   """
 
   # Keys that MUST be present on ANY Nova CloudEndpoint configuration in the CS
-  MANDATORY_KEYS = [ 'auth', 'ex_force_auth_url', 'ex_force_service_region', 'ex_tenant_name', 'vmPolicy', 'vmStopPolicy', 'cloudDriver', 'siteName', 'maxEndpointInstances' ]
+  MANDATORY_KEYS = [ 'auth', 'ex_force_auth_url', 'ex_force_auth_version', 'ex_force_service_region', 'ex_tenant_name', 'vmPolicy', 'vmStopPolicy', 'cloudDriver', 'siteName', 'maxEndpointInstances' ]
     
   def __init__( self, novaEndpoint ):
     """

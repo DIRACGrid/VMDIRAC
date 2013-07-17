@@ -201,7 +201,7 @@ class NovaConfiguration( EndpointConfiguration ):
   """
 
   # Keys that MUST be present on ANY Nova CloudEndpoint configuration in the CS
-  MANDATORY_KEYS = [ 'ex_force_auth_url', 'ex_force_service_region', 'ex_tenant_name', 'vmPolicy', 'vmStopPolicy', 'cloudDriver', 'siteName', 'maxEndpointInstances' ]
+  MANDATORY_KEYS = [ 'auth', 'ex_force_auth_url', 'ex_force_service_region', 'ex_tenant_name', 'vmPolicy', 'vmStopPolicy', 'cloudDriver', 'siteName', 'maxEndpointInstances' ]
     
   def __init__( self, novaEndpoint ):
     """
@@ -224,14 +224,17 @@ class NovaConfiguration( EndpointConfiguration ):
 
     # Purely endpoint configuration ............................................              
     # This two are passed as arguments, not keyword arguments
+    self.__auth                    = novaOptions.get( 'auth'                   , None )
     self.__user                    = novaOptions.get( 'user'                   , None )
     self.__password                = novaOptions.get( 'password'               , None )
+    self.__proxyPath               = novaOptions.get( 'proxyPath'               , None )
 
     self.__cloudDriver             = novaOptions.get( 'cloudDriver'            , None )
     self.__vmStopPolicy            = novaOptions.get( 'vmStopPolicy'           , None )
     self.__vmPolicy                = novaOptions.get( 'vmPolicy'               , None )
     self.__siteName                = novaOptions.get( 'siteName'               , None )
     self.__maxEndpointInstances    = novaOptions.get( 'maxEndpointInstances'   , None )
+    self.__ipPool                  = novaOptions.get( 'ipPool'                 , None )
     
     self.__ex_force_ca_cert        = novaOptions.get( 'ex_force_ca_cert'       , None )
     self.__ex_force_auth_token     = novaOptions.get( 'ex_force_auth_token'    , None )
@@ -247,14 +250,17 @@ class NovaConfiguration( EndpointConfiguration ):
     
     config = {}
     
+    config[ 'auth' ]                    = self.__auth
     config[ 'user' ]                    = self.__user
     config[ 'password' ]                = self.__password
+    config[ 'proxyPath' ]               = self.__proxyPath
 
     config[ 'cloudDriver' ]             = self.__cloudDriver
     config[ 'vmPolicy' ]                = self.__vmPolicy
     config[ 'vmStopPolicy' ]            = self.__vmStopPolicy
     config[ 'siteName' ]                = self.__siteName
     config[ 'maxEndpointInstances' ]    = self.__maxEndpointInstances
+    config[ 'ipPool' ]                  = self.__ipPool
 
     config[ 'ex_force_ca_cert' ]        = self.__ex_force_ca_cert 
     config[ 'ex_force_auth_token' ]     = self.__ex_force_auth_token
@@ -283,25 +289,47 @@ class NovaConfiguration( EndpointConfiguration ):
     if missingKeys:
       return S_ERROR( 'Missing mandatory keys on endpointConfig %s' % str( missingKeys ) )
     
-    # on top of the MANDATORY_KEYS, we make sure the user & password are set
-    if self.__user is None:
-      return S_ERROR( 'User is None' )
-    if self.__password is None:
-      return S_ERROR( 'Password is None' )
+    # on top of the MANDATORY_KEYS, we make sure the corresponding auth parameters are set:
+    if self.__auth == 'userpasswd':
+      if self.__user is None:
+        return S_ERROR( 'user is None' )
+      if self.__password is None:
+        return S_ERROR( 'password is None' )
+    elif self.__auth == 'proxy':
+      if self.__proxyPath is None:
+        return S_ERROR( 'proxyPath is None' )
+    else:
+      return S_ERROR( 'endpoint auth: %s not defined (userpasswd/proxy)' % self.__auth)
     
     self.log.info( '*' * 50 )
     self.log.info( 'Displaying endpoint info' )
     for key, value in endpointConfig.iteritems():
-      self.log.info( '%s : %s' % ( key, value ) )
+      if key == 'user':
+        self.log.info( '%s : *********' % ( key ) )
+      elif key == 'password':
+        self.log.info( '%s : *********' % ( key ) )
+      else:
+        self.log.info( '%s : %s' % ( key, value ) )
     self.log.info( 'User and Password are NOT printed.')
-    self.log.info( '*' * 50 )
-        
+    
     return S_OK()
 
   def authConfig( self ):
     
-    return ( self.__user, self.__password )
-  
+    if self.__auth == 'userpasswd':
+      return ( self.__auth, self.__user, self.__password )
+    elif self.__auth == 'proxy':
+      return ( self.__auth, self.__proxyPath, None )
+    else:
+      return S_ERROR( 'endpoint auth: %s not defined (userpasswd/proxy)' % self.__auth)
+
+  def isFloatingIP( self ):
+
+    ipPool = endpointConfig.get( 'ipPool' )
+
+    return ipPool is not None
+
+
 #...............................................................................    
 
 class ImageConfiguration( object ):

@@ -73,7 +73,7 @@ class OcciImage:
       userCredPath = u
       proxyCaPath = p
     else:
-      self.__errorStatus = "auth not supported" 
+      self.__errorStatus = "auth not supported (userpasswd/proxycacert)" 
       self.log.error( self.__errorStatus )
       return
 

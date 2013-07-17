@@ -54,9 +54,8 @@ class NovaImage:
   def connectNova( self ):
     """
     Method that issues the connection with the OpenStack server. In order to do
-    it, validates the CS configurations. For the time being, we authenticate
-    with user / password. It gets it and passes all information to the NovaClient
-    which will check the connection.
+    it, validates the CS configurations.
+    auth user/password or x509 proxy
      
     :return: S_OK | S_ERROR
     """
@@ -70,12 +69,29 @@ class NovaImage:
     validNova = self.__novaConfig.validate()
     if not validNova[ 'OK' ]:
       return validNova
-    
+
     # Get authentication configuration
-    user, secret = self.__novaConfig.authConfig()
+    auth, u, p = self.__novaConfig.authConfig()
+    if auth == 'userpasswd':
+      user = u
+      secret = p
+    elif auth == 'proxy':
+      proxyPath = u
+    else:
+      self.__errorStatus = "auth not supported (userpasswd/proxy)"
+      self.log.error( self.__errorStatus )
+      return
+   
+    if auth=='proxy' and self.__novaConfig.isFloatingIP():
+      self.__errorStatus = "auth proxy does not support floating ip asigments"
+      self.log.error( self.__errorStatus )
+      return
 
     # Create the libcloud and novaclient objects in NovaClient.Nova11
-    self.__clinova = NovaClient( user, secret, self.__novaConfig.config(), self.__imageConfig.config() )
+    if auth == 'userpasswd':
+      self.__clinova = NovaClient( user=user, secret=secret, self.__novaConfig.config(), self.__imageConfig.config() )
+    else:
+      self.__clinova = NovaClient( user=proxyPath, secret=None, self.__novaConfig.config(), self.__imageConfig.config() )
 
     # Check connection to the server
     result = self.__clinova.check_connection()

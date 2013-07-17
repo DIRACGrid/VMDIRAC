@@ -32,10 +32,10 @@ class NovaClient:
   NovaClient ( v1.1 )
   """
 
-  def __init__( self, user, secret, endpointConfig, imageConfig ):
+  def __init__( self, user, secret = None, endpointConfig, imageConfig ):
     """
-    Constructor: uses user / secret authentication for the time being. It initializes
-    the libcloud.Openstack driver and the pynovaclient driver. Ther second one is
+    Multiple constructor depending on the passed parameters
+    It initializes the libcloud.Openstack driver and the pynovaclient driver. Ther second one is
     a backup of the first in case it does not provide functionality needed ( mainly
     floating IPs ).
     
@@ -44,13 +44,18 @@ class NovaClient:
         username that will be used on the authentication
       **secret** - `string`
         password used on the authentication
+      If secret is None then user actually is:
+      **proxyPath** - `string`
+        path to the valid X509 proxy 
       **endpointConfig** - `dict`
         dictionary with the endpoint configuration ( WMS.Utilities.Configuration.NovaConfiguration )
       **imageConfig** - `dict`
         dictionary with the image configuration ( WMS.Utilities.Configuration.ImageConfiguration )
     
     """
-    
+    if secret is None:
+      proxyPath=user
+ 
     # logger
     self.log = gLogger.getSubLogger( self.__class__.__name__ )
     
@@ -72,16 +77,25 @@ class NovaClient:
     cloudManagerAPI = get_driver( Provider.OPENSTACK )
   
     # The driver has the access secret, we do not want it to be public at all.    
-    self.__driver = cloudManagerAPI( user, secret = secret,
-                                     ex_force_auth_url = ex_force_auth_url,
-                                     ex_force_service_region = ex_force_service_region,
-                                     ex_force_auth_version = ex_force_auth_version,
-                                     ex_tenant_name = ex_tenant_name,
-                                    )
-     
-    # mofify to insecure = False when ca cert ready
-    # The client has the access secret, we do not want it to be public at all.    
-    self.__pynovaclient = client.Client( username = user, 
+    if secret == None:
+      self.__driver = cloudManagerAPI( None, secret = secret,
+                                       ex_force_auth_url = ex_force_auth_url,
+                                       ex_force_auth_version='2.0_voms',
+                                       ex_voms_proxy=proxyPath,
+                                       ex_force_service_region = ex_force_service_region,
+                                       ex_tenant_name = ex_tenant_name
+                                      )
+    else:
+      self.__driver = cloudManagerAPI( user, secret = secret,
+                                       ex_force_auth_url = ex_force_auth_url,
+                                       ex_force_service_region = ex_force_service_region,
+                                       ex_force_auth_version = ex_force_auth_version,
+                                       ex_tenant_name = ex_tenant_name
+                                      )
+      # in caller the floating ip and proxy auth has been filtered, not supported
+      # mofify to insecure = False when ca cert ready
+      # The client has the access secret, we do not want it to be public at all.    
+      self.__pynovaclient = client.Client( username = user, 
                                          api_key = secret, 
                                          project_id = ex_tenant_name, 
                                          auth_url = ex_force_auth_url, 

@@ -82,11 +82,6 @@ class NovaImage:
       self.log.error( self.__errorStatus )
       return
    
-    if auth=='proxy' and self.__novaConfig.isFloatingIP():
-      self.__errorStatus = "auth proxy does not support floating ip asigments"
-      self.log.error( self.__errorStatus )
-      return
-
     # Create the libcloud and novaclient objects in NovaClient.Nova11
     if auth == 'userpasswd':
       self.__clinova = NovaClient( user=user, secret=secret, self.__novaConfig.config(), self.__imageConfig.config() )

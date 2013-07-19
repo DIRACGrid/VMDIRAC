@@ -17,7 +17,11 @@ import time
 from libcloud                   import security
 from libcloud.compute.types     import Provider
 from libcloud.compute.providers import get_driver
-from novaclient.v1_1            import client
+#from novaclient.v1_1            import client
+import novaclient
+import novaclient.auth_plugin
+import novaclient.client
+
 
 # DIRAC
 from DIRAC import gLogger, S_OK, S_ERROR
@@ -75,14 +79,27 @@ class NovaClient:
   
     # The driver has the access secret, we do not want it to be public at all.    
     if secret == None:
+      username = password = None
       proxyPath=user
-      self.__driver = cloudManagerAPI( user = None, secret = None,
+      self.__driver = cloudManagerAPI( username, password,
                                        ex_force_auth_url = ex_force_auth_url,
                                        ex_force_service_region = ex_force_service_region,
                                        ex_force_auth_version=ex_force_auth_version,
                                        ex_voms_proxy=proxyPath,
                                        ex_tenant_name = ex_tenant_name
                                       )
+      # python nova with VOMS:
+      version = 2
+      auth_system = "voms"
+      novaclient.auth_plugin.discover_auth_systems()
+      auth_plugin = novaclient.auth_plugin.load_plugin(auth_system)
+      auth_plugin.opts["x509_user_proxy"] = proxyPath
+
+      self.__pynovaclient =  novaclient.client.Client(version, username, password,
+                                    ex_tenant_name, ex_force_auth_url,
+                                    auth_plugin=auth_plugin,
+                                    auth_system=auth_system)
+
     else:
       self.__driver = cloudManagerAPI( user, secret = secret,
                                        ex_force_auth_url = ex_force_auth_url,
@@ -93,13 +110,14 @@ class NovaClient:
       # in caller the floating ip and proxy auth has been filtered, not supported
       # mofify to insecure = False when ca cert ready
       # The client has the access secret, we do not want it to be public at all.    
-      self.__pynovaclient = client.Client( username = user, 
+      self.__pynovaclient = novaclient.client.Client( username = user, 
                                          api_key = secret, 
                                          project_id = ex_tenant_name, 
                                          auth_url = ex_force_auth_url, 
                                          insecure = True, 
                                          region_name = ex_force_service_region, 
                                          auth_system = 'keystone' )
+  
 
   def check_connection( self ):
     """

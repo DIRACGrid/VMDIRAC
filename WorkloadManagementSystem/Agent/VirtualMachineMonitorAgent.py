@@ -299,7 +299,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
     return S_OK()
 
   def __processHeartBeatMessage( self, hbMsg ):
-    if 'stop' in hbMsg and hbMsg[ 'stop' ]:
+    if hbMsg == 'stop':
       #Write stop file for jobAgent
       self.log.info( "Received STOP signal. Writing stop files..." )
       for agentName in [ "WorkloadManagement/JobAgent" ]:

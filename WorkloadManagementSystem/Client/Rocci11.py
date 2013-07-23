@@ -189,6 +189,7 @@ class OcciClient:
     """
     Terminate a VM instance corresponding to the instanceId parameter
     """
+    occiURI  = self.endpointConfig[ 'occiURI' ]
     request = Request()
     command = 'occi --endpoint ' + occiURI + '  --action delete --resource /compute/' + instanceId + ' --output-format json --auth x509 --user-cred ' + self.__userCredPath + ' --proxy-ca ' + self.__proxyCaPath 
 

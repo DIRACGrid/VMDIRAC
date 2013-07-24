@@ -2,21 +2,16 @@
 """
   Nova11
   
-  driver to nova v_1.1 endpoint using libcloud and pyton-novaclient
+  driver to nova v_1.1 endpoint using novaclient
   
 """
 # File :   Nova11.py
 # Author : Victor Mendez ( vmendez.tic@gmail.com )
-# TODO: first release only with user/passd, to implement proxy auth with VOMS
 
 import os
 import paramiko
 import time 
 
-# libcloud, novaclient
-from libcloud                   import security
-from libcloud.compute.types     import Provider
-from libcloud.compute.providers import get_driver
 #from novaclient.v1_1            import client
 import novaclient
 import novaclient.auth_plugin
@@ -39,9 +34,7 @@ class NovaClient:
   def __init__( self, user, secret = None, endpointConfig, imageConfig ):
     """
     Multiple constructor depending on the passed parameters
-    It initializes the libcloud.Openstack driver and the pynovaclient driver. Ther second one is
-    a backup of the first in case it does not provide functionality needed ( mainly
-    floating IPs ).
+    It initializes the the pynovaclient driver.
     
     :Parameters:
       **user** - `string`
@@ -69,54 +62,43 @@ class NovaClient:
     ex_force_auth_version   = endpointConfig.get( 'ex_force_auth_version', None )
     ex_tenant_name          = endpointConfig.get( 'ex_tenant_name', None )
     
-    # if we have a more restrictive certificate, force it to be the only one
-    caCert = endpointConfig.get( 'ex_force_ca_cert', None )
-    if caCert is not None:
-      security.CA_CERTS_PATH = [ caCert ]
+    # we force SSL cacert
+    caCertPath              = endpointConfig.get( 'ex_force_ca_cert', None )
     
-    # get the right openstack node driver
-    cloudManagerAPI = get_driver( Provider.OPENSTACK )
-  
-    # The driver has the access secret, we do not want it to be public at all.    
     if secret == None:
-      username = password = None
-      proxyPath=user
-      self.__driver = cloudManagerAPI( username, password,
-                                       ex_force_auth_url = ex_force_auth_url,
-                                       ex_force_service_region = ex_force_service_region,
-                                       ex_force_auth_version=ex_force_auth_version,
-                                       ex_voms_proxy=proxyPath,
-                                       ex_tenant_name = ex_tenant_name
-                                      )
       # python nova with VOMS:
+      proxyPath=user
+      username = password = None
       version = 2
-      auth_system = "voms"
+      auth_system = 'voms'
       novaclient.auth_plugin.discover_auth_systems()
-      auth_plugin = novaclient.auth_plugin.load_plugin(auth_system)
-      auth_plugin.opts["x509_user_proxy"] = proxyPath
+      auth_plugin                             = novaclient.auth_plugin.load_plugin(auth_system)
+      auth_plugin.opts["x509_user_proxy"]     = proxyPath
 
-      self.__pynovaclient =  novaclient.client.Client(version, username, password,
-                                    ex_tenant_name, ex_force_auth_url,
+      self.__pynovaclient =  novaclient.client.Client( version = version
+                                    username = username, 
+                                    api_key = password, 
+                                    project_id = ex_tenant_name,
+                                    auth_url = ex_force_auth_url,
                                     auth_plugin=auth_plugin,
-                                    auth_system=auth_system)
+                                    auth_system=auth_system,
+                                    cacert=caCertPath)
 
     else:
-      self.__driver = cloudManagerAPI( user, secret = secret,
-                                       ex_force_auth_url = ex_force_auth_url,
-                                       ex_force_service_region = ex_force_service_region,
-                                       ex_force_auth_version = ex_force_auth_version,
-                                       ex_tenant_name = ex_tenant_name
-                                      )
-      # in caller the floating ip and proxy auth has been filtered, not supported
-      # mofify to insecure = False when ca cert ready
-      # The client has the access secret, we do not want it to be public at all.    
-      self.__pynovaclient = novaclient.client.Client( username = user, 
-                                         api_key = secret, 
+      # python nova with user password
+      username = user
+      password = secret
+      version = 2
+      auth_system = 'keystone'
+      self.__pynovaclient = novaclient.client.Client( version = version, 
+                                         username = username, 
+                                         api_key = password, 
                                          project_id = ex_tenant_name, 
                                          auth_url = ex_force_auth_url, 
                                          insecure = True, 
                                          region_name = ex_force_service_region, 
-                                         auth_system = 'keystone' )
+                                         auth_system=auth_system,
+                                         cacert=caCertPath)
   
 
   def check_connection( self ):
@@ -127,10 +109,10 @@ class NovaClient:
     """
 
     try:
-      _ = self.__driver.list_images()
-      # the libcloud library, throws Exception. Nothing to do.
-    except Exception, errmsg:
-      return S_ERROR( errmsg )
+       _ = self.__pynovaclient.images.list()
+       # the novaclient library, throws Exception. Nothing to do.
+     except Exception, errmsg:
+       return S_ERROR( errmsg )
     
     return S_OK()
   
@@ -146,13 +128,13 @@ class NovaClient:
     """
 
     try:
-      images = self.__driver.list_images()
-      # the libcloud library, throws Exception. Nothing to do.
+      images = self.__pynovaclient.images.list()
+      # the novaclient library, throws Exception. Nothing to do.
     except Exception, errmsg:
       return S_ERROR( errmsg )
           
     return S_OK( [ image for image in images if image.name == imageName ][ 0 ] )
-
+ 
   def get_flavor( self, flavorName ):
     """
     Given the flavorName, returns the current flavor object from the server. 
@@ -165,8 +147,8 @@ class NovaClient:
     """
     
     try:
-      flavors = self.__driver.list_sizes()
-      # the libcloud library, throws Exception. Nothing to do.
+      flavors = self.__pynovaclient.flavors.list()
+      # the novaclient library, throws Exception. Nothing to do.
     except Exception, errmsg:
       return S_ERROR( errmsg )
       
@@ -182,7 +164,7 @@ class NovaClient:
       
     :return: S_OK( securityGroup ) | S_ERROR
     """
-    
+     
     if not securityGroupNames:
       securityGroupNames = []
     elif not isinstance( securityGroupNames, list ):
@@ -192,8 +174,8 @@ class NovaClient:
       securityGroupNames.append( 'default' )
 
     try:
-      secGroups = self.__driver.ex_list_security_groups()
-      # the libcloud library, throws Exception. Nothing to do.
+      secGroups = self.__pynovaclient.security_groups.list():
+      # the novaclient library, throws Exception. Nothing to do.
     except Exception, errmsg:
       return S_ERROR( errmsg )
       
@@ -228,12 +210,13 @@ class NovaClient:
     siteName = self.endpointConfig[ 'siteName' ]
     user = self.endpointConfig[ 'user' ]
     password = self.endpointConfig[ 'password' ]
+    keyname  = self.imageConfig[ 'contextConfig' ].get( 'ex_keyname' , None )
     
     # Optional node contextualization parameters
-    keyname  = self.imageConfig[ 'contextConfig' ].get( 'ex_keyname' , None )
     userdata = self.imageConfig[ 'contextConfig' ].get( 'ex_userdata', None )
-    secGroup = self.imageConfig[ 'contextConfig' ].get( 'ex_security_groups', None )
     metadata = self.imageConfig[ 'contextConfig' ].get( 'ex_metadata', {} )
+    secGroup = self.imageConfig[ 'contextConfig' ].get( 'ex_security_groups', None )
+    pubkeyPath  = self.imageConfig.get( 'ex_pubkey_path', None )
     
     if userdata is not None:
       with open( userdata, 'r' ) as userDataFile: 
@@ -262,30 +245,38 @@ class NovaClient:
           
     vm_name = contextMethod + str( time.time() )[0:10]
 
+    if pubkeyPath:
+      try:
+        with open(os.path.expanduser(pubkeyPath)) as f:
+            pub_key = f.read()
+      except Exception, errmsg:
+        return S_ERROR( errmsg )
+      keypair = pynovaclient.keypairs.create(keyname,pub_key)
+
     self.log.info( "Creating node" )
     self.log.verbose( "name : %s" % vm_name )
     self.log.verbose( "image : %s" % bootImage )
     self.log.verbose( "size : %s" % flavor )
     self.log.verbose( "ex_keyname : %s" % keyname )
-    self.log.verbose( "ex_keyname : %s" % keyname )
-    self.log.verbose( "ex_userdata : %s" % userdata )
-    self.log.verbose( "ex_metadata : %s" % metadata )
-
     try:
       if contextMethod == 'amiconfig':
-        vmNode = self.__driver.create_node(   name               = vm_name, 
-                                            image              = bootImage, 
-                                            size               = flavor,
-                                            ex_keyname         = keyname,
-                                            ex_userdata        = userdata,
-                                            ex_security_groups = secGroup,
-                                            ex_metadata        = metadata )
-      else:
-        vmNode = self.__driver.create_node( name                        = vm_name,
+        self.log.verbose( "ex_userdata : %s" % userdata )
+        self.log.verbose( "ex_metadata : %s" % metadata )
+
+        vmNode = self.__pynovaclient.servers.create( name = vm_name,
                                             image                       = bootImage,
-                                            size                        = flavor
-                                        )
-      # the libcloud library, throws Exception. Nothing to do.
+                                            flavor                      = flavor,
+                                            key_name                    = keyname,
+                                            security_groups             = secGroup,
+                                            userdata                    = userdata,
+                                            meta                        = metadata )
+      else:
+        vmNode = self.__pynovaclient.servers.create( name = vm_name,
+                                            image                       = bootImage,
+                                            flavor                      = flavor,
+                                            key_name                    = keyname,
+                                            security_groups             = secGroup)
+      # the novaclient library, throws Exception. Nothing to do.
     except Exception, errmsg:
       return S_ERROR( errmsg )
 
@@ -298,35 +289,10 @@ class NovaClient:
       return publicIP
 
     return S_OK( ( vmNode.id, publicIP[ 'Value' ] ) )
-
-  def getDetails_VMInstance( self, uniqueId ):
-    """
-    Given a Node ID, returns all its configuration details on a 
-    libcloud.compute.base.Node object.
-    
-    :Parameters:
-      **uniqueId** - `string`
-        openstack node id ( not uuid ! )
-    
-    :return: S_OK( Node ) | S_ERROR    
-    """
-
-    try:
-      nodeDetails = self.__driver.ex_get_node_details( uniqueId )
-      # the libcloud library, throws Exception. Nothing to do.        
-    except Exception, errmsg:
-      return S_ERROR( errmsg )  
-
-    return S_OK( nodeDetails )
                                       
   def getStatus_VMInstance( self, uniqueId ):
     """
-    Get the status for a given node ID. libcloud translates the status into a digit
-    from 0 to 4 using a many-to-one relation ( ACTIVE and RUNNING -> 0 ), which
-    means we cannot undo that translation. It uses an intermediate states mapping
-    dictionary, SITEMAP, which we use here inverted to return the status as a 
-    meaningful string. The five possible states are ( ordered from 0 to 4 ):
-    RUNNING, REBOOTING, TERMINATED, PENDING & UNKNOWN.
+    Get the status for a given node ID. 
     
     :Parameters:
       **uniqueId** - `string`
@@ -335,23 +301,22 @@ class NovaClient:
     :return: S_OK( status ) | S_ERROR      
     """
 
-    nodeDetails = self.getDetails_VMInstance( uniqueId )
-    if not nodeDetails[ 'OK' ]:
-      return nodeDetails
-    
-    state = nodeDetails[ 'Value' ].state
+    ServerObj = None
+    servers = pynovaclient.servers.list()
 
-    # reversed from libcloud
-    STATEMAP = { 0 : 'RUNNING',
-                 1 : 'REBOOTING',
-                 2 : 'TERMINATED',
-                 3 : 'PENDING',
-                 4 : 'UNKNOWN' }
+    for server in servers:
+      if server.id == uniqueId:
+         serverObj = server
+    if serverObj is None:
+      return S_ERROR( 'uniqueId not found )  
 
-    if not state in STATEMAP:
-      return S_ERROR( 'State %s not in STATEMAP' % state )
+    try:
+      status = getattr(serverObj, "status")
+      # the novaclient library, throws Exception. Nothing to do.        
+    except Exception, errmsg:
+      return S_ERROR( errmsg )  
     
-    return S_OK( STATEMAP[ state ] )
+    return S_OK( status )
 
   def terminate_VMinstance( self, uniqueId, public_ip = '' ):
     """
@@ -368,20 +333,20 @@ class NovaClient:
     :return: S_OK | S_ERROR
     """
 
-    # Get Node object with node details
-    nodeDetails = self.getDetails_VMInstance( uniqueId )
-    if not nodeDetails[ 'OK' ]:
-      return nodeDetails
-    node = nodeDetails[ 'Value' ]
+    ServerObj = None
+    servers = pynovaclient.servers.list()
+
+    for server in servers:
+      if server.id == uniqueId:
+         serverObj = server
+    if serverObj is None:
+      return S_ERROR( 'uniqueId not found )  
 
     # Destroys the node
     try:
-      res = self.__driver.destroy_node( node ) == True
-      if not res == True:
-        return S_ERROR( "Not True returned destroying %s: %s" % ( uniqueId, res ) )
-        
-      #_infonode = self.__pynovaclient.servers.delete(uniqueId)
-      # the libcloud library, throws Exception. Nothing to do.
+      self.__pynovaclient.servers.delete( serverObj ) 
+
+      # the novaclient library, throws Exception. Nothing to do.
     except Exception, errmsg:
       return S_ERROR( errmsg )
 
@@ -433,13 +398,6 @@ class NovaClient:
 
     if ipPool is not None:
 
-      ################################## 
-      # 
-      # FIXME do it with Libcloud     
-      # 
-      ################################## 
-           
-      # getting a floating IP and assign to the node:
       try:
         address = self.__pynovaclient.floating_ips.create( pool = ipPool )
         self.__pynovaclient.servers.add_floating_ip( node.id, address.ip )
@@ -468,12 +426,6 @@ class NovaClient:
     
     if not ipPool is None:
 
-      #############################
-      # 
-      # FIXME do it with Libcloud     
-      # 
-      ############################# 
-      
       try:
         floating_ips = self.__pynovaclient.floating_ips.list()
         for floating_ip in floating_ips:

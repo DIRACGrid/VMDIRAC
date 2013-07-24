@@ -210,12 +210,12 @@ class NovaClient:
     siteName = self.endpointConfig[ 'siteName' ]
     user = self.endpointConfig[ 'user' ]
     password = self.endpointConfig[ 'password' ]
-    keyname  = self.imageConfig[ 'contextConfig' ].get( 'ex_keyname' , None )
     
     # Optional node contextualization parameters
     userdata = self.imageConfig[ 'contextConfig' ].get( 'ex_userdata', None )
     metadata = self.imageConfig[ 'contextConfig' ].get( 'ex_metadata', {} )
     secGroup = self.imageConfig[ 'contextConfig' ].get( 'ex_security_groups', None )
+    keyname  = self.imageConfig[ 'contextConfig' ].get( 'ex_keyname' , None )
     pubkeyPath  = self.imageConfig.get( 'ex_pubkey_path', None )
     
     if userdata is not None:
@@ -257,7 +257,6 @@ class NovaClient:
     self.log.verbose( "name : %s" % vm_name )
     self.log.verbose( "image : %s" % bootImage )
     self.log.verbose( "size : %s" % flavor )
-    self.log.verbose( "ex_keyname : %s" % keyname )
     try:
       if contextMethod == 'amiconfig':
         self.log.verbose( "ex_userdata : %s" % userdata )
@@ -271,6 +270,8 @@ class NovaClient:
                                             userdata                    = userdata,
                                             meta                        = metadata )
       else:
+        self.log.verbose( "ex_keyname : %s" % keyname )
+        self.log.verbose( "ex_pubkey_path : %s" % pubkeyPath )
         vmNode = self.__pynovaclient.servers.create( name = vm_name,
                                             image                       = bootImage,
                                             flavor                      = flavor,

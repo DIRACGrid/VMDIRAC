@@ -257,10 +257,14 @@ class NovaClient:
     self.log.verbose( "name : %s" % vm_name )
     self.log.verbose( "image : %s" % bootImage )
     self.log.verbose( "size : %s" % flavor )
+    # mandatory for amiconfig, checked at Context.py
+    self.log.verbose( "ex_userdata : %s" % userdata )
+    self.log.verbose( "ex_metadata : %s" % metadata )
+    # mandatory for ssh, checked at Context.py
+    self.log.verbose( "ex_keyname : %s" % keyname )
+    self.log.verbose( "ex_pubkey_path : %s" % pubkeyPath )
     try:
       if contextMethod == 'amiconfig':
-        self.log.verbose( "ex_userdata : %s" % userdata )
-        self.log.verbose( "ex_metadata : %s" % metadata )
 
         vmNode = self.__pynovaclient.servers.create( name = vm_name,
                                             image                       = bootImage,
@@ -270,8 +274,6 @@ class NovaClient:
                                             userdata                    = userdata,
                                             meta                        = metadata )
       else:
-        self.log.verbose( "ex_keyname : %s" % keyname )
-        self.log.verbose( "ex_pubkey_path : %s" % pubkeyPath )
         vmNode = self.__pynovaclient.servers.create( name = vm_name,
                                             image                       = bootImage,
                                             flavor                      = flavor,

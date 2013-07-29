@@ -59,7 +59,7 @@ class VirtualMachineContextualization( AgentModule ):
       cloudDriver = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, "cloudDriver" ) )
       if ( cloudDriver == 'nova-1.1' ):
         nima     = NovaImage( diracImageName, endpoint )
-        connection = nima.connectOcci()
+        connection = nima.connectNova()
       elif ( cloudDriver == 'rocci-1.1' ):
         oima     = OcciImage( diracImageName, endpoint )
         connection = oima.connectOcci()

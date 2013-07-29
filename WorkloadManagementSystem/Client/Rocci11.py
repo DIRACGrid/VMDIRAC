@@ -87,10 +87,10 @@ class OcciClient:
     copy the endpointConfig and ImageConfig dictionaries to the OcciClient
 
     :Parameters:
-      **user** - `string`
-        username that will be used on the authentication
-      **secret** - `string`
-        password used on the authentication
+      **userCredPath** - `string`
+        path to a valid x509 proxy
+      **proxyCaPath** - `string`
+        path to the CA certificate of the userCredPath (in rocci 1.1 it is the user certificate in q .pem  without the private key)
       **endpointConfig** - `dict`
         dictionary with the endpoint configuration ( WMS.Utilities.Configuration.OcciConfiguration )
       **imageConfig** - `dict`

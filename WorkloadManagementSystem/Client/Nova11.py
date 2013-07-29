@@ -31,7 +31,7 @@ class NovaClient:
   NovaClient ( v1.1 )
   """
 
-  def __init__( self, user, secret = None, endpointConfig, imageConfig ):
+  def __init__( self, user, secret, endpointConfig, imageConfig ):
     """
     Multiple constructor depending on the passed parameters
     It initializes the the pynovaclient driver.
@@ -75,7 +75,7 @@ class NovaClient:
       auth_plugin                             = novaclient.auth_plugin.load_plugin(auth_system)
       auth_plugin.opts["x509_user_proxy"]     = proxyPath
 
-      self.__pynovaclient =  novaclient.client.Client( version = version
+      self.__pynovaclient =  novaclient.client.Client( version = version,
                                     username = username, 
                                     api_key = password, 
                                     project_id = ex_tenant_name,
@@ -111,7 +111,7 @@ class NovaClient:
     try:
        _ = self.__pynovaclient.images.list()
        # the novaclient library, throws Exception. Nothing to do.
-     except Exception, errmsg:
+    except Exception, errmsg:
        return S_ERROR( errmsg )
     
     return S_OK()
@@ -174,7 +174,7 @@ class NovaClient:
       securityGroupNames.append( 'default' )
 
     try:
-      secGroups = self.__pynovaclient.security_groups.list():
+      secGroups = self.__pynovaclient.security_groups.list()
       # the novaclient library, throws Exception. Nothing to do.
     except Exception, errmsg:
       return S_ERROR( errmsg )
@@ -311,7 +311,7 @@ class NovaClient:
       if server.id == uniqueId:
          serverObj = server
     if serverObj is None:
-      return S_ERROR( 'uniqueId not found )  
+      return S_ERROR( 'uniqueId not found' )  
 
     try:
       status = getattr(serverObj, "status")
@@ -343,7 +343,7 @@ class NovaClient:
       if server.id == uniqueId:
          serverObj = server
     if serverObj is None:
-      return S_ERROR( 'uniqueId not found )  
+      return S_ERROR( 'uniqueId not found' )  
 
     # Destroys the node
     try:
@@ -397,7 +397,7 @@ class NovaClient:
     :return: S_OK( public_ip ) | S_ERROR   
     """
 
-    ipPool = endpointConfig.get( 'ipPool' )
+    ipPool = self.endpointConfig.get( 'ipPool' )
 
     if ipPool is not None:
 

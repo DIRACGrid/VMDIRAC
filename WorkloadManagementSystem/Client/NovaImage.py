@@ -84,9 +84,9 @@ class NovaImage:
    
     # Create the libcloud and novaclient objects in NovaClient.Nova11
     if auth == 'userpasswd':
-      self.__clinova = NovaClient( user=user, secret=secret, self.__novaConfig.config(), self.__imageConfig.config() )
+      self.__clinova = NovaClient( user=user, secret=secret, endpointConfig=self.__novaConfig.config(), imageConfig=self.__imageConfig.config() )
     else:
-      self.__clinova = NovaClient( user=proxyPath, secret=None, self.__novaConfig.config(), self.__imageConfig.config() )
+      self.__clinova = NovaClient( user=proxyPath, secret=None, endpointConfig=self.__novaConfig.config(), imageConfig=self.__imageConfig.config() )
 
     # Check connection to the server
     result = self.__clinova.check_connection()

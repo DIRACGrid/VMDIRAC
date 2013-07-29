@@ -100,7 +100,7 @@ class OcciConfiguration( EndpointConfiguration ):
     self.__dns1                    = occiOptions.get( 'DNS1'                    , None )
     self.__dns2                    = occiOptions.get( 'DNS2'                    , None )
     self.__domain                  = occiOptions.get( 'domain'                  , None )
-    self.__cvmfs_http_proxy        = occiOptions.get( 'CVMFS_HTTP_PROXY'        , None )
+    self.__cvmfs_http_proxy        = occiOptions.get( 'cvmfs_http_proxy'        , None )
     self.__ipPool                  = occiOptions.get( 'ipPool'                  , None )
 
   def config( self ):
@@ -234,6 +234,7 @@ class NovaConfiguration( EndpointConfiguration ):
     self.__vmPolicy                = novaOptions.get( 'vmPolicy'               , None )
     self.__siteName                = novaOptions.get( 'siteName'               , None )
     self.__maxEndpointInstances    = novaOptions.get( 'maxEndpointInstances'   , None )
+    self.__cvmfs_http_proxy        = occiOptions.get( 'cvmfs_http_proxy'        , None )
     self.__ipPool                  = novaOptions.get( 'ipPool'                 , None )
     
     self.__ex_force_ca_cert        = novaOptions.get( 'ex_force_ca_cert'       , None )
@@ -260,6 +261,7 @@ class NovaConfiguration( EndpointConfiguration ):
     config[ 'vmStopPolicy' ]            = self.__vmStopPolicy
     config[ 'siteName' ]                = self.__siteName
     config[ 'maxEndpointInstances' ]    = self.__maxEndpointInstances
+    config[ 'cvmfs_http_proxy' ]        = self.__cvmfs_http_proxy
     config[ 'ipPool' ]                  = self.__ipPool
 
     config[ 'ex_force_ca_cert' ]        = self.__ex_force_ca_cert 
@@ -325,6 +327,7 @@ class NovaConfiguration( EndpointConfiguration ):
 
   def isFloatingIP( self ):
 
+    endpointConfig = self.config()
     ipPool = endpointConfig.get( 'ipPool' )
 
     return ipPool is not None

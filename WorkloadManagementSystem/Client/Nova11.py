@@ -212,11 +212,11 @@ class NovaClient:
     password = self.endpointConfig[ 'password' ]
     
     # Optional node contextualization parameters
-    userdata = self.imageConfig[ 'contextConfig' ].get( 'ex_userdata', None )
-    metadata = self.imageConfig[ 'contextConfig' ].get( 'ex_metadata', {} )
-    secGroup = self.imageConfig[ 'contextConfig' ].get( 'ex_security_groups', None )
-    keyname  = self.imageConfig[ 'contextConfig' ].get( 'ex_keyname' , None )
-    pubkeyPath  = self.imageConfig.get( 'ex_pubkey_path', None )
+    userdata    = self.imageConfig[ 'contextConfig' ].get( 'ex_userdata', None )
+    metadata    = self.imageConfig[ 'contextConfig' ].get( 'ex_metadata', {} )
+    secGroup    = self.imageConfig[ 'contextConfig' ].get( 'ex_security_groups', None )
+    keyname     = self.imageConfig[ 'contextConfig' ].get( 'ex_keyname' , None )
+    pubkeyPath  = self.imageConfig[ 'contextConfig' ].get( 'ex_pubkey_path' , None )
     
     if userdata is not None:
       with open( userdata, 'r' ) as userDataFile: 
@@ -425,7 +425,7 @@ class NovaClient:
     :return: S_OK | S_ERROR   
     """
     
-    ipPool = self.imageConfig[ 'contextConfig' ].get( 'ipPool', None )
+    ipPool = self.endpointConfig.get( 'ipPool' )
     
     if not ipPool is None:
 

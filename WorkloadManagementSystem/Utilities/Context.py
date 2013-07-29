@@ -137,7 +137,7 @@ class SSHContext( ContextConfig ):
   * vmRunLogAgentURL : the runsvdir run.log file 
   * cpuTime : the VM cpuTime of the image
   * cloudDriver : the endpoint dirac cloud driver
-  * ex_pubkey_path: path to the public key .pem file
+  * pubkey_path: path to the public key .pem file to be inserted in the VM allowing ssh
   * ex_keyname: keyname to be created asociated to the ex_pubkey_path
   
   """

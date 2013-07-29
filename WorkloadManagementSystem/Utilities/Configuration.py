@@ -234,7 +234,7 @@ class NovaConfiguration( EndpointConfiguration ):
     self.__vmPolicy                = novaOptions.get( 'vmPolicy'               , None )
     self.__siteName                = novaOptions.get( 'siteName'               , None )
     self.__maxEndpointInstances    = novaOptions.get( 'maxEndpointInstances'   , None )
-    self.__cvmfs_http_proxy        = occiOptions.get( 'cvmfs_http_proxy'        , None )
+    self.__cvmfs_http_proxy        = novaOptions.get( 'cvmfs_http_proxy'        , None )
     self.__ipPool                  = novaOptions.get( 'ipPool'                 , None )
     
     self.__ex_force_ca_cert        = novaOptions.get( 'ex_force_ca_cert'       , None )

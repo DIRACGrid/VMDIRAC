@@ -26,7 +26,7 @@ class SshContextualize:
     contextMethod = imageConfig[ 'contextMethod' ]
     if contextMethod == 'ssh':
 
-      cvmfs_http_proxy = endpointConfig.get( 'CVMFS_HTTP_PROXY' )
+      cvmfs_http_proxy = endpointConfig.get( 'cvmfs_http_proxy' )
       siteName         = endpointConfig.get( 'siteName' )
       cloudDriver      = endpointConfig.get( 'cloudDriver' )
       vmStopPolicy     = endpointConfig.get( 'vmStopPolicy' )

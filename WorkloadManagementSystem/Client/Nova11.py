@@ -252,7 +252,15 @@ class NovaClient:
             pub_key = f.read()
       except Exception, errmsg:
         return S_ERROR( errmsg )
-      keypair = self.__pynovaclient.keypairs.create(keyname,pub_key)
+      keypairs = pynovaclient.keypairs.list()
+      existkey = False
+      for keypair in keypairs:
+        if keypair.name == ex_keyname:
+          self.log.info( "ex_keyname exist, do nothing for keypairs" )
+          existkey = True
+
+      if existkey == False:
+        keypair = self.__pynovaclient.keypairs.create(keyname,pub_key)
 
     self.log.info( "Creating node" )
     self.log.verbose( "name : %s" % vm_name )

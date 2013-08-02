@@ -117,10 +117,12 @@ class VirtualMachineManagerHandler( RequestHandler ):
       - instanceName does not have a "Submitted" entry 
       - uniqueID is not unique
     """
+    gLogger.info( 'Declare instance Running uniqueID: %s' % ( uniqueID ) )  
     if not VmProperties.VM_RPC_OPERATION in self.rpcProperties:
       return S_ERROR( "Unauthorized declareInstanceRunning RPC" )
 
     publicIP = self.getRemoteAddress()[ 0 ]
+    gLogger.info( 'Declare instance Running publicIP: %s' % ( publicIP ) )  
     
     res = gVirtualMachineDB.declareInstanceRunning( uniqueID, publicIP, privateIP )
     self.__logResult( 'declareInstanceRunning', res )

@@ -67,6 +67,7 @@ class NovaClient:
     
     if secret == None:
       # python nova with VOMS:
+      # Insecure True to be resolved
       proxyPath=user
       username = password = None
       version = 2
@@ -80,12 +81,14 @@ class NovaClient:
                                     api_key = password, 
                                     project_id = ex_tenant_name,
                                     auth_url = ex_force_auth_url,
+                                    insecure = True, 
                                     auth_plugin=auth_plugin,
                                     auth_system=auth_system,
                                     cacert=caCertPath)
 
     else:
       # python nova with user password
+      # Insecure True to be resolved
       username = user
       password = secret
       version = 2

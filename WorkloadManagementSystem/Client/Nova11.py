@@ -211,8 +211,6 @@ class NovaClient:
     vmPolicy = self.endpointConfig[ 'vmPolicy' ]
     vmStopPolicy = self.endpointConfig[ 'vmStopPolicy' ]
     siteName = self.endpointConfig[ 'siteName' ]
-    user = self.endpointConfig[ 'user' ]
-    password = self.endpointConfig[ 'password' ]
     
     # Optional node contextualization parameters
     userdata    = self.imageConfig[ 'contextConfig' ].get( 'ex_userdata', None )

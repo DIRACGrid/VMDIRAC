@@ -252,7 +252,7 @@ class NovaClient:
             pub_key = f.read()
       except Exception, errmsg:
         return S_ERROR( errmsg )
-      keypair = pynovaclient.keypairs.create(keyname,pub_key)
+      keypair = self.__pynovaclient.keypairs.create(keyname,pub_key)
 
     self.log.info( "Creating node" )
     self.log.verbose( "name : %s" % vm_name )
@@ -306,7 +306,7 @@ class NovaClient:
     """
 
     ServerObj = None
-    servers = pynovaclient.servers.list()
+    servers = self.__pynovaclient.servers.list()
 
     for server in servers:
       if server.id == uniqueId:
@@ -338,7 +338,7 @@ class NovaClient:
     """
 
     ServerObj = None
-    servers = pynovaclient.servers.list()
+    servers = self.__pynovaclient.servers.list()
 
     for server in servers:
       if server.id == uniqueId:

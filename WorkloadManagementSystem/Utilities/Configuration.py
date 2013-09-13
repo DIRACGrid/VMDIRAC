@@ -85,7 +85,6 @@ class OcciConfiguration( EndpointConfiguration ):
     self.__user                    = occiOptions.get( 'user'                    , None )
     self.__password                = occiOptions.get( 'password'                , None )
     self.__userCredPath            = occiOptions.get( 'userCredPath'            , None )
-    self.__proxyCaPath             = occiOptions.get( 'proxyCaPath'             , None )
 
     self.__cloudDriver             = occiOptions.get( 'cloudDriver'             , None )
     self.__vmStopPolicy            = occiOptions.get( 'vmStopPolicy'            , None )
@@ -111,7 +110,6 @@ class OcciConfiguration( EndpointConfiguration ):
     config[ 'user' ]                    = self.__user
     config[ 'password' ]                = self.__password
     config[ 'userCredPath' ]            = self.__userCredPath
-    config[ 'proxyCaPath' ]             = self.__proxyCaPath
 
     config[ 'cloudDriver' ]             = self.__cloudDriver
     config[ 'vmPolicy' ]                = self.__vmPolicy
@@ -156,8 +154,6 @@ class OcciConfiguration( EndpointConfiguration ):
     elif self.__auth == 'proxycacert':
       if self.__userCredPath is None:
         return S_ERROR( 'userCredPath is None' )
-      if self.__proxyCaPath is None:
-        return S_ERROR( 'proxyCaPath is None' )
     else:
       return S_ERROR( 'endpoint auth: %s not defined (userpasswd/proxycacert)' % self.__auth)
     
@@ -180,7 +176,7 @@ class OcciConfiguration( EndpointConfiguration ):
     if self.__auth == 'userpasswd':
       return ( self.__auth, self.__user, self.__password )
     elif self.__auth == 'proxycacert':
-      return ( self.__auth, self.__userCredPath, self.__proxyCaPath )
+      return ( self.__auth, self.__userCredPath, 'Nouse' )
     else:
       return S_ERROR( 'endpoint auth: %s not defined (userpasswd/proxycacert)' % self.__auth)
   

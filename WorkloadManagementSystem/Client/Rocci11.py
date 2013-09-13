@@ -81,7 +81,7 @@ class Request:
 
 class OcciClient:
   
-  def __init__(  self, userCredPath, proxyCaPath, endpointConfig, imageConfig):
+  def __init__(  self, userCredPath, endpointConfig, imageConfig):
     """
     Constructor: uses user / secret authentication for the time being. 
     copy the endpointConfig and ImageConfig dictionaries to the OcciClient
@@ -89,8 +89,6 @@ class OcciClient:
     :Parameters:
       **userCredPath** - `string`
         path to a valid x509 proxy
-      **proxyCaPath** - `string`
-        path to the CA certificate of the userCredPath (in rocci 1.1 it is the user certificate in q .pem  without the private key)
       **endpointConfig** - `dict`
         dictionary with the endpoint configuration ( WMS.Utilities.Configuration.OcciConfiguration )
       **imageConfig** - `dict`
@@ -104,7 +102,6 @@ class OcciClient:
     self.endpointConfig   = endpointConfig
     self.imageConfig      = imageConfig
     self.__userCredPath   = userCredPath
-    self.__proxyCaPath    = proxyCaPath
 
   def check_connection(self, timelife = 10):
     """
@@ -113,7 +110,7 @@ class OcciClient:
     """
 
     request = Request()
-    command = 'occi --endpoint ' + self.endpointConfig['occiURI'] + ' --action list --resource compute --auth x509 --user-cred ' + self.__userCredPath + ' --proxy-ca ' + self.__proxyCaPath
+    command = 'occi --endpoint ' + self.endpointConfig['occiURI'] + ' --action list --resource compute --auth x509 --user-cred ' + self.__userCredPath + ' --voms' 
     request.exec_and_wait(command, timelife)
     return request
    
@@ -146,7 +143,7 @@ class OcciClient:
 
     request = Request()
 
-    command = 'occi --endpoint ' + occiURI + '  --action create --resource compute --mixin os_tpl#' + osTemplateName + ' --mixin resource_tpl#' + flavorName + ' --attributes title="' + vmName + '" --output-format json --auth x509 --user-cred ' + self.__userCredPath + ' --proxy-ca ' + self.__proxyCaPath 
+    command = 'occi --endpoint ' + occiURI + '  --action create --resource compute --mixin os_tpl#' + osTemplateName + ' --mixin resource_tpl#' + flavorName + ' --attributes title="' + vmName + '" --output-format json --auth x509 --user-cred ' + self.__userCredPath + ' --voms' 
 
     request.exec_no_wait(command)
 
@@ -169,7 +166,7 @@ class OcciClient:
     time.sleep( 5 )
 
 
-    command = 'occi --endpoint ' + occiURI + '  --action describe --resource /compute/' + iD + ' --output-format json --auth x509 --user-cred ' + self.__userCredPath + ' --proxy-ca ' + self.__proxyCaPath 
+    command = 'occi --endpoint ' + occiURI + '  --action describe --resource /compute/' + iD + ' --output-format json --auth x509 --user-cred ' + self.__userCredPath + ' --voms ' 
 
     request.exec_no_wait(command)
 
@@ -191,7 +188,7 @@ class OcciClient:
     """
     occiURI  = self.endpointConfig[ 'occiURI' ]
     request = Request()
-    command = 'occi --endpoint ' + occiURI + '  --action delete --resource /compute/' + instanceId + ' --output-format json --auth x509 --user-cred ' + self.__userCredPath + ' --proxy-ca ' + self.__proxyCaPath 
+    command = 'occi --endpoint ' + occiURI + '  --action delete --resource /compute/' + instanceId + ' --output-format json --auth x509 --user-cred ' + self.__userCredPath + ' --voms ' 
 
     request.exec_no_wait(command)
 
@@ -208,7 +205,7 @@ class OcciClient:
     """
     occiURI  = self.endpointConfig[ 'occiURI' ]
     request = Request()
-    command = 'occi --endpoint ' + occiURI + '  --action describe --resource /compute/' + instanceId + ' --output-format json --auth x509 --user-cred ' + self.__userCredPath + ' --proxy-ca ' + self.__proxyCaPath 
+    command = 'occi --endpoint ' + occiURI + '  --action describe --resource /compute/' + instanceId + ' --output-format json --auth x509 --user-cred ' + self.__userCredPath + ' --voms ' 
 
     request.exec_no_wait(command)
 

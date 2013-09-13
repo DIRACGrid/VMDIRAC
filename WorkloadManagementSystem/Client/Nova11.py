@@ -32,7 +32,6 @@ class NovaClient:
   def __init__( self, user, secret, endpointConfig, imageConfig ):
     """
     Multiple constructor depending on the passed parameters
-    It initializes the the pynovaclient driver.
     
     :Parameters:
       **user** - `string`
@@ -380,7 +379,6 @@ class NovaClient:
       if not res == True:
         return S_ERROR( "Not True returned destroying %s: %s" % ( uniqueId, res ) )
 
-      #_infonode = self.__pynovaclient.servers.delete(uniqueId)
       # the libcloud library, throws Exception. Nothing to do.
     except Exception, errmsg:
       return S_ERROR( errmsg )

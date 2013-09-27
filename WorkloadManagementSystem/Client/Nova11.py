@@ -429,7 +429,7 @@ class NovaClient:
         pool_list = self.__driver.ex_list_floating_ip_pools()
 
         for pool in pool_list:
-          if pool.name = ipPool:
+          if pool.name == ipPool:
             floating_ip = pool.create_floating_ip()
             self.__driver.ex_attach_floating_ip_to_node(node, floating_ip)
             public_ip = floating_ip.ip_address
@@ -464,7 +464,7 @@ class NovaClient:
 
       try:
         for pool in pool_list:
-          if pool.name = ipPool:
+          if pool.name == ipPool:
             floating_ip = pool.get_floating_ip(public_ip)
             self.__driver.ex_detach_floating_ip_from_node(node, floating_ip)
 

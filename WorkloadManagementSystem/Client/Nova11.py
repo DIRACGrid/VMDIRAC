@@ -385,7 +385,7 @@ class NovaClient:
 
     return S_OK()
 
-  def contextualize_VMInstance( self, uniqueId, publicIp, cpuTime ):
+  def contextualize_VMInstance( self, uniqueId, publicIp, cpuTime, submitPool ):
     """
     This method is only used ( at the moment ) by the ssh contextualization method.
     It is called once the vm has been booted.
@@ -404,7 +404,8 @@ class NovaClient:
     return novaContext.contextualise( self.imageConfig, self.endpointConfig,
                                       uniqueId = uniqueId, 
                                       publicIp = publicIp,
-                                      cpuTime = cpuTime ) 
+                                      cpuTime = cpuTime,
+                                      submitPool = submitPool ) 
 
   #.............................................................................
   # Private methods

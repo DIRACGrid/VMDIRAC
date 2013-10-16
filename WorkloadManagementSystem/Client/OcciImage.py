@@ -174,7 +174,7 @@ class OcciImage:
 
     return S_OK( request.stdout )
 
-  def contextualizeInstance( self, uniqueId, public_ip, cpuTime ):
+  def contextualizeInstance( self, uniqueId, public_ip, cpuTime, submitPool ):
     """
     This method is not a regular method in the sense that is not generic at all.
     It will be called only of those VMs which need after-booting contextualisation,
@@ -193,7 +193,7 @@ class OcciImage:
     :return: S_OK | S_ERROR
     """
 
-    return self.__cliocci.contextualize_VMInstance( uniqueId, public_ip, cpuTime )
+    return self.__cliocci.contextualize_VMInstance( uniqueId, public_ip, cpuTime, submitPool )
 
 #...............................................................................
 #EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF

@@ -245,7 +245,8 @@ class OcciClient:
     return sshContext.contextualise(  self.imageConfig, self.endpointConfig,
                                       uniqueId = uniqueId,
                                       publicIp = publicIp,
-                                      cpuTime = cpuTime )
+                                      cpuTime = cpuTime,
+                                      submitPool = submitPool )
 
 #...............................................................................
 #EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF

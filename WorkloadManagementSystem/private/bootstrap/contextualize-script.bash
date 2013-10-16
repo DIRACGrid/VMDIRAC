@@ -6,9 +6,9 @@
 # contextualization script to be run on the VM, after init.d proccess 
 
 
-if [ $# -ne 14 ]
+if [ $# -ne 15 ]
 then
-	echo "bash contextualize-script.bash  <uniqueId> <certfile> <keyfile> <runjobagent> <runvmmonitoragent> <runvmupdateragent> <runlogagent> <cvmfscontextscript> <diraccontextscript> <cvmfshttpproxy> <sitename> <clouddriver> <cpuTime> <vmStopPolicy>"
+	echo "bash contextualize-script.bash  <uniqueId> <certfile> <keyfile> <runjobagent> <runvmmonitoragent> <runvmupdateragent> <runlogagent> <cvmfscontextscript> <diraccontextscript> <cvmfshttpproxy> <sitename> <clouddriver> <cpuTime> <vmStopPolicy> <submitPool>"
 	exit 1
 fi
 
@@ -26,6 +26,7 @@ siteName=${11}
 cloudDriver=${12}
 cpuTime=${13}
 vmStopPolicy=${14}
+submitPool=${15}
 
 if [ ${vmRunJobAgent} != 'nouse' ]
 then
@@ -102,6 +103,6 @@ fi
 echo ${cpuTime} > /etc/CPU_TIME
 
 chmod u+x ${localDiracContextPath} >> /var/log/contextualize-script.log 2>&1
-bash ${localDiracContextPath} "${siteName}" "${vmStopPolicy}" "${vmCertPath}" "${vmKeyPath}" "${localVmRunJobAgent}" "${localVmRunVmMonitorAgent}" "${localVmRunVmUpdaterAgent}" "${localVmRunLogAgent}" "${cloudDriver}" >> /var/log/contextualize-script.log 2>&1
+bash ${localDiracContextPath} "${siteName}" "${vmStopPolicy}" "${vmCertPath}" "${vmKeyPath}" "${localVmRunJobAgent}" "${localVmRunVmMonitorAgent}" "${localVmRunVmUpdaterAgent}" "${localVmRunLogAgent}" "${cloudDriver}" "${submitPool}" >> /var/log/contextualize-script.log 2>&1
 
 exit 0

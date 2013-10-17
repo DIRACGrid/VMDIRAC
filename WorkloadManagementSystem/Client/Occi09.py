@@ -381,7 +381,7 @@ class OcciClient:
     request.stdout = request.stdout[first:last]
     return request
 
-  def contextualize_VMInstance( self, uniqueId, publicIp, cpuTime ):
+  def contextualize_VMInstance( self, uniqueId, publicIp, cpuTime, submitPool ):
     """
     This method is only used ( at the moment ) by the ssh contextualization method.
     It is called once the vm has been booted.

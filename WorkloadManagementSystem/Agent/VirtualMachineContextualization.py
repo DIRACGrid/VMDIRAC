@@ -88,7 +88,8 @@ class VirtualMachineContextualization( AgentModule ):
       cpuTime = runningRequirementsDict['CPUTime']
       if not cpuTime:
         return S_ERROR( 'Unknown CPUTime in Requirements of the RunningPod %s' % runningPodName )
-      submitPool = runningRequirementsDict['submitPool']
+
+      submitPool = runningRequirementsDict['SubmitPool']
       if not submitPool:
         return S_ERROR( 'Unknown submitPool in Requirements of the RunningPod %s' % runningPodName )
 

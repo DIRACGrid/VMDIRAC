@@ -192,12 +192,6 @@ class NovaClient:
     bootImageName = self.imageConfig[ 'bootImageName' ]
     flavorName    = self.imageConfig[ 'flavorName' ]
     contextMethod = self.imageConfig[ 'contextMethod' ]
-    cloudDriver = self.endpointConfig[ 'cloudDriver' ]
-    vmPolicy = self.endpointConfig[ 'vmPolicy' ]
-    vmStopPolicy = self.endpointConfig[ 'vmStopPolicy' ]
-    siteName = self.endpointConfig[ 'siteName' ]
-    user = self.endpointConfig[ 'user' ]
-    password = self.endpointConfig[ 'password' ]
     
     # Optional node contextualization parameters
     keyname  = self.imageConfig[ 'contextConfig' ].get( 'ex_keyname' , None )
@@ -209,8 +203,8 @@ class NovaClient:
       with open( userdata, 'r' ) as userDataFile: 
         userdata = ''.join( userDataFile.readlines() )
     
-    if vmdiracInstanceID is not None:
-      metadata.update( { 'vmdiracid' : str( vmdiracInstanceID ) } )
+#    if vmdiracInstanceID is not None:
+#      metadata.update( { 'vmdiracid' : str( vmdiracInstanceID ) } )
     
     bootImage = self.get_image( bootImageName )
     if not bootImage[ 'OK' ]:

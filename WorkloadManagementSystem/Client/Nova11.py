@@ -399,7 +399,7 @@ class NovaClient:
     :return: S_OK( public_ip ) | S_ERROR   
     """
 
-    ipPool = endpointConfig.get( 'ipPool' )
+    ipPool = self.endpointConfig.get( 'ipPool' )
 
     if ipPool is not None:
 

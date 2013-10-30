@@ -12,7 +12,7 @@ except:
   from md5 import md5
 
 # DIRAC
-from DIRAC                       import S_OK, S_ERROR, gConfig, rootPath
+from DIRAC                       import S_OK, S_ERROR, gLogger, gConfig, rootPath
 from DIRAC.Core.Base.AgentModule import AgentModule
 from DIRAC.Core.Utilities        import List, Network
 
@@ -28,7 +28,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
     try:
       fd = urllib2.urlopen("http://instance-data.ec2.internal/latest/meta-data/instance-id", timeout=30)
     except urllib2.URLError:
-      print 'Can not connect to EC2 URL. Trying address 169.254.169.254 directly... '
+      gLogger.warn("Can not connect to EC2 URL. Trying address 169.254.169.254 directly...")
     try:
       fd = urllib2.urlopen("http://169.254.169.254/latest/meta-data/instance-id", timeout=30)
     except urllib2.URLError, e:

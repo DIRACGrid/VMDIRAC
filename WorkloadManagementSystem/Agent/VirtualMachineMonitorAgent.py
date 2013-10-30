@@ -26,12 +26,16 @@ class VirtualMachineMonitorAgent( AgentModule ):
 
   def getAmazonVMId( self ):
     try:
-      fd = urllib2.urlopen( "http://instance-data.ec2.internal/latest/meta-data/instance-id" )
-      iD = fd.read().strip()
-      fd.close()
-      return S_OK( iD )
-    except Exception, e:
+      fd = urllib2.urlopen("http://instance-data.ec2.internal/latest/meta-data/instance-id", timeout=30)
+    except urllib2.URLError:
+      print 'Can not connect to EC2 URL. Trying address 169.254.169.254 directly... '
+    try:
+      fd = urllib2.urlopen("http://169.254.169.254/latest/meta-data/instance-id", timeout=30)
+    except urllib2.URLError, e:
       return S_ERROR( "Could not retrieve amazon instance id: %s" % str( e ) )
+    iD = fd.read().strip()
+    fd.close()
+    return S_OK( iD )
 
   def getOcciVMId( self ):
     try:

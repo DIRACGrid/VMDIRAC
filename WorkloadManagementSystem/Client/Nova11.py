@@ -237,7 +237,7 @@ class NovaClient:
 
     try:
       if contextMethod == 'amiconfig':
-        vmNode = self.__driver.create_node(   name               = vm_name, 
+        vmNode = self.__driver.create_node( name               = vm_name, 
                                             image              = bootImage, 
                                             size               = flavor,
                                             ex_keyname         = keyname,

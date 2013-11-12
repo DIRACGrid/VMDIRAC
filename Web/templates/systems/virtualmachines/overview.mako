@@ -3,7 +3,7 @@
 <%inherit file="/diracPage.mako" />
 
 <%def name="head_tags()">
-${ h.javascript_link( "http://www.google.com/jsapi" ) }
+${ h.javascript_link( "https://www.google.com/jsapi" ) }
 ${ h.javascript_link( "/javascripts/systems/virtualmachines/vmInstanceInfoWindow.js" ) }
 ${ h.javascript_link( "/javascripts/systems/virtualmachines/vmOverview.js" ) }
 <style>

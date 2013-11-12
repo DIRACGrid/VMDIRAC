@@ -345,10 +345,30 @@ class VirtualMachineManagerHandler( RequestHandler ):
   types_getRunningInstancesBEPHistory = [ IntType, IntType ]
   def export_getRunningInstancesBEPHistory( self, timespan, bucketSize ):
     """
-    Retrieve number of running instances in each bucket
+    Retrieve number of running instances in each bucket by End-Point History
     """
     res = gVirtualMachineDB.getRunningInstancesBEPHistory( timespan, bucketSize )
     self.__logResult( 'getRunningInstancesBEPHistory', res )
+    
+    return res
+
+  types_getRunningInstancesByRunningPodHistory = [ IntType, IntType ]
+  def export_getRunningInstancesByRunningPodHistory( self, timespan, bucketSize ):
+    """
+    Retrieve number of running instances in each bucket by Running Pod History
+    """
+    res = gVirtualMachineDB.getRunningInstancesByRunningPodHistory( timespan, bucketSize )
+    self.__logResult( 'getRunningInstancesByRunningPodHistory', res )
+    
+    return res
+
+  types_getRunningInstancesByImageHistory = [ IntType, IntType ]
+  def export_getRunningInstancesByImageHistory( self, timespan, bucketSize ):
+    """
+    Retrieve number of running instances in each bucket by Running Pod History
+    """
+    res = gVirtualMachineDB.getRunningInstancesByImageHistory( timespan, bucketSize )
+    self.__logResult( 'getRunningInstancesByImageHistory', res )
     
     return res
 

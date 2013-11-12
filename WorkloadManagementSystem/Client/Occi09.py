@@ -381,5 +381,27 @@ class OcciClient:
     request.stdout = request.stdout[first:last]
     return request
 
+  def contextualize_VMInstance( self, uniqueId, publicIp, cpuTime, submitPool ):
+    """
+    This method is only used ( at the moment ) by the ssh contextualization method.
+    It is called once the vm has been booted.
+    </>
+
+    :Parameters:
+      **uniqueId** - `string`
+        openstack node id ( not uuid ! )
+      **publicIp** - `string`
+        public IP assigned to the node if any
+
+    :return: S_OK | S_ERROR
+    """
+
+    sshContext = SshContextualize()
+    return sshContext.contextualise(  self.imageConfig, self.endpointConfig,
+                                      uniqueId = uniqueId,
+                                      publicIp = publicIp,
+                                      cpuTime = cpuTime,
+                                      submitPool = submitPool )
+
 #...............................................................................
 #EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF

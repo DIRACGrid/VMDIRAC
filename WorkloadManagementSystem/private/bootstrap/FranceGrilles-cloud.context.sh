@@ -6,9 +6,9 @@
 
         echo "Starting dirac-context-script.sh" > /var/log/dirac-context-script.log 2>&1
 
-if [ $# -ne 10 ]
+if [ $# -ne 9 ]
 then
-    echo "ERROR: general-DIRAC-context.bash <siteName> <vmStopPolicy> <putCertPath> <putKeyPath> <localVmRunJobAgent> <localVmRunVmMonitorAgent> <localVmRunVmUpdaterAgent> <localVmRunLogAgent> <cloudDriver> <submitPool>" > /var/log/dirac-context-script.log 2>&1
+    echo "ERROR: general-DIRAC-context.bash <siteName> <vmStopPolicy> <putCertPath> <putKeyPath> <localVmRunJobAgent> <localVmRunVmMonitorAgent> <localVmRunVmUpdaterAgent> <localVmRunLogAgent> <cloudDriver> " > /var/log/dirac-context-script.log 2>&1
     exit 1
 fi
 
@@ -21,7 +21,6 @@ localVmRunVmMonitorAgent=$6
 localVmRunVmUpdaterAgent=$7
 localVmRunLogAgent=$8
 cloudDriver=$9
-submitPool=$10
 
 cpuTime=`cat /etc/CPU_TIME`
 
@@ -48,11 +47,11 @@ cpuTime=`cat /etc/CPU_TIME`
 #
 	cd /opt/dirac
 	wget --no-check-certificate -O dirac-install 'https://github.com/DIRACGrid/DIRAC/raw/integration/Core/scripts/dirac-install.py' >> /var/log/dirac-context-script.log 2>&1
-	# target: su dirac -c'python dirac-install -V "VMDIRAC"'
+	# target: su dirac -c'python dirac-install -V "VMFranceCloud"'
 	# label VMDIRAC it is declared at cern central installation info, linked to:
 	# have a look to: http://lhcweb.pic.es/~vmendez/dirac/vmdirac.cfg
 
-	su dirac -c'python dirac-install -V "VMDIRAC"' >> /var/log/dirac-context-script.log 2>&1
+	su dirac -c'python dirac-install -V "VMFranceCloud"' >> /var/log/dirac-context-script.log 2>&1
 	# FOR DEBUGGIN PURPOSES overwriting with last released in the local vmendez git folder: 
         rm -rf VMDIRAC
         wget --no-check-certificate -O vmdirac.zip 'https://github.com/vmendez/VMDIRAC/archive/master.zip'
@@ -77,7 +76,8 @@ cpuTime=`cat /etc/CPU_TIME`
         # if CAs are not download we retry
         for retry in 0 1 2 3 4 5 6 7 8 9
         do
-		su dirac -c"dirac-configure -UHdd -o /LocalSite/SubmitPool=${submitPool} -o /LocalSite/CPUTime=${cpuTime} -o /LocalSite/CloudDriver=${cloudDriver} -o /LocalSite/Site=${siteName}  -o /LocalSite/VMStopPolicy=${vmStopPolicy}  -o /LocalSite/CE=CE-nouse defaults-VMDIRAC.cfg"  >> /var/log/dirac-context-script.log 2>&1
+		# FIX: CPUTime should be cloudenpoint parameter
+		su dirac -c"dirac-configure -UHdd -o /LocalSite/SubmitPool=Cloud -o /LocalSite/CPUTime=${cpuTime} -o /LocalSite/CloudDriver=${cloudDriver} -o /LocalSite/Site=${siteName}  -o /LocalSite/VMStopPolicy=${vmStopPolicy}  -o /LocalSite/CE=CE-nouse defaults-VMFranceCloud.cfg"  >> /var/log/dirac-context-script.log 2>&1
 		# options H: SkipCAChecks, dd: debug level 2, U: UseServerCertificate 
 		# options only for debuging D: SkipCADownload
 		# after UseServerCertificate = yes for the configuration with CS
@@ -99,42 +99,35 @@ cpuTime=`cat /etc/CPU_TIME`
 # start the agents: VirtualMachineMonitor, JobAgent, VirtualMachineConfigUpdater
 
 	cd /opt/dirac
-        if [ ${localVmRunJobAgent} != 'nouse' ]
-        then
-	  mkdir -p startup/WorkloadManagement_JobAgent/log >> /var/log/dirac-context-script.log 2>&1
-	  mv ${localVmRunJobAgent} startup/WorkloadManagement_JobAgent/run >> /var/log/dirac-context-script.log 2>&1
-	  cp ${localVmRunLogAgent} startup/WorkloadManagement_JobAgent/log/run >> /var/log/dirac-context-script.log 2>&1
-	  chmod 755 startup/WorkloadManagement_JobAgent/log/run 
-          chmod 755 startup/WorkloadManagement_JobAgent/run 
-
-	  echo "rights and permissions to control and work JobAgent dirs" >> /var/log/dirac-context-script.log 2>&1
-	  mkdir -p /opt/dirac/control/WorkloadManagement/JobAgent >> /var/log/dirac-context-script.log 2>&1
-	  mkdir -p /opt/dirac/work/WorkloadManagement/JobAgent >> /var/log/dirac-context-script.log 2>&1
-	  chmod 775 /opt/dirac/control/WorkloadManagement/JobAgent >> /var/log/dirac-context-script.log 2>&1
-	  chmod 775 /opt/dirac/work/WorkloadManagement/JobAgent >> /var/log/dirac-context-script.log 2>&1
-	  chown root:dirac /opt/dirac/work/WorkloadManagement/JobAgent >> /var/log/dirac-context-script.log 2>&1
-	  chown root:dirac /opt/dirac/control/WorkloadManagement/JobAgent >> /var/log/dirac-context-script.log 2>&1
-	  echo "/opt/dirac/control/WorkloadManagement content" >> /var/log/dirac-context-script.log 2>&1
-	  ls -l /opt/dirac/control/WorkloadManagement >> /var/log/dirac-context-script.log 2>&1
-	  echo "/opt/dirac/work/WorkloadManagement content" >> /var/log/dirac-context-script.log 2>&1
-	  ls -l /opt/dirac/work/WorkloadManagement >> /var/log/dirac-context-script.log 2>&1
-	  echo >> /var/log/dirac-context-script.log 2>&1
-        fi
-
-        if [ ${localVmRunVmUpdaterAgent} != 'nouse' ]
-        then
-	  mkdir -p startup/WorkloadManagement_VirtualMachineConfigUpdater/log >> /var/log/dirac-context-script.log 2>&1
-	  mv ${localVmRunVmUpdaterAgent} startup/WorkloadManagement_VirtualMachineConfigUpdater/run >> /var/log/dirac-context-script.log 2>&1
-	  cp ${localVmRunLogAgent} startup/WorkloadManagement_VirtualMachineConfigUpdater/log/run >> /var/log/dirac-context-script.log 2>&1
-	  chmod 755 startup/WorkloadManagement_VirtualMachineConfigUpdater/log/run 
-	  chmod 755 startup/WorkloadManagement_VirtualMachineConfigUpdater/run 
-        fi
-
+	mkdir -p startup/WorkloadManagement_JobAgent/log >> /var/log/dirac-context-script.log 2>&1
 	mkdir -p startup/WorkloadManagement_VirtualMachineMonitorAgent/log >> /var/log/dirac-context-script.log 2>&1
+	mkdir -p startup/WorkloadManagement_VirtualMachineConfigUpdater/log >> /var/log/dirac-context-script.log 2>&1
+	mv ${localVmRunJobAgent} startup/WorkloadManagement_JobAgent/run >> /var/log/dirac-context-script.log 2>&1
+	cp ${localVmRunLogAgent} startup/WorkloadManagement_JobAgent/log/run >> /var/log/dirac-context-script.log 2>&1
 	mv ${localVmRunVmMonitorAgent} startup/WorkloadManagement_VirtualMachineMonitorAgent/run >> /var/log/dirac-context-script.log 2>&1
-	mv ${localVmRunLogAgent} startup/WorkloadManagement_VirtualMachineMonitorAgent/log/run >> /var/log/dirac-context-script.log 2>&1
+	cp ${localVmRunLogAgent} startup/WorkloadManagement_VirtualMachineMonitorAgent/log/run >> /var/log/dirac-context-script.log 2>&1
+	mv ${localVmRunVmUpdaterAgent} startup/WorkloadManagement_VirtualMachineConfigUpdater/run >> /var/log/dirac-context-script.log 2>&1
+	cp ${localVmRunLogAgent} startup/WorkloadManagement_VirtualMachineConfigUpdater/log/run >> /var/log/dirac-context-script.log 2>&1
+
+	chmod 755 startup/WorkloadManagement_JobAgent/log/run 
+	chmod 755 startup/WorkloadManagement_JobAgent/run 
 	chmod 755 startup/WorkloadManagement_VirtualMachineMonitorAgent/log/run 
 	chmod 755 startup/WorkloadManagement_VirtualMachineMonitorAgent/run 
+	chmod 755 startup/WorkloadManagement_VirtualMachineConfigUpdater/log/run 
+	chmod 755 startup/WorkloadManagement_VirtualMachineConfigUpdater/run 
+
+	echo "rights and permissions to control and work JobAgent dirs" >> /var/log/dirac-context-script.log 2>&1
+	mkdir -p /opt/dirac/control/WorkloadManagement/JobAgent >> /var/log/dirac-context-script.log 2>&1
+	mkdir -p /opt/dirac/work/WorkloadManagement/JobAgent >> /var/log/dirac-context-script.log 2>&1
+	chmod 775 /opt/dirac/control/WorkloadManagement/JobAgent >> /var/log/dirac-context-script.log 2>&1
+	chmod 775 /opt/dirac/work/WorkloadManagement/JobAgent >> /var/log/dirac-context-script.log 2>&1
+	chown root:dirac /opt/dirac/work/WorkloadManagement/JobAgent >> /var/log/dirac-context-script.log 2>&1
+	chown root:dirac /opt/dirac/control/WorkloadManagement/JobAgent >> /var/log/dirac-context-script.log 2>&1
+	echo "/opt/dirac/control/WorkloadManagement content" >> /var/log/dirac-context-script.log 2>&1
+	ls -l /opt/dirac/control/WorkloadManagement >> /var/log/dirac-context-script.log 2>&1
+	echo "/opt/dirac/work/WorkloadManagement content" >> /var/log/dirac-context-script.log 2>&1
+	ls -l /opt/dirac/work/WorkloadManagement >> /var/log/dirac-context-script.log 2>&1
+	echo >> /var/log/dirac-context-script.log 2>&1
 
 	echo "runsvdir startup, have a look to DIRAC JobAgent, VirtualMachineMonitorAgent and VirtualMachineConfigUpdater logs" >> /var/log/dirac-context-script.log 2>&1
 	runsvdir -P /opt/dirac/startup 'log:  DIRAC runsv' &

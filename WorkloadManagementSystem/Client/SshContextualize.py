@@ -26,7 +26,7 @@ class SshContextualize:
     contextMethod = imageConfig[ 'contextMethod' ]
     if contextMethod == 'ssh':
 
-      cvmfs_http_proxy = endpointConfig.get( 'CVMFS_HTTP_PROXY' )
+      cvmfs_http_proxy = endpointConfig.get( 'cvmfs_http_proxy' )
       siteName         = endpointConfig.get( 'siteName' )
       cloudDriver      = endpointConfig.get( 'cloudDriver' )
       vmStopPolicy     = endpointConfig.get( 'vmStopPolicy' )
@@ -45,6 +45,7 @@ class SshContextualize:
       uniqueId = kwargs.get( 'uniqueId' )
       publicIP = kwargs.get( 'publicIp' )
       cpuTime = kwargs.get( 'cpuTime' )
+      submitPool = kwargs.get( 'submitPool' )
 
       result = self.__sshContextualise( uniqueId = uniqueId,
                                         publicIP = publicIP,
@@ -62,7 +63,8 @@ class SshContextualize:
                                         vmCvmfsContextURL = vmCvmfsContextURL,
                                         vmDiracContextURL = vmDiracContextURL,
                                         siteName = siteName,
-                                        cpuTime = cpuTime
+                                        cpuTime = cpuTime,
+                                        submitPool = submitPool
                                       )
     elif contextMethod == 'adhoc':
       result = S_OK()
@@ -91,7 +93,8 @@ class SshContextualize:
                                         vmCvmfsContextURL,
                                         vmDiracContextURL,
                                         siteName,
-                                        cpuTime
+                                        cpuTime,
+                                        submitPool
                         ):
     # the contextualization using ssh needs the VM to be ACTIVE, so VirtualMachineContextualization
     # check status and launch contextualize_VMInstance
@@ -144,10 +147,10 @@ class SshContextualize:
     #3) Run the DIRAC contextualization orchestator script:
 
     try:
-      remotecmd = "/bin/bash /root/contextualize-script.bash \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\'"
+      remotecmd = "/bin/bash /root/contextualize-script.bash \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\'"
       remotecmd = remotecmd % ( uniqueId, putCertPath, putKeyPath, vmRunJobAgentURL,
                                 vmRunVmMonitorAgentURL, vmRunVmUpdaterAgentURL, vmRunLogAgentURL,
-                                vmCvmfsContextURL, vmDiracContextURL, cvmfs_http_proxy, siteName, cloudDriver, cpuTime, vmStopPolicy )
+                                vmCvmfsContextURL, vmDiracContextURL, cvmfs_http_proxy, siteName, cloudDriver, cpuTime, vmStopPolicy, submitPool )
       # print "remotecmd"
       # print remotecmd
       _stdin, _stdout, _stderr = ssh.exec_command( remotecmd )

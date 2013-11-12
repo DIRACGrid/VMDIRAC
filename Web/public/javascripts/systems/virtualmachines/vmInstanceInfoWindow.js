@@ -138,7 +138,7 @@ function plotDataForVM( plotSpace, dataStore )
 	imgOps.push( "chs=" + ( plotSpace.getInnerWidth() - 10 ) + "x" + ( plotSpace.getInnerHeight() - 10 ) );
 	imgOps.push( "chds=" + plotParams.chds.join( "|") );
 	imgOps.push( "chd=e:" + encodedData.join( "," ) );
-	var imgSrc = "http://chart.apis.google.com/chart?"+ imgOps.join("&");
+	var imgSrc = "https://chart.apis.google.com/chart?"+ imgOps.join("&");
 	plotSpace.body.dom.innerHTML = "<img src='"+imgSrc+"'/ alt'"+plotSpace.acPlot+"' style:'margin-left:auto;margin-right:auto;'>"
 }
 

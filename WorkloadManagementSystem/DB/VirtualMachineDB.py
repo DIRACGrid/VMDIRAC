@@ -1225,6 +1225,50 @@ class VirtualMachineDB( DB ):
     
     return self._query( sqlQuery )
 
+  def getRunningInstancesByRunningPodHistory( self, timespan = 0, bucketSize = 900 ):
+    try:
+      bucketSize = max( 300, int( bucketSize ) )
+    except ValueError:
+      return S_ERROR( "Bucket has to be an integer" )
+    try:
+      timespan = max( 0, int( timespan ) )
+    except ValueError:
+      return S_ERROR( "Timespan has to be an integer" )
+
+    groupby   = "FROM_UNIXTIME(UNIX_TIMESTAMP( h.`Update` ) - UNIX_TIMESTAMP( h.`Update` ) mod %d )" % bucketSize
+    sqlFields = [ groupby, " i.RunningPod, COUNT( DISTINCT( h.`InstanceID` ) ) " ]
+    sqlQuery  = "SELECT %s FROM `vm_History` h, `vm_Instances` i" % ", ".join( sqlFields )
+    sqlCond   = [ " h.InstanceID = i.InstanceID AND h.`Status` = 'Running'" ]
+    
+    if timespan > 0:
+      sqlCond.append( "TIMESTAMPDIFF( SECOND, `Update`, UTC_TIMESTAMP() ) < %d" % timespan )
+    sqlQuery += " WHERE %s" % " AND ".join( sqlCond )
+    sqlQuery += " GROUP BY %s , RunningPod ORDER BY `Update` ASC" % groupby
+    
+    return self._query( sqlQuery )
+
+  def getRunningInstancesByImageHistory( self, timespan = 0, bucketSize = 900 ):
+    try:
+      bucketSize = max( 300, int( bucketSize ) )
+    except ValueError:
+      return S_ERROR( "Bucket has to be an integer" )
+    try:
+      timespan = max( 0, int( timespan ) )
+    except ValueError:
+      return S_ERROR( "Timespan has to be an integer" )
+
+    groupby   = "FROM_UNIXTIME(UNIX_TIMESTAMP( h.`Update` ) - UNIX_TIMESTAMP( h.`Update` ) mod %d )" % bucketSize
+    sqlFields = [ groupby, " ins.Name, COUNT( DISTINCT( h.`InstanceID` ) ) " ]
+    sqlQuery  = "SELECT %s FROM `vm_History` h, `vm_Images` img, `vm_Instances` ins" % ", ".join( sqlFields )
+    sqlCond   = [ " h.InstanceID = ins.InstanceID AND img.VMImageID = ins.VMImageID AND h.`Status` = 'Running'" ]
+    
+    if timespan > 0:
+      sqlCond.append( "TIMESTAMPDIFF( SECOND, `Update`, UTC_TIMESTAMP() ) < %d" % timespan )
+    sqlQuery += " WHERE %s" % " AND ".join( sqlCond )
+    sqlQuery += " GROUP BY %s , ins.Name ORDER BY `Update` ASC" % groupby
+    
+    return self._query( sqlQuery )
+
   def getRunningPodDict( self, runningPodName ):
     """
     Return from CS a Dictionary with RunningPod definition

@@ -158,7 +158,7 @@ class OcciClient:
 
     return request
 
-  def create_VMInstance(self, cpuTime, submitPool=Cloud):
+  def create_VMInstance(self, cpuTime, submitPool):
     """
     This creates a VM instance for the given boot image 
     if context method is adhoc then boot image is create to be in Submitted status

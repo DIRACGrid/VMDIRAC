@@ -117,7 +117,7 @@ class OcciImage:
 
     return S_OK( request.stdout )
 
-  def startNewInstance( self, cpuTime, submitPool=Cloud ):
+  def startNewInstance( self, cpuTime, submitPool="Cloud" ):
     """
     Prior to use, virtual machine images are uploaded to the OCCI cloud manager assigned an id (OII in a URI). 
     """

@@ -117,10 +117,12 @@ class VirtualMachineManagerHandler( RequestHandler ):
       - instanceName does not have a "Submitted" entry 
       - uniqueID is not unique
     """
+    gLogger.info( 'Declare instance Running uniqueID: %s' % ( uniqueID ) )  
     if not VmProperties.VM_RPC_OPERATION in self.rpcProperties:
       return S_ERROR( "Unauthorized declareInstanceRunning RPC" )
 
     publicIP = self.getRemoteAddress()[ 0 ]
+    gLogger.info( 'Declare instance Running publicIP: %s' % ( publicIP ) )  
     
     res = gVirtualMachineDB.declareInstanceRunning( uniqueID, publicIP, privateIP )
     self.__logResult( 'declareInstanceRunning', res )
@@ -343,10 +345,30 @@ class VirtualMachineManagerHandler( RequestHandler ):
   types_getRunningInstancesBEPHistory = [ IntType, IntType ]
   def export_getRunningInstancesBEPHistory( self, timespan, bucketSize ):
     """
-    Retrieve number of running instances in each bucket
+    Retrieve number of running instances in each bucket by End-Point History
     """
     res = gVirtualMachineDB.getRunningInstancesBEPHistory( timespan, bucketSize )
     self.__logResult( 'getRunningInstancesBEPHistory', res )
+    
+    return res
+
+  types_getRunningInstancesByRunningPodHistory = [ IntType, IntType ]
+  def export_getRunningInstancesByRunningPodHistory( self, timespan, bucketSize ):
+    """
+    Retrieve number of running instances in each bucket by Running Pod History
+    """
+    res = gVirtualMachineDB.getRunningInstancesByRunningPodHistory( timespan, bucketSize )
+    self.__logResult( 'getRunningInstancesByRunningPodHistory', res )
+    
+    return res
+
+  types_getRunningInstancesByImageHistory = [ IntType, IntType ]
+  def export_getRunningInstancesByImageHistory( self, timespan, bucketSize ):
+    """
+    Retrieve number of running instances in each bucket by Running Pod History
+    """
+    res = gVirtualMachineDB.getRunningInstancesByImageHistory( timespan, bucketSize )
+    self.__logResult( 'getRunningInstancesByImageHistory', res )
     
     return res
 

@@ -81,16 +81,14 @@ class Request:
 
 class OcciClient:
   
-  def __init__(  self, userCredPath, proxyCaPath, endpointConfig, imageConfig):
+  def __init__(  self, userCredPath, endpointConfig, imageConfig):
     """
     Constructor: uses user / secret authentication for the time being. 
     copy the endpointConfig and ImageConfig dictionaries to the OcciClient
 
     :Parameters:
-      **user** - `string`
-        username that will be used on the authentication
-      **secret** - `string`
-        password used on the authentication
+      **userCredPath** - `string`
+        path to a valid x509 proxy
       **endpointConfig** - `dict`
         dictionary with the endpoint configuration ( WMS.Utilities.Configuration.OcciConfiguration )
       **imageConfig** - `dict`
@@ -104,7 +102,6 @@ class OcciClient:
     self.endpointConfig   = endpointConfig
     self.imageConfig      = imageConfig
     self.__userCredPath   = userCredPath
-    self.__proxyCaPath    = proxyCaPath
 
   def check_connection(self, timelife = 10):
     """
@@ -113,7 +110,7 @@ class OcciClient:
     """
 
     request = Request()
-    command = 'occi --endpoint ' + self.endpointConfig['occiURI'] + ' --action list --resource compute --auth x509 --user-cred ' + self.__userCredPath + ' --proxy-ca ' + self.__proxyCaPath
+    command = 'occi --endpoint ' + self.endpointConfig['occiURI'] + ' --action list --resource compute --auth x509 --user-cred ' + self.__userCredPath + ' --voms' 
     request.exec_and_wait(command, timelife)
     return request
    
@@ -146,7 +143,7 @@ class OcciClient:
 
     request = Request()
 
-    command = 'occi --endpoint ' + occiURI + '  --action create --resource compute --mixin os_tpl#' + osTemplateName + ' --mixin resource_tpl#' + flavorName + ' --attributes title="' + vmName + '" --output-format json --auth x509 --user-cred ' + self.__userCredPath + ' --proxy-ca ' + self.__proxyCaPath 
+    command = 'occi --endpoint ' + occiURI + '  --action create --resource compute --mixin os_tpl#' + osTemplateName + ' --mixin resource_tpl#' + flavorName + ' --attributes title="' + vmName + '" --output-format json --auth x509 --user-cred ' + self.__userCredPath + ' --voms' 
 
     request.exec_no_wait(command)
 
@@ -169,7 +166,7 @@ class OcciClient:
     time.sleep( 5 )
 
 
-    command = 'occi --endpoint ' + occiURI + '  --action describe --resource /compute/' + iD + ' --output-format json --auth x509 --user-cred ' + self.__userCredPath + ' --proxy-ca ' + self.__proxyCaPath 
+    command = 'occi --endpoint ' + occiURI + '  --action describe --resource /compute/' + iD + ' --output-format json --auth x509 --user-cred ' + self.__userCredPath + ' --voms ' 
 
     request.exec_no_wait(command)
 
@@ -189,8 +186,9 @@ class OcciClient:
     """
     Terminate a VM instance corresponding to the instanceId parameter
     """
+    occiURI  = self.endpointConfig[ 'occiURI' ]
     request = Request()
-    command = 'occi --endpoint ' + occiURI + '  --action delete --resource /compute/' + instanceId + ' --output-format json --auth x509 --user-cred ' + self.__userCredPath + ' --proxy-ca ' + self.__proxyCaPath 
+    command = 'occi --endpoint ' + occiURI + '  --action delete --resource /compute/' + instanceId + ' --output-format json --auth x509 --user-cred ' + self.__userCredPath + ' --voms ' 
 
     request.exec_no_wait(command)
 
@@ -207,7 +205,7 @@ class OcciClient:
     """
     occiURI  = self.endpointConfig[ 'occiURI' ]
     request = Request()
-    command = 'occi --endpoint ' + occiURI + '  --action describe --resource /compute/' + instanceId + ' --output-format json --auth x509 --user-cred ' + self.__userCredPath + ' --proxy-ca ' + self.__proxyCaPath 
+    command = 'occi --endpoint ' + occiURI + '  --action describe --resource /compute/' + instanceId + ' --output-format json --auth x509 --user-cred ' + self.__userCredPath + ' --voms ' 
 
     request.exec_no_wait(command)
 
@@ -228,7 +226,7 @@ class OcciClient:
     request.stdout = request.stdout[first:last]
     return request
 
-  def contextualize_VMInstance( self, uniqueId, publicIp, cpuTime ):
+  def contextualize_VMInstance( self, uniqueId, publicIp, cpuTime, submitPool ):
     """
     This method is only used ( at the moment ) by the ssh contextualization method.
     It is called once the vm has been booted.
@@ -247,7 +245,8 @@ class OcciClient:
     return sshContext.contextualise(  self.imageConfig, self.endpointConfig,
                                       uniqueId = uniqueId,
                                       publicIp = publicIp,
-                                      cpuTime = cpuTime )
+                                      cpuTime = cpuTime,
+                                      submitPool = submitPool )
 
 #...............................................................................
 #EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF

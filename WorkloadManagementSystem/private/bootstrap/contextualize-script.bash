@@ -6,9 +6,9 @@
 # contextualization script to be run on the VM, after init.d proccess 
 
 
-if [ $# -ne 14 ]
+if [ $# -ne 15 ]
 then
-	echo "bash contextualize-script.bash  <uniqueId> <certfile> <keyfile> <runjobagent> <runvmmonitoragent> <runvmupdateragent> <runlogagent> <cvmfscontextscript> <diraccontextscript> <cvmfshttpproxy> <sitename> <clouddriver> <cpuTime> <vmStopPolicy>"
+	echo "bash contextualize-script.bash  <uniqueId> <certfile> <keyfile> <runjobagent> <runvmmonitoragent> <runvmupdateragent> <runlogagent> <cvmfscontextscript> <diraccontextscript> <cvmfshttpproxy> <sitename> <clouddriver> <cpuTime> <vmStopPolicy> <submitPool>"
 	exit 1
 fi
 
@@ -26,12 +26,32 @@ siteName=${11}
 cloudDriver=${12}
 cpuTime=${13}
 vmStopPolicy=${14}
+submitPool=${15}
 
-localVmRunJobAgent=/root/run.job-agent
+if [ ${vmRunJobAgent} != 'nouse' ]
+then
+  localVmRunJobAgent=/root/run.job-agent
+else
+  localVmRunJobAgent=nouse
+fi
+
 localVmRunVmMonitorAgent=/root/run.vm-monitor-agent
-localVmRunVmUpdaterAgent=/root/run.vm-updater-agent 
+
+if [ ${vmRunVmUpdaterAgent} != 'nouse' ]
+then
+  localVmRunVmUpdaterAgent=/root/run.vm-updater-agent 
+else
+  localVmRunVmUpdaterAgent=nouse
+fi
+
 localVmRunLogAgent=/root/run.log.agent
-localCvmfsContextPath=/root/cvmfs-context.sh
+
+if [ ${cvmfsContextPath} != 'nouse' ]
+then
+  localCvmfsContextPath=/root/cvmfs-context.sh
+else
+  localCvmfsContextPath=nouse
+
 localDiracContextPath=/root/dirac-context.sh
 
 # parameters log:
@@ -56,15 +76,24 @@ echo ${uniqueId} > /etc/VMID
 
 # vmcert and key have been previoslly copy to VM, these paths are local, the rest of files are on some repo... 
 # 1) download the necesary files:
-wget --no-check-certificate -O ${localVmRunJobAgent} ${vmRunJobAgent} >> /var/log/contextualize-script.log 2>&1
+if [ ${vmRunJobAgent} != 'nouse' ]
+then
+  wget --no-check-certificate -O ${localVmRunJobAgent} ${vmRunJobAgent} >> /var/log/contextualize-script.log 2>&1
+fi
 wget --no-check-certificate -O ${localVmRunVmMonitorAgent} ${vmRunVmMonitorAgent} >> /var/log/contextualize-script.log 2>&1
-wget --no-check-certificate -O ${localVmRunVmUpdaterAgent} ${vmRunVmUpdaterAgent} >> /var/log/contextualize-script.log 2>&1
+if [ ${vmRunVmUpdaterAgent} != 'nouse' ]
+then
+  wget --no-check-certificate -O ${localVmRunVmUpdaterAgent} ${vmRunVmUpdaterAgent} >> /var/log/contextualize-script.log 2>&1
+fi
 wget --no-check-certificate -O ${localVmRunLogAgent} ${vmRunLogAgent} >> /var/log/contextualize-script.log 2>&1
-wget --no-check-certificate -O ${localCvmfsContextPath} ${cvmfsContextPath} >> /var/log/contextualize-script.log 2>&1
+if [ ${cvmfsContextPath} != 'nouse' ]
+then
+  wget --no-check-certificate -O ${localCvmfsContextPath} ${cvmfsContextPath} >> /var/log/contextualize-script.log 2>&1
+fi
 wget --no-check-certificate -O ${localDiracContextPath} ${diracContextPath} >> /var/log/contextualize-script.log 2>&1
 
 #2) Run the cvmvfs contextualization script:    
-if [ ${cvmfsContextPath} != 'NONE' ]
+if [ ${cvmfsContextPath} != 'nouse' ]
 then
     chmod u+x ${localCvmfsContextPath} >> /var/log/contextualize-script.log 2>&1
     bash ${localCvmfsContextPath} "${cvmfs_http_proxy}" >> /var/log/contextualize-script.log 2>&1
@@ -74,6 +103,6 @@ fi
 echo ${cpuTime} > /etc/CPU_TIME
 
 chmod u+x ${localDiracContextPath} >> /var/log/contextualize-script.log 2>&1
-bash ${localDiracContextPath} "${siteName}" "${vmStopPolicy}" "${vmCertPath}" "${vmKeyPath}" "${localVmRunJobAgent}" "${localVmRunVmMonitorAgent}" "${localVmRunVmUpdaterAgent}" "${localVmRunLogAgent}" "${cloudDriver}" >> /var/log/contextualize-script.log 2>&1
+bash ${localDiracContextPath} "${siteName}" "${vmStopPolicy}" "${vmCertPath}" "${vmKeyPath}" "${localVmRunJobAgent}" "${localVmRunVmMonitorAgent}" "${localVmRunVmUpdaterAgent}" "${localVmRunLogAgent}" "${cloudDriver}" "${submitPool}" >> /var/log/contextualize-script.log 2>&1
 
 exit 0

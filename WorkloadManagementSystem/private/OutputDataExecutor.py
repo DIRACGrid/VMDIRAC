@@ -50,7 +50,7 @@ class OutputDataExecutor:
     result = gConfig.getSections( self.__transfersCSPath )
     if not result['OK']:
       self.log.info( 'No Input/Output Pair defined in CS' )
-      return S_OK()
+      return S_OK([])
 
     pathList = result['Value']
 

@@ -192,12 +192,6 @@ class NovaClient:
     bootImageName = self.imageConfig[ 'bootImageName' ]
     flavorName    = self.imageConfig[ 'flavorName' ]
     contextMethod = self.imageConfig[ 'contextMethod' ]
-    cloudDriver = self.endpointConfig[ 'cloudDriver' ]
-    vmPolicy = self.endpointConfig[ 'vmPolicy' ]
-    vmStopPolicy = self.endpointConfig[ 'vmStopPolicy' ]
-    siteName = self.endpointConfig[ 'siteName' ]
-    user = self.endpointConfig[ 'user' ]
-    password = self.endpointConfig[ 'password' ]
     
     # Optional node contextualization parameters
     keyname  = self.imageConfig[ 'contextConfig' ].get( 'ex_keyname' , None )
@@ -243,7 +237,7 @@ class NovaClient:
 
     try:
       if contextMethod == 'amiconfig':
-        vmNode = self.__driver.create_node(   name               = vm_name, 
+        vmNode = self.__driver.create_node( name               = vm_name, 
                                             image              = bootImage, 
                                             size               = flavor,
                                             ex_keyname         = keyname,
@@ -399,7 +393,7 @@ class NovaClient:
     :return: S_OK( public_ip ) | S_ERROR   
     """
 
-    ipPool = endpointConfig.get( 'ipPool' )
+    ipPool = self.endpointConfig.get( 'ipPool' )
 
     if ipPool is not None:
 

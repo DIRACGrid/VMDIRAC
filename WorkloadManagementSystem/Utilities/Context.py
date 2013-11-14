@@ -163,13 +163,11 @@ class AmiconfigContext( ContextConfig ):
   * ex_size
   * ex_image
   * ex_keyname
-  * ex_security_groups
   * ex_userdata
     
   """
 
-  MANDATORY_KEYS = [ 'ex_size', 'ex_image', 'ex_keyname', 
-                     'ex_security_groups', 'ex_userdata' ]
+  MANDATORY_KEYS = [ 'ex_size', 'ex_image', 'ex_keyname', 'ex_userdata' ]
 
 #...............................................................................
 # OcciOpennebulaContext

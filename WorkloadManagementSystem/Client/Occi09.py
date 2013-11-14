@@ -158,7 +158,7 @@ class OcciClient:
 
     return request
 
-  def create_VMInstance(self, cpuTime):
+  def create_VMInstance(self, cpuTime, submitPool=Cloud):
     """
     This creates a VM instance for the given boot image 
     if context method is adhoc then boot image is create to be in Submitted status
@@ -264,6 +264,7 @@ class OcciClient:
       tempXML.write('                <SITE_NAME>' + siteName + '</SITE_NAME>\n')
       tempXML.write('                <CLOUD_DRIVER>' + cloudDriver + '</CLOUD_DRIVER>\n')
       tempXML.write('                <CPU_TIME>' + strCpuTime + '</CPU_TIME>\n')
+      tempXML.write('                <SUBMIT_POOL>' + submitPool + '</SUBMIT_POOL>\n')
       tempXML.write('                <VM_STOP_POLICY>' + vmStopPolicy + '</VM_STOP_POLICY>\n')
       tempXML.write('                <FILES>' + context_files_url + '</FILES>\n')
       tempXML.write('        </CONTEXT>\n')

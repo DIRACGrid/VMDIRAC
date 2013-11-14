@@ -117,7 +117,7 @@ class OcciImage:
 
     return S_OK( request.stdout )
 
-  def startNewInstance( self, cpuTime ):
+  def startNewInstance( self, cpuTime, submitPool=Cloud ):
     """
     Prior to use, virtual machine images are uploaded to the OCCI cloud manager assigned an id (OII in a URI). 
     """
@@ -125,7 +125,7 @@ class OcciImage:
       return S_ERROR( self.__errorStatus )
 
     self.log.info( "Starting new instance for DIRAC image: %s; to endpoint %s" % ( self.imageName, self.endPoint) )
-    request = self.__cliocci.create_VMInstance(cpuTime)
+    request = self.__cliocci.create_VMInstance(cpuTime,submitPool)
     if request.returncode != 0:
       self.__errorStatus = "Can't create instance for DIRAC image: %s; to endpoint %s" % ( self.imageName, self.endPoint) 
       self.log.error( self.__errorStatus )

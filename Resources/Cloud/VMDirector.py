@@ -116,7 +116,11 @@ class VMDirector:
       if not cpuTime:
         return S_ERROR( 'Unknown CPUTime in Requirements of the RunningPod %s' % runningPodName )
 
-      dictVMSubmitted = self._submitInstance( imageName, endpoint, cpuTime, instanceID )
+      submitPool = runningRequirementsDict['SubmitPool']
+      if not submitPool:
+        return S_ERROR( 'Unknown submitPool in Requirements of the RunningPod %s' % runningPodName )
+
+      dictVMSubmitted = self._submitInstance( imageName, endpoint, cpuTime, instanceID, submitPool )
       if not dictVMSubmitted[ 'OK' ]:
         return dictVMSubmitted
 

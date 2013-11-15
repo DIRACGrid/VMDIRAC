@@ -15,7 +15,7 @@ import time
 
 
 # DIRAC
-from DIRAC                       import S_OK, S_ERROR, gConfig
+from DIRAC                       import gLogger, S_OK, S_ERROR, gConfig
 
 __RCSID__ = "$Id: $"
 
@@ -99,8 +99,8 @@ class SshContextualize:
     # the contextualization using ssh needs the VM to be ACTIVE, so VirtualMachineContextualization
     # check status and launch contextualize_VMInstance
 
+    self.log.info ( "Preparing sftp client" )
     # 1) copy the necesary files
-
     # prepare paramiko sftp client
     host = '%s' % publicIP
     if ( host[0] == ' ' ):
@@ -118,14 +118,15 @@ class SshContextualize:
     except Exception, errmsg:
       return S_ERROR( "Can't open sftp conection to %s errmsg: %s" % ( host, errmsg ) )
 
+    self.log.info ( "Copy of VM cert keys and contextualize-script" )
     # scp VM cert/key
     putCertPath = "/root/vmservicecert.pem"
     putKeyPath = "/root/vmservicekey.pem"
     try:
-      sftp.put( vmCertPath, putCertPath )
-      sftp.put( vmKeyPath, putKeyPath )
       # while the ssh.exec_command is asyncronous request I need to put on the VM the contextualize-script to ensure the file existence before exec
       sftp.put(vmContextualizeScriptPath, '/root/contextualize-script.bash')
+      sftp.put( vmCertPath, putCertPath )
+      sftp.put( vmKeyPath, putKeyPath )
     except Exception, errmsg:
       return S_ERROR( errmsg )
     finally:
@@ -135,7 +136,7 @@ class SshContextualize:
     # giving time sleep asyncronous sftp
     time.sleep( 12 )
 
-
+    self.log.info ( "Preparing ssh client" )
     #2)  prepare paramiko ssh client
     try:
       ssh = paramiko.SSHClient()
@@ -144,15 +145,16 @@ class SshContextualize:
     except Exception, errmsg:
       return S_ERROR( "Can't open ssh conection to %s errmsg: %s" % ( publicIP, errmsg ) )
 
-    #3) Run the DIRAC contextualization orchestator script:
+    #3) Run the checker & DIRAC contextualization orchestator script:
 
     try:
+
+      _stdin, _stdout, _stderr = ssh.exec_command( 'if [ -f /root/contextualize-script.bash ] then touch YES_SINCRO else touch NO_SINCRO fi' )
       remotecmd = "/bin/bash /root/contextualize-script.bash \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\'"
       remotecmd = remotecmd % ( uniqueId, putCertPath, putKeyPath, vmRunJobAgentURL,
                                 vmRunVmMonitorAgentURL, vmRunVmUpdaterAgentURL, vmRunLogAgentURL,
                                 vmCvmfsContextURL, vmDiracContextURL, cvmfs_http_proxy, siteName, cloudDriver, cpuTime, vmStopPolicy, submitPool )
-      # print "remotecmd"
-      # print remotecmd
+      self.log.info ( "Copy of VM cert keys and contextualize-script" )
       _stdin, _stdout, _stderr = ssh.exec_command( remotecmd )
     except Exception, errmsg:
       return S_ERROR( "Can't run remote ssh to %s errmsg: %s" % ( publicIP, errmsg ) )

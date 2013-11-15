@@ -5,11 +5,12 @@
 # alternative to python script (remote run con Cernvm seems to fail on python call)
 # contextualization script to be run on the VM, after init.d proccess 
 
+echo "Starting /root/contextualize-script.bash" >> /var/log/contextualize-script.log
 
 if [ $# -ne 15 ]
 then
-	echo "bash contextualize-script.bash  <uniqueId> <certfile> <keyfile> <runjobagent> <runvmmonitoragent> <runvmupdateragent> <runlogagent> <cvmfscontextscript> <diraccontextscript> <cvmfshttpproxy> <sitename> <clouddriver> <cpuTime> <vmStopPolicy> <submitPool>"
-	exit 1
+        echo "Parameter ERROR: bash contextualize-script.bash  <uniqueId> <certfile> <keyfile> <runjobagent> <runvmmonitoragent> <runvmupdateragent> <runlogagent> <cvmfscontextscript> <diraccontextscript> <cvmfshttpproxy> <sitename> <clouddriver> <cpuTime> <vmStopPolicy> <submitPool>" >> /var/log/contextualize-script.log
+        exit 1
 fi
 
 uniqueId=$1

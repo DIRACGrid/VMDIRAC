@@ -114,13 +114,14 @@ class OcciClient:
     request.exec_and_wait(command, timelife)
     return request
    
-  def create_VMInstance(self, cpuTime):
+  def create_VMInstance(self, cpuTime, submitPool='Cloud'):
     """
     This creates a VM instance for the given boot image 
     if context method is adhoc then boot image is create to be in Submitted status
     if context method is ssh then boot image is created to be in Wait_ssh_context (for contextualization agent)
     if context method is occi_opennebula context is in hdc image, and also de OCCI context on-the-fly image, taken the given parameters
     Successful creation returns instance id  and the IP
+    BTM: submitPool is not used, since rOCCI only has ssh contextualization, then used at this point. It is here by compatibility with OCCI 0.8 call
     """
 
     # TODO: cpuTime is here to implement HEPiX when ready with rOCCI

@@ -72,6 +72,7 @@ echo "11 $siteName" >> /var/log/contextualize-script.log 2>&1
 echo "12 $cloudDriver" >> /var/log/contextualize-script.log 2>&1
 echo "13 $cpuTime" >> /var/log/contextualize-script.log 2>&1
 echo "14 $vmStopPolicy" >> /var/log/contextualize-script.log 2>&1
+echo "15 $submitPool" >> /var/log/contextualize-script.log 2>&1
 
 #recording the uniqueId of the VM to be used by VM agents:
 echo ${uniqueId} > /etc/VMID

@@ -150,6 +150,7 @@ class SshContextualize:
 
     #3) Run the checker & DIRAC contextualization orchestator script:
 
+    self.log.info('SshContextualize -> submitPool: %s' % submitPool)
     try:
 
       _stdin, _stdout, _stderr = ssh.exec_command( 'if [ -f /root/contextualize-script.bash ] then touch YES_SINCRO else touch NO_SINCRO fi' )

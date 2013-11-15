@@ -92,7 +92,7 @@ class VirtualMachineContextualization( AgentModule ):
       submitPool = runningRequirementsDict['SubmitPool']
       if not submitPool:
         return S_ERROR( 'Unknown submitPool in Requirements of the RunningPod %s' % runningPodName )
-      self.log.info('RunningPodDict SubmitPool: %s' % submitPool)
+      self.log.info('VirtualMachineContextualize.py -> RunningPodDict SubmitPool: %s' % submitPool)
 
       if ( cloudDriver == 'nova-1.1' ):
         if result['Value'] == 'RUNNING':

@@ -315,7 +315,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
           self.log.info( "Wrote stop file %s for agent %s" % ( stopFile, agentName ) )
         except Exception, e:
           self.log.error( "Could not write stop agent file", stopFile )
-    if 'halt' in hbMsg and hbMsg[ 'halt' ]:
+    if hbMsg == 'halt':
       self.__haltInstance()
 
   def __haltInstance( self, avgLoad = 0 ):

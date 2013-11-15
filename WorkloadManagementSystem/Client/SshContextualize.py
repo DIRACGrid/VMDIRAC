@@ -134,7 +134,7 @@ class SshContextualize:
       transport.close()
 
     # giving time sleep asyncronous sftp
-    time.sleep( 12 )
+    time.sleep( 10 )
 
     self.log.info ( "Preparing ssh client" )
     #2)  prepare paramiko ssh client

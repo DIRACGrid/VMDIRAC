@@ -22,6 +22,9 @@ __RCSID__ = "$Id: $"
 class SshContextualize:
 
   def contextualise( self, imageConfig, endpointConfig, **kwargs ):
+
+    # logger
+    self.log = gLogger.getSubLogger( self.__class__.__name__ )
    
     contextMethod = imageConfig[ 'contextMethod' ]
     if contextMethod == 'ssh':

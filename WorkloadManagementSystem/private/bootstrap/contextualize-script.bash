@@ -52,6 +52,7 @@ then
   localCvmfsContextPath=/root/cvmfs-context.sh
 else
   localCvmfsContextPath=nouse
+fi
 
 localDiracContextPath=/root/dirac-context.sh
 

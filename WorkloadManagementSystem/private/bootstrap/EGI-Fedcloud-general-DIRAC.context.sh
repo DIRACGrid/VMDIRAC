@@ -6,9 +6,9 @@
 
         echo "Starting dirac-context-script.sh" > /var/log/dirac-context-script.log 2>&1
 
-if [ $# -ne 9 ]
+if [ $# -ne 10 ]
 then
-    echo "ERROR: general-DIRAC-context.bash <siteName> <vmStopPolicy> <putCertPath> <putKeyPath> <localVmRunJobAgent> <localVmRunVmMonitorAgent> <localVmRunVmUpdaterAgent> <localVmRunLogAgent> <cloudDriver> " > /var/log/dirac-context-script.log 2>&1
+    echo "ERROR: general-DIRAC-context.bash <siteName> <vmStopPolicy> <putCertPath> <putKeyPath> <localVmRunJobAgent> <localVmRunVmMonitorAgent> <localVmRunVmUpdaterAgent> <localVmRunLogAgent> <cloudDriver> <submitPool>" > /var/log/dirac-context-script.log 2>&1
     exit 1
 fi
 
@@ -21,6 +21,7 @@ localVmRunVmMonitorAgent=$6
 localVmRunVmUpdaterAgent=$7
 localVmRunLogAgent=$8
 cloudDriver=$9
+submitPool=$10
 
 cpuTime=`cat /etc/CPU_TIME`
 
@@ -77,7 +78,7 @@ cpuTime=`cat /etc/CPU_TIME`
         for retry in 0 1 2 3 4 5 6 7 8 9
         do
 		# FIX: CPUTime should be cloudenpoint parameter
-		su dirac -c"dirac-configure -UHdd -o /LocalSite/SubmitPool=Cloud -o /LocalSite/CPUTime=${cpuTime} -o /LocalSite/CloudDriver=${cloudDriver} -o /LocalSite/Site=${siteName}  -o /LocalSite/VMStopPolicy=${vmStopPolicy}  -o /LocalSite/CE=CE-nouse defaults-VMEGI.cfg"  >> /var/log/dirac-context-script.log 2>&1
+		su dirac -c"dirac-configure -UHdd -o /LocalSite/SubmitPool=${submitPool} -o /LocalSite/CPUTime=${cpuTime} -o /LocalSite/CloudDriver=${cloudDriver} -o /LocalSite/Site=${siteName}  -o /LocalSite/VMStopPolicy=${vmStopPolicy}  -o /LocalSite/CE=CE-nouse defaults-VMEGI.cfg"  >> /var/log/dirac-context-script.log 2>&1
 		# options H: SkipCAChecks, dd: debug level 2, U: UseServerCertificate 
 		# options only for debuging D: SkipCADownload
 		# after UseServerCertificate = yes for the configuration with CS

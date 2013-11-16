@@ -52,10 +52,10 @@ echo "11 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 	chmod -R 755 etc >> /var/log/dirac-context-script.log 2>&1
 	mv ${putCertPath} etc/grid-security/servercert.pem >> /var/log/dirac-context-script.log 2>&1
 	chmod 444 etc/grid-security/servercert.pem >> /var/log/dirac-context-script.log 2>&1
-	chown root:dirac etc/grid-security/servercert >> /var/log/dirac-context-script.log 2>&1
+	chown dirac:dirac etc/grid-security/servercert >> /var/log/dirac-context-script.log 2>&1
 	mv ${putKeyPath} etc/grid-security/serverkey.pem >> /var/log/dirac-context-script.log 2>&1
-	chmod 440 etc/grid-security/serverkey.pem >> /var/log/dirac-context-script.log 2>&1
-	chown root:dirac etc/grid-security/serverkey >> /var/log/dirac-context-script.log 2>&1
+	chmod 400 etc/grid-security/serverkey.pem >> /var/log/dirac-context-script.log 2>&1
+	chown dirac:dirac etc/grid-security/serverkey >> /var/log/dirac-context-script.log 2>&1
 	chown dirac:dirac etc >> /var/log/dirac-context-script.log 2>&1
 	
 #

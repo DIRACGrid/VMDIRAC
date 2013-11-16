@@ -9,7 +9,8 @@
 if [ $# -ne 11 ]
 then
     echo "ERROR: Given $# parameters" >> /var/log/dirac-context-script.log 2>&1
-    echo "       Parameters: general-DIRAC-context.sh <siteName> <vmStopPolicy> <putCertPath> <putKeyPath> <localVmRunJobAgent> <localVmRunVmMonitorAgent> <localVmRunVmUpdaterAgent> <localVmRunLogAgent> <cloudDriver> <submitPool> <cpuTime>" >> /var/log/dirac-context-script.log 2>&1
+    echo         Given parameters: $@" >> /var/log/dirac-context-script.log 2>&1
+    echo "       Required parameters: general-DIRAC-context.sh <siteName> <vmStopPolicy> <putCertPath> <putKeyPath> <localVmRunJobAgent> <localVmRunVmMonitorAgent> <localVmRunVmUpdaterAgent> <localVmRunLogAgent> <cloudDriver> <submitPool> <cpuTime>" >> /var/log/dirac-context-script.log 2>&1
     exit 1
 fi
 

@@ -54,10 +54,10 @@ echo "11 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 	mv ${putKeyPath} etc/grid-security/serverkey.pem >> /var/log/dirac-context-script.log 2>&1
 
         # race condition:
-	while [ ! ( -f /opt/dirac/etc/grid-security/servercert.pem ) ] do
+	while [ ! -f /opt/dirac/etc/grid-security/servercert.pem ] do
 		sleep 1
 	done
-	while [ ! ( -f /opt/dirac/etc/grid-security/serverkey.pem ) ] do
+	while [ ! -f /opt/dirac/etc/grid-security/serverkey.pem ] do
 		sleep 1
 	done
 

@@ -5,7 +5,7 @@
 # alternative to python script (remote run con Cernvm seems to fail on python call)
 # contextualization script to be run on the VM, after init.d proccess 
 
-echo "Starting /root/contextualize-script.bash" >> /var/log/contextualize-script.log
+echo "Starting /root/contextualize-script.bash" > /var/log/contextualize-script.log
 
 if [ $# -ne 15 ]
 then
@@ -104,6 +104,8 @@ fi
 
 #3) Run the dirac contextualization script:    
 echo ${cpuTime} > /etc/CPU_TIME
+
+echo "bash ${localDiracContextPath} ${siteName} ${vmStopPolicy} ${vmCertPath} ${vmKeyPath} ${localVmRunJobAgent} ${localVmRunVmMonitorAgent} ${localVmRunVmUpdaterAgent} ${localVmRunLogAgent} ${cloudDriver} ${submitPool}" >> /var/log/contextualize-script.log 2>&1
 
 chmod u+x ${localDiracContextPath} >> /var/log/contextualize-script.log 2>&1
 bash ${localDiracContextPath} "${siteName}" "${vmStopPolicy}" "${vmCertPath}" "${vmKeyPath}" "${localVmRunJobAgent}" "${localVmRunVmMonitorAgent}" "${localVmRunVmUpdaterAgent}" "${localVmRunLogAgent}" "${cloudDriver}" "${submitPool}" >> /var/log/contextualize-script.log 2>&1

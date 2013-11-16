@@ -123,10 +123,10 @@ fi
 if [ ${diracContextPath} != 'nouse' ]
 then
     echo "Ready for running dirac contextualize script: ${localDiracContextPath}" >> /var/log/contextualize-script.log 2>&1
-    echo "    Parameters: ${siteName} ${vmStopPolicy} ${vmCertPath} ${vmKeyPath} ${localVmRunJobAgent} ${localVmRunVmMonitorAgent} ${localVmRunVmUpdaterAgent} ${localVmRunLogAgent} ${cloudDriver} ${submitPool} ${cpuTime}" >> /var/log/contextualize-script.log 2>&1
+    echo "    Parameters: ${siteName} ${vmStopPolicy} ${vmCertPath} ${vmKeyPath} ${localVmRunJobAgent} ${localVmRunVmMonitorAgent} ${localVmRunVmUpdaterAgent} ${localVmRunLogAgent} ${submitPool} ${cpuTime} ${cloudDriver}" >> /var/log/contextualize-script.log 2>&1
 
     chmod u+x ${localDiracContextPath} >> /var/log/contextualize-script.log 2>&1
-    bash ${localDiracContextPath} '${siteName}' '${vmStopPolicy}' '${vmCertPath}' '${vmKeyPath}' '${localVmRunJobAgent}' '${localVmRunVmMonitorAgent}' '${localVmRunVmUpdaterAgent}' '${localVmRunLogAgent}' '${submitPool}' '${cpuTime} '${cloudDriver}'' 
+    bash ${localDiracContextPath} '${siteName}' '${vmStopPolicy}' '${vmCertPath}' '${vmKeyPath}' '${localVmRunJobAgent}' '${localVmRunVmMonitorAgent}' '${localVmRunVmUpdaterAgent}' '${localVmRunLogAgent}' '${submitPool}' '${cpuTime} '${cloudDriver}'
 else
     echo "Context configured with 'nouse' of dirac contextualize script" >> /var/log/contextualize-script.log 2>&1
 fi

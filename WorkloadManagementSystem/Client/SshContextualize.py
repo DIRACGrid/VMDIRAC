@@ -153,12 +153,11 @@ class SshContextualize:
     self.log.info('SshContextualize -> submitPool: %s' % submitPool)
     try:
 
-      _stdin, _stdout, _stderr = ssh.exec_command( 'if [ -f /root/contextualize-script.bash ] then touch YES_SINCRO else touch NO_SINCRO fi' )
       remotecmd = "/bin/bash /root/contextualize-script.bash \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\' \'%s\'"
       remotecmd = remotecmd % ( uniqueId, putCertPath, putKeyPath, vmRunJobAgentURL,
                                 vmRunVmMonitorAgentURL, vmRunVmUpdaterAgentURL, vmRunLogAgentURL,
                                 vmCvmfsContextURL, vmDiracContextURL, cvmfs_http_proxy, siteName, cloudDriver, cpuTime, vmStopPolicy, submitPool )
-      self.log.info ( "Copy of VM cert keys and contextualize-script" )
+      self.log.info ( remotecmd )
       _stdin, _stdout, _stderr = ssh.exec_command( remotecmd )
     except Exception, errmsg:
       return S_ERROR( "Can't run remote ssh to %s errmsg: %s" % ( publicIP, errmsg ) )

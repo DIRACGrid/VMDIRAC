@@ -14,17 +14,17 @@ then
     exit 1
 fi
 
-siteName=$1
-vmStopPolicy=$2
-putCertPath=$3
-putKeyPath=$4
-localVmRunJobAgent=$5
-localVmRunVmMonitorAgent=$6
-localVmRunVmUpdaterAgent=$7
-localVmRunLogAgent=$8
-submitPool=$9
-cpuTime=$10
-cloudDriver=$11
+siteName=${1}
+vmStopPolicy=${2}
+putCertPath=${3}
+putKeyPath=${4}
+localVmRunJobAgent=${5}
+localVmRunVmMonitorAgent=${6}
+localVmRunVmUpdaterAgent=${7}
+localVmRunLogAgent=${8}
+submitPool=${9}
+cpuTime=${10}
+cloudDriver=${11}
 
 echo "Running EGI-Fedcloud-general-DIRAC-context.sh '<siteName>' '<vmStopPolicy>' '<putCertPath>' '<putKeyPath>' '<localVmRunJobAgent>' '<localVmRunVmMonitorAgent>' '<localVmRunVmUpdaterAgent>' '<localVmRunLogAgent>' '<submitPool>' '<cpuTime>' '<cloudDriver>'" >> /var/log/dirac-context-script.log 2>&1
 echo "1 $siteName" >> /var/log/dirac-context-script.log 2>&1

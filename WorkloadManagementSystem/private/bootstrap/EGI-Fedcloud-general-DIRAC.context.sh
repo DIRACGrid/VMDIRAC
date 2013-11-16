@@ -6,9 +6,9 @@
 
         echo "Starting dirac-context-script.sh" > /var/log/dirac-context-script.log 2>&1
 
-if [ $# -ne 10 ]
+if [ $# -ne 11 ]
 then
-    echo "ERROR: general-DIRAC-context.sh <siteName> <vmStopPolicy> <putCertPath> <putKeyPath> <localVmRunJobAgent> <localVmRunVmMonitorAgent> <localVmRunVmUpdaterAgent> <localVmRunLogAgent> <cloudDriver> <submitPool>" >> /var/log/dirac-context-script.log 2>&1
+    echo "ERROR: general-DIRAC-context.sh <siteName> <vmStopPolicy> <putCertPath> <putKeyPath> <localVmRunJobAgent> <localVmRunVmMonitorAgent> <localVmRunVmUpdaterAgent> <localVmRunLogAgent> <cloudDriver> <submitPool> <cpuTime>" >> /var/log/dirac-context-script.log 2>&1
     exit 1
 fi
 
@@ -22,8 +22,9 @@ localVmRunVmUpdaterAgent=$7
 localVmRunLogAgent=$8
 cloudDriver=$9
 submitPool=$10
+cpuTime=$11
 
-echo "EGI-Fedcloud-general-DIRAC-context.sh <siteName> <vmStopPolicy> <putCertPath> <putKeyPath> <localVmRunJobAgent> <localVmRunVmMonitorAgent> <localVmRunVmUpdaterAgent> <localVmRunLogAgent> <cloudDriver> <submitPool>" >> /var/log/dirac-context-script.log 2>&1
+echo "Running EGI-Fedcloud-general-DIRAC-context.sh <siteName> <vmStopPolicy> <putCertPath> <putKeyPath> <localVmRunJobAgent> <localVmRunVmMonitorAgent> <localVmRunVmUpdaterAgent> <localVmRunLogAgent> <cloudDriver> <submitPool> <cpuTime>" >> /var/log/dirac-context-script.log 2>&1
 echo "1 $siteName" >> /var/log/dirac-context-script.log 2>&1
 echo "2 $vmStopPolicy" >> /var/log/dirac-context-script.log 2>&1
 echo "3 $putCertPath" >> /var/log/dirac-context-script.log 2>&1
@@ -34,8 +35,7 @@ echo "7 $localVmRunVmUpdaterAgent" >> /var/log/dirac-context-script.log 2>&1
 echo "8 $localVmRunLogAgent" >> /var/log/dirac-context-script.log 2>&1
 echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 echo "10 $submitPool" >> /var/log/dirac-context-script.log 2>&1
-
-cpuTime=`cat /etc/CPU_TIME`
+echo "11 $cpuTime" >> /var/log/dirac-context-script.log 2>&1
 
 # dirac user:
         /usr/sbin/useradd -d /opt/dirac dirac

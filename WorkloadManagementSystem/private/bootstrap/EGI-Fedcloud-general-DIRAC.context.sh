@@ -51,11 +51,21 @@ echo "11 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 	su dirac -c'mkdir -p etc/grid-security' >> /var/log/dirac-context-script.log 2>&1
 	chmod -R 755 etc >> /var/log/dirac-context-script.log 2>&1
 	mv ${putCertPath} etc/grid-security/servercert.pem >> /var/log/dirac-context-script.log 2>&1
+	mv ${putKeyPath} etc/grid-security/serverkey.pem >> /var/log/dirac-context-script.log 2>&1
+
+        # race condition:
+	while [ ! ( -f /opt/dirac/etc/grid-security/servercert.pem ) ] do
+		sleep 1
+	done
+	while [ ! ( -f /opt/dirac/etc/grid-security/serverkey.pem ) ] do
+		sleep 1
+	done
+
 	chmod 444 etc/grid-security/servercert.pem >> /var/log/dirac-context-script.log 2>&1
 	chown dirac:dirac etc/grid-security/servercert >> /var/log/dirac-context-script.log 2>&1
-	mv ${putKeyPath} etc/grid-security/serverkey.pem >> /var/log/dirac-context-script.log 2>&1
 	chmod 400 etc/grid-security/serverkey.pem >> /var/log/dirac-context-script.log 2>&1
 	chown dirac:dirac etc/grid-security/serverkey >> /var/log/dirac-context-script.log 2>&1
+
 	chown dirac:dirac etc >> /var/log/dirac-context-script.log 2>&1
 	
 #

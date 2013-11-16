@@ -67,7 +67,7 @@ echo "11 $cpuTime" >> /var/log/dirac-context-script.log 2>&1
 	su dirac -c'python dirac-install -V "VMEGI"' >> /var/log/dirac-context-script.log 2>&1
 	# FOR DEBUGGIN PURPOSES overwriting with last released in the local vmendez git folder: 
         rm -rf VMDIRAC
-        wget --no-check-certificate -O vmdirac.zip 'https://github.com/vmendez/VMDIRAC/archive/master.zip'
+        wget --no-check-certificate -O vmdirac.zip 'https://github.com/vmendez/VMDIRAC/archive/master.zip' >> /var/log/dirac-context-script.log 2>&1
 	unzip vmdirac.zip >> /var/log/dirac-context-script.log 2>&1
         mv VMDIRAC-master VMDIRAC
 	chown -R dirac:dirac VMDIRAC

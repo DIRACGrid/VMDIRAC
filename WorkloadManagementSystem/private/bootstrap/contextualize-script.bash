@@ -123,6 +123,8 @@ fi
 echo "bash ${localDiracContextPath} ${siteName} ${vmStopPolicy} ${vmCertPath} ${vmKeyPath} ${localVmRunJobAgent} ${localVmRunVmMonitorAgent} ${localVmRunVmUpdaterAgent} ${localVmRunLogAgent} ${cloudDriver} ${submitPool} ${cpuTime}" >> /var/log/contextualize-script.log 2>&1
 
 chmod u+x ${localDiracContextPath} >> /var/log/contextualize-script.log 2>&1
-bash ${localDiracContextPath} "${siteName}" "${vmStopPolicy}" "${vmCertPath}" "${vmKeyPath}" "${localVmRunJobAgent}" "${localVmRunVmMonitorAgent}" "${localVmRunVmUpdaterAgent}" "${localVmRunLogAgent}" "${cloudDriver}" "${submitPool}" "${cputTime}" >> /var/log/contextualize-script.log 2>&1
+bash ${localDiracContextPath} "${siteName}" "${vmStopPolicy}" "${vmCertPath}" "${vmKeyPath}" "${localVmRunJobAgent}" "${localVmRunVmMonitorAgent}" "${localVmRunVmUpdaterAgent}" "${localVmRunLogAgent}" "${cloudDriver}" "${submitPool}" "${cputTime}" 
+
+echo "END /root/contextualize-script.bash" >> /var/log/contextualize-script.log
 
 exit 0

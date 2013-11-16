@@ -172,4 +172,6 @@ echo "11 $cpuTime" >> /var/log/dirac-context-script.log 2>&1
 #    runsvctrl d startup/*
 #    killall runsv
 
+        echo "END dirac-context-script.sh" > /var/log/dirac-context-script.log 2>&1
+
 exit $RETVAL

@@ -10,7 +10,7 @@ if [ $# -ne 11 ]
 then
     echo "ERROR: Given $# parameters" >> /var/log/dirac-context-script.log 2>&1
     echo "       Given parameters: $@" >> /var/log/dirac-context-script.log 2>&1
-    echo "       Required parameters: general-DIRAC-context.sh '<siteName>' '<vmStopPolicy>' '<putCertPath>' '<putKeyPath>' '<localVmRunJobAgent>' '<localVmRunVmMonitorAgent>' '<localVmRunVmUpdaterAgent>' '<localVmRunLogAgent>' '<cloudDriver>' '<submitPool>' '<cpuTime>'" >> /var/log/dirac-context-script.log 2>&1
+    echo "       Required parameters: general-DIRAC-context.sh '<siteName>' '<vmStopPolicy>' '<putCertPath>' '<putKeyPath>' '<localVmRunJobAgent>' '<localVmRunVmMonitorAgent>' '<localVmRunVmUpdaterAgent>' '<localVmRunLogAgent>' '<submitPool>' '<cpuTime>' '<cloudDriver>'" >> /var/log/dirac-context-script.log 2>&1
     exit 1
 fi
 
@@ -22,11 +22,11 @@ localVmRunJobAgent=$5
 localVmRunVmMonitorAgent=$6
 localVmRunVmUpdaterAgent=$7
 localVmRunLogAgent=$8
-cloudDriver=$9
-submitPool=$10
-cpuTime=$11
+submitPool=$9
+cpuTime=$10
+cloudDriver=$11
 
-echo "Running EGI-Fedcloud-general-DIRAC-context.sh '<siteName>' '<vmStopPolicy>' '<putCertPath>' '<putKeyPath>' '<localVmRunJobAgent>' '<localVmRunVmMonitorAgent>' '<localVmRunVmUpdaterAgent>' '<localVmRunLogAgent>' '<cloudDriver>' '<submitPool>' '<cpuTime>'" >> /var/log/dirac-context-script.log 2>&1
+echo "Running EGI-Fedcloud-general-DIRAC-context.sh '<siteName>' '<vmStopPolicy>' '<putCertPath>' '<putKeyPath>' '<localVmRunJobAgent>' '<localVmRunVmMonitorAgent>' '<localVmRunVmUpdaterAgent>' '<localVmRunLogAgent>' '<submitPool>' '<cpuTime>' '<cloudDriver>'" >> /var/log/dirac-context-script.log 2>&1
 echo "1 $siteName" >> /var/log/dirac-context-script.log 2>&1
 echo "2 $vmStopPolicy" >> /var/log/dirac-context-script.log 2>&1
 echo "3 $putCertPath" >> /var/log/dirac-context-script.log 2>&1
@@ -35,9 +35,9 @@ echo "5 $localVmRunJobAgent" >> /var/log/dirac-context-script.log 2>&1
 echo "6 $localVmRunVmMonitorAgent" >> /var/log/dirac-context-script.log 2>&1
 echo "7 $localVmRunVmUpdaterAgent" >> /var/log/dirac-context-script.log 2>&1
 echo "8 $localVmRunLogAgent" >> /var/log/dirac-context-script.log 2>&1
-echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
-echo "10 $submitPool" >> /var/log/dirac-context-script.log 2>&1
-echo "11 $cpuTime" >> /var/log/dirac-context-script.log 2>&1
+echo "9 $submitPool" >> /var/log/dirac-context-script.log 2>&1
+echo "10 $cpuTime" >> /var/log/dirac-context-script.log 2>&1
+echo "11 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 
 # dirac user:
         /usr/sbin/useradd -d /opt/dirac dirac

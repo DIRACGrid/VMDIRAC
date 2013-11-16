@@ -79,21 +79,37 @@ echo ${uniqueId} > /etc/VMID
 
 # vmcert and key have been previoslly copy to VM, these paths are local, the rest of files are on some repo... 
 # 1) download the necesary files:
+
 if [ ${vmRunJobAgent} != 'nouse' ]
 then
   wget --no-check-certificate -O ${localVmRunJobAgent} ${vmRunJobAgent} >> /var/log/contextualize-script.log 2>&1
 fi
-wget --no-check-certificate -O ${localVmRunVmMonitorAgent} ${vmRunVmMonitorAgent} >> /var/log/contextualize-script.log 2>&1
+
+if [ ${vmRunVmMonitorAgent} != 'nouse' ]
+then
+  wget --no-check-certificate -O ${localVmRunVmMonitorAgent} ${vmRunVmMonitorAgent} >> /var/log/contextualize-script.log 2>&1
+fi
+
 if [ ${vmRunVmUpdaterAgent} != 'nouse' ]
 then
   wget --no-check-certificate -O ${localVmRunVmUpdaterAgent} ${vmRunVmUpdaterAgent} >> /var/log/contextualize-script.log 2>&1
 fi
-wget --no-check-certificate -O ${localVmRunLogAgent} ${vmRunLogAgent} >> /var/log/contextualize-script.log 2>&1
+
+
 if [ ${cvmfsContextPath} != 'nouse' ]
 then
   wget --no-check-certificate -O ${localCvmfsContextPath} ${cvmfsContextPath} >> /var/log/contextualize-script.log 2>&1
 fi
-wget --no-check-certificate -O ${localDiracContextPath} ${diracContextPath} >> /var/log/contextualize-script.log 2>&1
+
+if [ ${vmRunLogAgent} != 'nouse' ]
+then
+  wget --no-check-certificate -O ${localVmRunLogAgent} ${vmRunLogAgent} >> /var/log/contextualize-script.log 2>&1
+fi
+
+if [ ${diracContextPath} != 'nouse' ]
+then
+  wget --no-check-certificate -O ${localDiracContextPath} ${diracContextPath} >> /var/log/contextualize-script.log 2>&1
+fi
 
 #2) Run the cvmvfs contextualization script:    
 if [ ${cvmfsContextPath} != 'nouse' ]

@@ -29,10 +29,10 @@ class VirtualMachineMonitorAgent( AgentModule ):
       fd = urllib2.urlopen("http://instance-data.ec2.internal/latest/meta-data/instance-id", timeout=30)
     except urllib2.URLError:
       gLogger.warn("Can not connect to EC2 URL. Trying address 169.254.169.254 directly...")
-    try:
-      fd = urllib2.urlopen("http://169.254.169.254/latest/meta-data/instance-id", timeout=30)
-    except urllib2.URLError, e:
-      return S_ERROR( "Could not retrieve amazon instance id: %s" % str( e ) )
+      try:
+        fd = urllib2.urlopen("http://169.254.169.254/latest/meta-data/instance-id", timeout=30)
+      except urllib2.URLError, e:
+        return S_ERROR( "Could not retrieve amazon instance id: %s" % str( e ) )
     iD = fd.read().strip()
     fd.close()
     return S_OK( iD )

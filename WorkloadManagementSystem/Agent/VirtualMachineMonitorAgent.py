@@ -332,5 +332,5 @@ class VirtualMachineMonitorAgent( AgentModule ):
         self.log.info( "Sleeping for %d seconds and retrying" % sleepTime )
         time.sleep( sleepTime )
 
-    self.log.info( "Executing system halt..." )
-    os.system( "halt" )
+    #self.log.info( "Executing system halt..." )
+    #os.system( "halt" )

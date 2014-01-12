@@ -72,7 +72,7 @@ class NovaClient:
       proxyPath=user
       username = password = None
 
-      self.__driver = openstack_driver( user, secret = secret,
+      self.__driver = openstack_driver( username, password,
                                      ex_force_auth_url = ex_force_auth_url,
                                      ex_force_service_region = ex_force_service_region,
                                      ex_force_auth_version = ex_force_auth_version,
@@ -83,7 +83,7 @@ class NovaClient:
       # with user password
       username = user
       password = secret
-      self.__driver = openstack_driver( user, secret = secret,
+      self.__driver = openstack_driver( username, password,
                                      ex_force_auth_url = ex_force_auth_url,
                                      ex_force_service_region = ex_force_service_region,
                                      ex_force_auth_version = ex_force_auth_version,

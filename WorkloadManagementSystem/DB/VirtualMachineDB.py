@@ -410,11 +410,16 @@ class VirtualMachineDB( DB ):
       return instanceID
     instanceID = instanceID[ 'Value' ]
 
-    status = self.__runningInstance( instanceID, load, jobs, transferredFiles, transferredBytes )
-    if not status[ 'OK' ]:
-      return status
+    result = self.__runningInstance( instanceID, load, jobs, transferredFiles, transferredBytes )
+    if not result[ 'OK' ]:
+      return result
 
     self.__setLastLoadJobsAndUptime( instanceID, load, jobs, uptime )
+
+    status = self.__getStatus( 'Instance', instanceID )
+    if not status[ 'OK' ]:
+      return result
+    status = status[ 'Value' ]
 
     if status == 'Stopping':
       return S_OK( 'stop' )

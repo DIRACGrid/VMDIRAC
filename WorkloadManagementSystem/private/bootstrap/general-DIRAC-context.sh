@@ -70,7 +70,7 @@ echo "11 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 	   # debian/ubuntu like, cernv has unzip
            apt-get install unzip
         fi
-        is_easy_install=`which unzip|wc -l`
+        is_easy_install=`which easy_install|wc -l`
         if [ $is_easy_install -eq 0 ]
         then 
 	   # debian/ubuntu like, cernv has unzip

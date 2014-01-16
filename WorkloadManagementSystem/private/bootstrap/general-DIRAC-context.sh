@@ -63,6 +63,14 @@ echo "11 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 #
 # Installing DIRAC
 # FOR DEBUGGIN PURPOSES installing debuggin github version instead of cvmfs repository released DIRAC:
+# needing unzip
+        isunzip=`which unzip|wc -l`
+        if [ $isunzip -eq 0 ]
+        then 
+	   # debian/ubuntu like, cernv has unzip
+           apt-get install unzip
+        fi
+
 #
 	cd /opt/dirac
 	wget --no-check-certificate -O dirac-install 'https://github.com/DIRACGrid/DIRAC/raw/integration/Core/scripts/dirac-install.py' >> /var/log/dirac-context-script.log 2>&1

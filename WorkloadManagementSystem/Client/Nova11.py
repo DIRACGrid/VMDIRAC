@@ -60,9 +60,9 @@ class NovaClient:
     ex_tenant_name          = endpointConfig.get( 'ex_tenant_name', None )
     
     # we force SSL cacert, if defined
-    caCertPath              = endpointConfig.get( 'ex_force_ca_cert', None )
-    if caCertPath is not None:
-      security.CA_CERTS_PATH = [ caCertPath ]
+    ex_force_ca_cert        = endpointConfig.get( 'ex_force_ca_cert', None )
+    if ex_force_ca_cert is not None:
+      security.CA_CERTS_PATH = [ ex_force_ca_cert ]
 
     # get openstack driver
     openstack_driver = get_driver( Provider.OPENSTACK )

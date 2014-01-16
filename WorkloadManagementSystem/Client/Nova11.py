@@ -228,7 +228,7 @@ class NovaClient:
       return secGroupRes
     secGroup = secGroupRes[ 'Value' ]
           
-    vm_name = contextMethod + str( time.time() )[0:10]
+    vm_name = 'DIRAC' + contextMethod + str( time.time() )[0:10]
 
     # keypair management is not available in libcloud openstack, jet.
     # https://issues.apache.org/jira/browse/LIBCLOUD-392

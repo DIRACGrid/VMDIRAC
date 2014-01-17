@@ -464,6 +464,8 @@ class NovaClient:
     if not ipPool is None:
 
       try:
+        pool_list = self.__driver.ex_list_floating_ip_pools()
+
         for pool in pool_list:
           if pool.name == ipPool:
             floating_ip = pool.get_floating_ip(public_ip)

@@ -1,3 +1,8 @@
+[v0r9]
+
+NEW: Amiconfig support for metadata
+NEW: StratusLab code added
+
 [v0r8]
 NEW: rOCCI 1.1 DIRAC driver. 
      rOCCI authentication by X509 proxies with third-party VOMS (rOCCI do the matching work in a transparent manner)

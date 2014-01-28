@@ -73,9 +73,9 @@ class AmazonImage:
     # RegionName
     self.__RegionName = self.__getCSCloudEndpointOption( "RegionName" )
     if not self.__RegionName:
-      self.__errorStatus = "Can't find RegionName for Endpoint %s" % self.__endpoint
-      self.log.error( self.__errorStatus )
-      return
+      self.__infoStatus = "Can't find RegionName for Endpoint %s. Default name cloudEC2 will be used." % self.__endpoint
+      self.log.info( self.__infoStatus )
+      self.__RegionName = 'cloudEC2'
 
     #Try connection
     try:
@@ -101,10 +101,6 @@ class AmazonImage:
     #FIXME: we will never reach a point where __errorStatus has anything
     if not self.__errorStatus:
       self.log.info( "Amazon image %s initialized" % self.__vmName )
-
-  def getKeys(self):
-    print keys
-    return keys
 
   def __getCSImageOption( self, option, defValue = "" ):
     return gConfig.getValue( "/Resources/VirtualMachines/Images/%s/%s" % ( self.__vmName, option ), defValue )
@@ -136,16 +132,16 @@ class AmazonImage:
     In a typical Amazon Web Services account, a maximum of 20 instances can run at once.
     Use http://aws.amazon.com/contact-us/ec2-request/ to request an increase for your account.
     """
-    
+
     if self.__errorStatus:
       return S_ERROR( self.__errorStatus )
-    
+
     if not instanceType:
       instanceType = self.__getCSImageOption( 'InstanceType' , "m1.large" )
-      
+
     if forceNormalInstance or not self.__vmMaxAllowedPrice:
       return self.__startNormalInstances( numImages, instanceType, waitForConfirmation )
-    
+
     self.log.info( "Requesting spot instances" )
     return self.__startSpotInstances( numImages, instanceType, waitForConfirmation )
 

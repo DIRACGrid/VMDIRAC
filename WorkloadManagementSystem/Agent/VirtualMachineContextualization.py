@@ -89,9 +89,14 @@ class VirtualMachineContextualization( AgentModule ):
       if not cpuTime:
         return S_ERROR( 'Unknown CPUTime in Requirements of the RunningPod %s' % runningPodName )
 
+      submitPool = runningRequirementsDict['SubmitPool']
+      if not submitPool:
+        return S_ERROR( 'Unknown submitPool in Requirements of the RunningPod %s' % runningPodName )
+      self.log.info('VirtualMachineContextualize.py -> RunningPodDict SubmitPool: %s' % submitPool)
+
       if ( cloudDriver == 'nova-1.1' ):
         if result['Value'] == 'RUNNING':
-          result = nima.contextualizeInstance( uniqueId, publicIP, cpuTime )
+          result = nima.contextualizeInstance( uniqueId, publicIP, cpuTime, submitPool )
           self.log.info( "result of contextualize:" )
           self.log.info( result )
           if not result[ 'OK' ]:
@@ -101,7 +106,7 @@ class VirtualMachineContextualization( AgentModule ):
             return retDict
       elif ( cloudDriver == 'rocci-1.1' ):
         if result['Value'] == 'active':
-          result = oima.contextualizeInstance( uniqueId, publicIP, cpuTime )
+          result = oima.contextualizeInstance( uniqueId, publicIP, cpuTime, submitPool )
           self.log.info( "result of contextualize:" )
           self.log.info( result )
           if not result[ 'OK' ]:

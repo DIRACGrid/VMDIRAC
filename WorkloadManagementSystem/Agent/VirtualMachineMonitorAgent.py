@@ -105,10 +105,10 @@ class VirtualMachineMonitorAgent( AgentModule ):
     return S_OK( md5Hash.hexdigest() )
 
   def __getCSConfig( self ):
-    if not self.vmName:
+    if not self.runningPod:
       return S_ERROR( "/LocalSite/VirtualMachineName is not defined" )
     #Variables coming from the vm 
-    imgPath = "/Resources/VirtualMachines/Images/%s" % self.vmName
+    imgPath = "/Resources/VirtualMachines/RunningPods/%s" % self.runningPod
     for csOption, csDefault, varName in ( ( "MinWorkingLoad", 0.01, "vmMinWorkingLoad" ),
                                           ( "LoadAverageTimespan", 60, "vmLoadAvgTimespan" ),
                                           ( "JobWrappersLocation", "/tmp/", "vmJobWrappersLocation" ),
@@ -128,7 +128,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
     self.heartBeatPeriod = max( self.heartBeatPeriod, int( self.am_getPollingTime() ) + 5 )
 
     self.log.info( "** VM Info **" )
-    self.log.info( "Name                  : %s" % self.vmName )
+    self.log.info( "Name                  : %s" % self.runningPod )
     self.log.info( "Min Working Load      : %f" % self.vmMinWorkingLoad )
     self.log.info( "Load Avg Timespan     : %d" % self.vmLoadAvgTimespan )
     self.log.info( "Job wrappers location : %s" % self.vmJobWrappersLocation )
@@ -157,7 +157,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
 
   def initialize( self ):
     #Init vars
-    self.vmName = ""
+    self.runningPod = ""
     self.__loadHistory = []
     self.__outDataExecutor = OutputDataExecutor()
     self.vmId = ""
@@ -204,8 +204,8 @@ class VirtualMachineMonitorAgent( AgentModule ):
       self.__haltInstance()
       return S_ERROR( "Halting!" )
     self.__instanceInfo = result[ 'Value' ]
-    self.vmName = self.__instanceInfo[ 'Image' ][ 'Name' ]
-    self.log.info( "Image name is %s" % self.vmName )
+    self.runningPod = self.__instanceInfo[ 'Image' ][ 'RunningPod' ]
+    self.log.info( "Running pod name of the image is %s" % self.runningPod )
     #Get the cs config
     result = self.__getCSConfig()
     if not result[ 'OK' ]:
@@ -213,7 +213,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
     #Define the shifter proxy needed
     self.am_setModuleParam( "shifterProxy", "DataManager" )
     #Start output data executor
-    odeCSPAth = "/Resources/VirtualMachines/Images/%s/OutputData" % self.vmName
+    odeCSPAth = "/Resources/VirtualMachines/RunningPods/%s/OutputData" % self.runningPod
     self.__outDataExecutor = OutputDataExecutor( odeCSPAth )
     return S_OK()
 
@@ -303,7 +303,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
     return S_OK()
 
   def __processHeartBeatMessage( self, hbMsg ):
-    if 'stop' in hbMsg and hbMsg[ 'stop' ]:
+    if hbMsg == 'stop':
       #Write stop file for jobAgent
       self.log.info( "Received STOP signal. Writing stop files..." )
       for agentName in [ "WorkloadManagement/JobAgent" ]:
@@ -319,7 +319,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
           self.log.info( "Wrote stop file %s for agent %s" % ( stopFile, agentName ) )
         except Exception, e:
           self.log.error( "Could not write stop agent file", stopFile )
-    if 'halt' in hbMsg and hbMsg[ 'halt' ]:
+    if hbMsg == 'halt':
       self.__haltInstance()
 
   def __haltInstance( self, avgLoad = 0 ):
@@ -336,5 +336,5 @@ class VirtualMachineMonitorAgent( AgentModule ):
         self.log.info( "Sleeping for %d seconds and retrying" % sleepTime )
         time.sleep( sleepTime )
 
-    self.log.info( "Executing system halt..." )
-    os.system( "halt" )
+    #self.log.info( "Executing system halt..." )
+    #os.system( "halt" )

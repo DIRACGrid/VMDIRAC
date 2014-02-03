@@ -37,7 +37,7 @@ class CloudDirector( VMDirector ):
     """
     VMDirector.configureFromSection( self, mySection )
 
-  def _submitInstance( self, imageName, endpoint, CPUTime, instanceID ):
+  def _submitInstance( self, imageName, endpoint, CPUTime, instanceID, submitPool ):
     """
       Real backend method to submit a new Instance of a given Image
       It has the decision logic of sumbission to the multi-endpoint, from the available from a given imageName, first approach: FirstFit 
@@ -70,7 +70,7 @@ class CloudDirector( VMDirector ):
       connOcci = oima.connectOcci()
       if not connOcci[ 'OK' ]:
         return connOcci
-      result = oima.startNewInstance( CPUTime )
+      result = oima.startNewInstance( CPUTime, submitPool )
       if not result[ 'OK' ]:
         return result
       idInstance = result['Value']

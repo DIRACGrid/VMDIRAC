@@ -158,7 +158,7 @@ class OcciClient:
 
     return request
 
-  def create_VMInstance(self, cpuTime):
+  def create_VMInstance(self, cpuTime, submitPool):
     """
     This creates a VM instance for the given boot image 
     if context method is adhoc then boot image is create to be in Submitted status
@@ -264,6 +264,7 @@ class OcciClient:
       tempXML.write('                <SITE_NAME>' + siteName + '</SITE_NAME>\n')
       tempXML.write('                <CLOUD_DRIVER>' + cloudDriver + '</CLOUD_DRIVER>\n')
       tempXML.write('                <CPU_TIME>' + strCpuTime + '</CPU_TIME>\n')
+      tempXML.write('                <SUBMIT_POOL>' + submitPool + '</SUBMIT_POOL>\n')
       tempXML.write('                <VM_STOP_POLICY>' + vmStopPolicy + '</VM_STOP_POLICY>\n')
       tempXML.write('                <FILES>' + context_files_url + '</FILES>\n')
       tempXML.write('        </CONTEXT>\n')
@@ -380,6 +381,28 @@ class OcciClient:
     last = request.stdout.find("</STATE>", first) 
     request.stdout = request.stdout[first:last]
     return request
+
+  def contextualize_VMInstance( self, uniqueId, publicIp, cpuTime, submitPool ):
+    """
+    This method is only used ( at the moment ) by the ssh contextualization method.
+    It is called once the vm has been booted.
+    </>
+
+    :Parameters:
+      **uniqueId** - `string`
+        openstack node id ( not uuid ! )
+      **publicIp** - `string`
+        public IP assigned to the node if any
+
+    :return: S_OK | S_ERROR
+    """
+
+    sshContext = SshContextualize()
+    return sshContext.contextualise(  self.imageConfig, self.endpointConfig,
+                                      uniqueId = uniqueId,
+                                      publicIp = publicIp,
+                                      cpuTime = cpuTime,
+                                      submitPool = submitPool )
 
 #...............................................................................
 #EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF

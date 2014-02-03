@@ -149,6 +149,25 @@ class VirtualMachineScheduler( AgentModule ):
     for directorName, directorDict in self.directors.items():
       self.log.verbose( 'Checking Director:', directorName )
       for runningPodName in directorDict['director'].runningPods:
+        result = virtualMachineDB.insertRunningPod(runningPodName)
+        if not result['OK']:
+          self.log.error( 'Error inserting/updating Running Pod %s in DB: %s' % ( runningPodName, result['Message'] ) )
+          continue
+        result = virtualMachineDB.setRunningPodStatus(runningPodName)
+        if not result['OK']:
+          self.log.error( 'Error in setRunningPodStatus %s: %s' % ( runningPodName, result['Message'] ) )
+          continue
+        result = virtualMachineDB.getRunningPodStatus(runningPodName)
+        if not result['OK']:
+          self.log.error( 'Error in getRunningPodStatus %s: %s' % ( runningPodName, result['Message'] ) )
+          continue
+        status = result[ 'Value' ]
+        if status == 'Active':
+          self.log.info( 'RunningPod %s is Active' % ( runningPodName ) )
+        else:
+          self.log.info( 'RunningPod %s is Unactive, do nothing' % ( runningPodName ) )
+          continue
+        
         runningPodDict = directorDict['director'].runningPods[runningPodName]
         imageName = runningPodDict['Image']
         instances = 0
@@ -219,9 +238,9 @@ class VirtualMachineScheduler( AgentModule ):
           self.log.info( 'Skipping, from list %s; there is no endpoint with free slots found for image %s' % ( runningPodDict['CloudEndpoints'], imageName ) )
           continue
 
-        imageRequirementsDict = runningPodDict['RequirementsDict']
-        #self.log.info( 'Image Requirements Dict: ', imageRequirementsDict )
-        result = taskQueueDB.getMatchingTaskQueues( imageRequirementsDict )
+        runningPodRequirementsDict = runningPodDict['Requirements']
+        #self.log.info( 'RunningPod Requirements Dict: ', runningPodRequirementsDict )
+        result = taskQueueDB.getMatchingTaskQueues( runningPodRequirementsDict )
         if not result['OK']:
           self.log.error( 'Could not retrieve TaskQueues from TaskQueueDB', result['Message'] )
           return result

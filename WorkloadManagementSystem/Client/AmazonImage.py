@@ -1,8 +1,10 @@
 # $HeadURL$
 
 import boto
+from boto.ec2.regioninfo import RegionInfo
 import time
 import types
+from urlparse import urlparse
 
 # DIRAC
 from DIRAC import gLogger, gConfig, S_OK, S_ERROR
@@ -60,18 +62,49 @@ class AmazonImage:
       self.__errorStatus = "Can't find SecretKey for Endpoint %s" % self.__endpoint
       self.log.error( self.__errorStatus )
       return
-    
+
+    # Endpoint URL
+    self.__EndpointURL = self.__getCSCloudEndpointOption( "EndpointURL" )
+    if not self.__EndpointURL:
+      self.__errorStatus = "Can't find endpointURL for Endpoint %s" % self.__endpoint
+      self.log.error( self.__errorStatus )
+      return
+
+    # RegionName
+    self.__RegionName = self.__getCSCloudEndpointOption( "RegionName" )
+    if not self.__RegionName:
+      self.__errorStatus = "Can't find RegionName for Endpoint %s" % self.__endpoint
+      self.log.error( self.__errorStatus )
+      return
+
     #Try connection
     try:
-      self.__conn = boto.connect_ec2( self.__amAccessKey, self.__amSecretKey )
+      _debug = 0
+      url = urlparse(self.__EndpointURL)
+      _endpointHostname = url.hostname
+      _port = url.port
+      _path = url.path
+      _regionName = self.__RegionName
+      _region = RegionInfo(name=_regionName, endpoint=_endpointHostname)
+      self.__conn = boto.connect_ec2(aws_access_key_id = self.__amAccessKey,
+                       aws_secret_access_key = self.__amSecretKey,
+                       is_secure = False,
+                       region = _region,
+                       path = _path,
+                       port = _port,
+                       debug = _debug)
     except Exception, e:
-      self.__errorStatus = "Can't connect to EC2"
+      self.__errorStatus = "Can't connect to EC2: " + str(e)
       self.log.error( self.__errorStatus )
       return
 
     #FIXME: we will never reach a point where __errorStatus has anything
     if not self.__errorStatus:
       self.log.info( "Amazon image %s initialized" % self.__vmName )
+
+  def getKeys(self):
+    print keys
+    return keys
 
   def __getCSImageOption( self, option, defValue = "" ):
     return gConfig.getValue( "/Resources/VirtualMachines/Images/%s/%s" % ( self.__vmName, option ), defValue )
@@ -199,7 +232,7 @@ class AmazonImage:
     for res in self.__conn.get_all_instances():
       for instance in res.instances:
         if instance.image_id == self.__vmAMI:
-          instances.append( AmazonInstance( instance.id, self.__amAccessKey, self.__amSecretKey ) )
+          instances.append( AmazonInstance( instance.id, self.__amAccessKey, self.__amSecretKey, self.__RegionName, self.__EndpointURL ) )
     return instances
 
   def getAllRunningInstances( self ):
@@ -212,7 +245,7 @@ class AmazonImage:
         if instance.image_id == self.__vmAMI:
           instance.update()
           if instance.state == u'running':
-            instances.append( AmazonInstance( instance.id, self.__amAccessKey, self.__amSecretKey ) )
+            instances.append( AmazonInstance( instance.id, self.__amAccessKey, self.__amSecretKey, self.__RegionName, self.__EndpointURL ) )
     return instances
   
 #...............................................................................

@@ -84,6 +84,7 @@ class ContextConfig( object ):
     
     self.__context = contextOptions
     
+    
   def config( self ):
     """
     Method that returns a copy of the context dictionary.
@@ -171,6 +172,28 @@ class AmiconfigContext( ContextConfig ):
 
   MANDATORY_KEYS = [ 'ex_size', 'ex_image', 
                      'ex_security_groups', 'ex_userdata' ]
+
+  def __init__( self, imageName, contextName ):
+    """
+    Constructor. Gets section from <CONTEXT_PATH>/<imageName>/<contextName> or
+    empty dictionary in case it fails.
+
+    Extends ContextConfig constructor adding ex_metadata.
+    
+    :Parameters:
+      **imageName** - `string`
+        name of the image on the CS
+      **contextName** - `string`
+        string with the type of context on the CS. It decides which class to load. 
+        Either `ssh`,`adhoc`,`amiconfig`, `occi_opennebula`.
+    
+    """
+    
+    super( AmiconfigContext, self ).__init__( imageName, contextName )
+
+    metadata = gConfig.getOptionsDict( ( self.CONTEXT_PATH % ( imageName, contextName ) ) + '/ex_metadata' )
+    if metadata[ 'OK' ]:
+      self._ContextConfig__context[ 'ex_metadata' ] = metadata[ 'Value' ]
 
 #...............................................................................
 # OcciOpennebulaContext

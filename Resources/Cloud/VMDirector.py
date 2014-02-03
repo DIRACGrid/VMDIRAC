@@ -75,18 +75,19 @@ class VMDirector:
         return runningPodDict
       self.log.verbose( 'Trying to configure RunningPodDict:', runningPodDict )
       runningPodDict = runningPodDict[ 'Value' ]
-      for option in ['Image', 'MaxInstances', 'CPUPerInstance', 'Priority', 'CloudEndpoints']:
+      for option in ['Image', 'MaxInstances', 'CPUPerInstance', 'Priority', 'CloudEndpoints', 'Requirements', 'CampaignStartDate', 'CampaignEndDate']:
         if option not in runningPodDict.keys():
           self.log.error( 'Missing option in "%s" RunningPod definition:' % runningPodName, option )
           continue
         
       self.runningPods[runningPodName] = {}
       self.runningPods[runningPodName]['Image']            = runningPodDict['Image']
-      self.runningPods[runningPodName]['RequirementsDict'] = runningPodDict['Requirements']
+      self.runningPods[runningPodName]['Requirements'] = runningPodDict['Requirements']
       self.runningPods[runningPodName]['MaxInstances']     = int( runningPodDict['MaxInstances'] )
       self.runningPods[runningPodName]['CPUPerInstance']   = int( runningPodDict['CPUPerInstance'] )
       self.runningPods[runningPodName]['Priority']         = int( runningPodDict['Priority'] )
       self.runningPods[runningPodName]['CloudEndpoints']   = runningPodDict['CloudEndpoints']
+      self.runningPods[runningPodName]['CampaignEndDate']   = runningPodDict['CampaignEndDate']
 
   def submitInstance( self, imageName, endpoint, numVMsToSubmit, runningPodName ):
     """
@@ -111,7 +112,7 @@ class VMDirector:
         return newInstance
       instanceID = newInstance[ 'Value' ]
 
-      runningRequirementsDict = self.runningPods[runningPodName]['RequirementsDict']
+      runningRequirementsDict = self.runningPods[runningPodName]['Requirements']
       cpuTime = runningRequirementsDict['CPUTime']
       if not cpuTime:
         return S_ERROR( 'Unknown CPUTime in Requirements of the RunningPod %s' % runningPodName )

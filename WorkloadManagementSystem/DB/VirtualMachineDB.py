@@ -7,7 +7,7 @@
 """ VirtualMachineDB class is a front-end to the virtual machines DB
 
   Life cycle of VMs Images in DB
-  - New:       Inserted by Director (Name - Requirements - Status = New ) if not existing when launching a new instance
+  - New:       Inserted by Director (Name - Status = New ) if not existing when launching a new instance
   - Validated: Declared by VMMonitoring Server when an Instance reports back correctly
   - Error:     Declared by VMMonitoring Server when an Instance reports back wrong requirements
 
@@ -26,6 +26,11 @@
 
   Instance UniqueID: for KVM it could be the MAC, for Amazon the returned InstanceID(i-5dec3236), for Occi returned the VMID
 
+  Life cycle of VMs RunningPods in DB
+  - New:       Inserted by VM Scheduler (RunningPod - Status = New ) if not existing when launching a new instance
+  - Unactive:  Declared by VMScheduler Server when out of campaign dates
+  - Active:    Declared by VMScheduler Server when withing of campaign dates
+  - Error:     For compatibility with common private functions
 
 """
 
@@ -45,6 +50,8 @@ class VirtualMachineDB( DB ):
   validImageStates    = [ 'New', 'Validated', 'Error' ]
   validInstanceStates = [ 'New', 'Submitted', 'Wait_ssh_context', 'Contextualizing', 
                           'Running', 'Stopping', 'Halted', 'Stalled', 'Error' ]
+  validRunningPodStates = [ 'New', 'Unactive', 'Active', 'Error' ]
+
 
   # In seconds !
   stallingInterval = 30 * 60 
@@ -62,21 +69,24 @@ class VirtualMachineDB( DB ):
                                        'Halted' : [ 'New','Running', 'Stopping', 'Stalled' ],
                                        'Stalled': [ 'New', 'Submitted', 'Wait_ssh_context', 
                                                     'Contextualizing', 'Running' ],
-                                      }
+                                      },
+                        'RunningPod' : {
+                                       'Active' : [ 'New', 'Active', 'Unactive' ],
+                                       'Unactive' : [ 'New', 'Active', 'Unactive' ],
+                                   }
                        }
 
   tablesDesc = {}
 
   tablesDesc[ 'vm_Images' ] = { 'Fields' : { 'VMImageID' : 'BIGINT UNSIGNED AUTO_INCREMENT NOT NULL',
+                                             'RuningPodID' : 'INTEGER UNSIGNED NOT NULL',
                                              'Name' : 'VARCHAR(255) NOT NULL',
-                                             'CloudEndpoints' : 'VARCHAR(1024) NOT NULL',
-                                             'Requirements' : 'VARCHAR(1024) NOT NULL',
                                              'Status' : 'VARCHAR(16) NOT NULL',
                                              'LastUpdate' : 'DATETIME',
                                              'ErrorMessage' : 'VARCHAR(255) NOT NULL DEFAULT ""',
                                            },
                                'PrimaryKey' : 'VMImageID',
-                               'Indexes': { 'Image': [ 'Name', 'CloudEndpoints' ]
+                               'Indexes': { 'Image': [ 'Name', 'RunningPodID' ]
                                           }
                              }
 
@@ -112,6 +122,24 @@ class VirtualMachineDB( DB ):
                                }
 
 
+  tablesDesc[ 'vm_RunningPods' ] = { 'Fields' : { 'RunningPodID' : 'BIGINT UNSIGNED AUTO_INCREMENT NOT NULL',
+                                              'RunningPod' : 'VARCHAR(32) NOT NULL',
+                                              'CampaignStartDate' : 'DATETIME',
+                                              'CampaignEndDate' : 'DATETIME',
+                                              'Status' : 'VARCHAR(32) NOT NULL',
+                                              'LastUpdate' : 'DATETIME',
+                                              'ErrorMessage' : 'VARCHAR(255) NOT NULL DEFAULT ""'
+                                            },
+                                   'PrimaryKey' : 'RunningPodID',
+                                   'Indexes': { 'RunningPod': [ 'RunningPod', 'Status' ]
+                                          }
+                               }
+
+
+  #######################
+  # VirtualDB constructor
+  #######################
+
   def __init__( self, maxQueueSize = 10 ):
     
     DB.__init__( self, 'VirtualMachineDB', 'WorkloadManagement/VirtualMachineDB', maxQueueSize )
@@ -122,40 +150,139 @@ class VirtualMachineDB( DB ):
     if not result[ 'OK' ]:
       raise Exception( 'Can\'t create tables: %s' % result[ 'Message' ] )
 
-  def __initializeDB( self ):
-    """
-    Create the tables
-    """
-    tables = self._query( "show tables" )
-    if not tables[ 'OK' ]:
-      return tables
+  #######################
+  # Public Functions
+  #######################
 
-    tablesInDB = [ table[0] for table in tables[ 'Value' ] ]
+  def setRunningPodStatus( self, runningPodName ):
+    """
+    Set Status of a given runningPod depending in date interval
+    returns:
+    S_OK(Status) if Status is valid and not Error
+    S_ERROR(ErrorMessage) otherwise
+    """
+    tableName, validStates, idName = self.__getTypeTuple( 'RunningPod' )
+   
+    runningPodID = self._getFields( tableName, [ idName ], [ 'RunningPod' ], [ runningPodName ] )
+    if not runningPodID[ 'OK' ]:
+      return runningPodID
+    runningPodID = runningPodID[ 'Value' ][0][0]
+
+    if not runningPodID:
+      return S_ERROR( 'Running pod %s not found in DB' % runningPodName )
+
+    # The runningPod exits in DB set status
+
+    runningPodDict = self.getRunningPodDict( runningPodName )
+    if not runningPodDict[ 'OK' ]:
+      return runningPodDict
+
+    runningPodDict = runningPodDict[ 'Value' ]
+    startdate=Time.fromString(runningPodDict['CampaignStartDate'])
+    enddate=Time.fromString(runningPodDict['CampaignEndDate'])
+    currentdate=Time.date()
+    if currentdate<startdate:
+      runningPodState='Unactive'
+    elif currentdate>enddate:
+      runningPodState='Unactive'
+    else:
+      runningPodState='Active'
+
+    return self.__setState( 'RunningPod', runningPodID, runningPodState )
+
+  def getRunningPodStatus( self, runningPodName):
+    """
+    Check Status of a given runningPod
+    returns:
+    S_OK(Status) if Status is valid and not Error
+    S_ERROR(ErrorMessage) otherwise
+    """
+    tableName, validStates, idName = self.__getTypeTuple( 'RunningPod' )
+   
+    runningPodID = self._getFields( tableName, [ idName ], [ 'RunningPod' ], [ runningPodName ] )
+    if not runningPodID[ 'OK' ]:
+      return runningPodID
+    runningPodID = runningPodID[ 'Value' ][0][0]
+
+    if not runningPodID:
+      return S_ERROR( 'Running pod %s not found in DB' % runningPodName )
+
+    # The runningPod exits in DB set status
+
+    return self.__getStatus( 'RunningPod', runningPodID )
+
+  def getRunningPodDict( self, runningPodName ):
+    """
+    Return from CS a Dictionary with RunningPod definition
+    """
     
-    tablesToCreate = {}
-    for tableName in self.tablesDesc:
-      if not tableName in tablesInDB:
-        tablesToCreate[ tableName ] = self.tablesDesc[ tableName ]
+    #FIXME: this MUST not be on the DB module !! 
+    #FIXME: isn't checking for Image
+    
+    runningPodsCSPath = '/Resources/VirtualMachines/RunningPods'
+    
+    definedRunningPods = gConfig.getSections( runningPodsCSPath )
+    if not definedRunningPods[ 'OK' ]:
+      return definedRunningPods
 
-    return self._createTables( tablesToCreate )
+    if runningPodName not in definedRunningPods['Value']:
+      return S_ERROR( 'RunningPod "%s" not defined' % runningPodName )
 
-  def __getTypeTuple( self, element ):
+    runningPodCSPath = '%s/%s' % ( runningPodsCSPath, runningPodName )
+
+    runningPodDict = {}
+
+    cloudEndpoints = gConfig.getValue( '%s/CloudEndpoints' % runningPodCSPath , '' )
+    if not cloudEndpoints:
+      return S_ERROR( 'Missing CloudEndpoints for RunnningPod "%s"' % runningPodName )
+    
+    for option, value in gConfig.getOptionsDict( runningPodCSPath )['Value'].items():
+      runningPodDict[option] = value
+      
+    runningPodRequirementsDict = gConfig.getOptionsDict( '%s/Requirements' % runningPodCSPath )
+    if not runningPodRequirementsDict[ 'OK' ]:
+      return S_ERROR( 'Missing Requirements for RunningPod "%s"' % runningPodName )
+    if 'CPUTime' in runningPodRequirementsDict[ 'Value' ]:
+      runningPodRequirementsDict['Value']['CPUTime'] = int( runningPodRequirementsDict['Value']['CPUTime'] )
+    if 'OwnerGroup' in runningPodRequirementsDict[ 'Value' ]:
+      runningPodRequirementsDict['Value']['OwnerGroup'] = runningPodRequirementsDict['Value']['OwnerGroup'].split(', ')
+
+    runningPodDict['Requirements'] = runningPodRequirementsDict['Value']
+
+    return S_OK( runningPodDict )
+
+  def insertRunningPod( self, runningPodName ):
     """
-    return tuple of (tableName, validStates, idName) for object
+    Insert a RunningPod record
+    If RunningPod name already exists then update CampaignStartDate, CampaignEndDate
+    to be called by VMScheduler on creation of RunningPod record
     """
-    # defaults
-    tableName, validStates, idName = '', [], ''
-        
-    if element == 'Image':
-      tableName   = 'vm_Images'
-      validStates = self.validImageStates
-      idName      = 'VMImageID'
-    elif element == 'Instance':
-      tableName   = 'vm_Instances'
-      validStates = self.validInstanceStates
-      idName      = 'InstanceID'
+    tableName, validStates, idName = self.__getTypeTuple( 'RunningPod' )
+    
+    runningPodID = self._getFields( tableName, [ idName ], [ 'RunningPod' ], [ runningPodName ] )
+    if not runningPodID[ 'OK' ]:
+      return runningPodID
+    runningPodID = runningPodID[ 'Value' ][0][0]
 
-    return ( tableName, validStates, idName )
+    runningPodDict = self.getRunningPodDict( runningPodName )
+    if not runningPodDict[ 'OK' ]:
+      return runningPodDict
+    runningPodDict = runningPodDict[ 'Value' ]
+
+    if runningPodID > 0:
+      # updating CampaignStartDate, CampaignEndDate
+      sqlUpdate = 'UPDATE `%s` SET CampaignStartDate = "%s", CampaignEndDate = "%s" WHERE %s = %s' % \
+          ( tableName, runningPodDict['CampaignStartDate'], runningPodDict['CampaignEndDate'], idName, runningPodID )
+      return self._update( sqlUpdate )
+
+    # The runningPod does not exits in DB, has to be inserted
+
+    fields = [ 'RunningPod', 'CampaignStartDate', 'CampaignEndDate', 'Status']
+    values = [ runningPodName, runningPodDict['CampaignStartDate'], runningPodDict['CampaignEndDate'], 'New']
+
+    return self._insert( tableName , fields, values )
+
+
 
   def checkImageStatus( self, imageName, runningPodName = "" ):
     """ 
@@ -588,373 +715,9 @@ class VirtualMachineDB( DB ):
     
     return S_OK( { 'Image' : imgData, 'Instance' : instData } )
 
-  def __insertInstance( self, imageName, instanceName, endpoint, runningPodName ):
-    """
-    Attempts to insert a new Instance for the given Image in a given Endpoint of a runningPodName
-    """
-    image = self.__getImageID( imageName, runningPodName )
-    if not image[ 'OK' ]:
-      return image
-    imageID = image[ 'Value' ]
-
-    tableName, validStates, _idName = self.__getTypeTuple( 'Instance' )
-
-    fields = [ 'RunningPod', 'Name', 'Endpoint', 'VMImageID', 'Status', 'LastUpdate' ]
-    values = [ runningPodName, instanceName, endpoint, imageID, validStates[ 0 ], Time.toString() ]
-    
-    runningPodDict = self.getRunningPodDict( runningPodName )
-    if not runningPodDict[ 'OK' ]:
-      return runningPodDict
-    runningPodDict = runningPodDict[ 'Value' ]
-    
-    if 'MaxAllowedPrice' in runningPodDict:
-      fields.append( 'MaxAllowedPrice' )
-      values.append( runningPodDict[ 'MaxAllowedPrice' ] )
-
-    instance = self._insert( tableName , fields, values )
-    if not instance[ 'OK' ]:
-      return instance
-
-    if 'lastRowId' in instance:
-      self.__addInstanceHistory( instance[ 'lastRowId' ], validStates[ 0 ] )
-      return S_OK( instance[ 'lastRowId' ] )   
-
-    return S_ERROR( 'Failed to insert new Instance' )
-
-  def __runningInstance( self, instanceID, load, jobs, transferredFiles, transferredBytes ):
-    """
-    Checks image status, set it to running and set instance status to running
-    """
-    # Check the Image is OK
-    imageID = self.__getImageForRunningInstance( instanceID )
-    if not imageID[ 'OK' ]:
-      self.__setError( 'Instance', instanceID, imageID[ 'Message' ] )
-      return imageID
-    imageID = imageID[ 'Value' ]
-
-    # Update Instance to Running
-    stateInstance = self.__setState( 'Instance', instanceID, 'Running' )
-    if not stateInstance[ 'OK' ]:
-      return stateInstance
-
-    # Update Image to Validated
-    stateImage = self.__setState( 'Image', imageID, 'Validated' )
-    if not stateImage[ 'OK' ]:
-      self.__setError( 'Instance', instanceID, stateImage[ 'Message' ] )
-      return stateImage
-
-    # Add History record
-    self.__addInstanceHistory( instanceID, 'Running', load, jobs, transferredFiles, transferredBytes )
-    return S_OK()
-
-  def __getImageForRunningInstance( self, instanceID ):
-    """
-    Looks for imageID for a given instanceID. 
-    Check image Transition to Running is allowed
-    Returns:
-      S_OK( imageID )
-      S_ERROR( Reason ) 
-    """
-    info = self.__getInfo( 'Instance', instanceID )
-    if not info[ 'OK' ]:
-      return info
-    info = info[ 'Value' ]
-    
-    _tableName, _validStates, idName = self.__getTypeTuple( 'Image' )
-
-    imageID = info[ idName ]
-
-    imageStatus = self.__getStatus( 'Image', imageID )
-    if not imageStatus[ 'OK' ]:
-      return imageStatus
-
-    return S_OK( imageID )
-
-  def __getOldInstanceIDs( self, secondsIdle, states ):
-    """
-    Return list of instance IDs that have not updated after the given time stamp
-    they are required to be in one of the given states
-    """
-    tableName, _validStates, idName = self.__getTypeTuple( 'Instance' )
-    
-    sqlCond = []
-    sqlCond.append( 'TIMESTAMPDIFF( SECOND, `LastUpdate`, UTC_TIMESTAMP() ) > % d' % secondsIdle )
-    sqlCond.append( 'Status IN ( "%s" )' % '", "'.join( states ) )
-    
-    sqlSelect = 'SELECT %s from `%s` WHERE %s' % ( idName, tableName, " AND ".join( sqlCond ) )
-          
-    return self._query( sqlSelect )
-
-  def __getSubmittedInstanceID( self, imageName ):
-    """
-    Retrieve and InstanceID associated to a submitted Instance for a given Image
-    """
-    tableName, _validStates, idName = self.__getTypeTuple( 'Image' )
-    
-    imageID = self._getFields( tableName, [ idName ], ['Name'], [imageName] )
-    if not imageID[ 'OK' ]:
-      return imageID
-    imageID = imageID[ 'Value' ]
-
-    if not imageID:
-      return S_ERROR( 'Unknown Image = %s' % imageName )
-
-    #FIXME: <> is obsolete
-    if len( imageID ) <> 1:
-      return S_ERROR( 'Image name "%s" is not unique' % imageName )
-
-    imageID     = imageID[ 0 ][ 0 ]
-    imageIDName = idName
-
-    tableName, _validStates, idName = self.__getTypeTuple( 'Instance' )
-
-    instanceID = self._getFields( tableName, [ idName ], [ imageIDName, 'Status' ], 
-                                  [ imageID, 'Submitted' ] )
-    if not instanceID[ 'OK' ]:
-      return instanceID
-    instanceID = instanceID[ 'Value' ]
-
-    if not instanceID:
-      return S_ERROR( 'No Submitted instance of "%s" found' % imageName )
-
-    return S_OK( instanceID[ 0 ][ 0 ] )
-
-  def __setState( self, element, iD, state ):
-    """
-    Attempt to set element in state, checking if transition is allowed
-    """
-    
-    knownStates = self.allowedTransitions[ element ].keys()
-    if not state in knownStates:
-      return S_ERROR( 'Transition to %s not possible' % state )
-
-    allowedStates = self.allowedTransitions[ element ][ state ]
-
-    currentState = self.__getStatus( element, iD )
-    if not currentState[ 'OK' ]:
-      return currentState
-    currentState = currentState[ 'Value' ]
-
-    if not currentState in allowedStates:
-      msg = 'Transition ( %s -> %s ) not allowed' % ( currentState, state )
-      return S_ERROR( msg )
-
-    tableName, _validStates, idName = self.__getTypeTuple( element )
-    
-    if currentState == state:
-      sqlUpdate = 'UPDATE `%s` SET LastUpdate = UTC_TIMESTAMP() WHERE %s = %s' % ( tableName, idName, iD )
-
-    else:
-      sqlUpdate = 'UPDATE `%s` SET Status = "%s", LastUpdate = UTC_TIMESTAMP() WHERE %s = %s' % \
-          ( tableName, state, idName, iD )
-      
-
-    ret = self._update( sqlUpdate )
-    if not ret[ 'OK' ]:
-      return ret
-    return S_OK( state )
-
-
-  def __setInstanceIPs( self, instanceID, publicIP, privateIP ):
-    """
-    Update parameters for an instanceID reporting as running
-    """
-    values = self._escapeValues( [ publicIP, privateIP ] )
-    if not values[ 'OK' ]:
-      return S_ERROR( "Cannot escape values: %s" % str( values ) )
-    publicIP, privateIP = values[ 'Value' ]
-
-    tableName, _validStates, idName = self.__getTypeTuple( 'Instance' )
-    sqlUpdate = 'UPDATE `%s` SET PublicIP = %s, PrivateIP = %s WHERE %s = %s' % \
-                ( tableName, publicIP, privateIP, idName, instanceID )
-
-    return self._update( sqlUpdate )
-
-  def __getInstanceID( self, uniqueID ):
-    """
-    For a given uniqueID of an instance return associated internal InstanceID 
-    """
-    tableName, _validStates, idName = self.__getTypeTuple( 'Instance' )
-    
-    instanceID = self._getFields( tableName, [ idName ], [ 'UniqueID' ], [ uniqueID ] )
-    if not instanceID[ 'OK' ]:
-      return instanceID
-    instanceID = instanceID[ 'Value' ]
-
-    if not instanceID:
-      return S_ERROR( 'Unknown %s = %s' % ( 'UniqueID', uniqueID ) )
-
-    return S_OK( instanceID[ 0 ][ 0 ] )
-
-  def __getImageID( self, imageName, runningPodName ):
-    """
-    For a given imageName return corresponding ID
-    Will insert the image in New Status if it does not exits
-    """
-    tableName, validStates, idName = self.__getTypeTuple( 'Image' )
-    
-    imageID = self._getFields( tableName, [ idName ], [ 'Name' ], [ imageName ] )
-    if not imageID[ 'OK' ]:
-      return imageID
-    imageID = imageID[ 'Value' ]
-
-    if len( imageID ) > 1:
-      return S_ERROR( 'Image name "%s" is not unique' % imageName )
-    if len( imageID ) == 0:
-      # The image does not exits in DB, has to be inserted
-      imageID = 0
-    else:
-      # The image exits in DB, has to match
-      imageID = imageID[ 0 ][ 0 ]
-
-    runningPodDict = self.getRunningPodDict( runningPodName )
-    if not runningPodDict[ 'OK' ]:
-      return runningPodDict
-    runningPodDict = runningPodDict[ 'Value' ]
-    
-    cloudendpoints = runningPodDict[ 'CloudEndpoints' ]
-    requirements   = DEncode.encode( runningPodDict[ 'Requirements' ] )
-
-    if imageID:
-      ret = self._getFields( tableName, [ idName ], [ 'Name', 'CloudEndpoints', 'Requirements' ],
-                                                  [ imageName, cloudendpoints, requirements ] )
-      if not ret[ 'OK' ]:
-        return ret
-      if not ret[ 'Value' ]:
-        return S_ERROR( 'Image "%s" in DB but it does not match' % imageName )
-      else:
-        return S_OK( imageID )
-
-    ret = self._insert( tableName, [ 'Name', 'CloudEndpoints', 'Requirements', 'Status', 'LastUpdate' ],
-                                   [ imageName, cloudendpoints, requirements, validStates[ 0 ], Time.toString() ] )
-    
-    if ret[ 'OK' ] and 'lastRowId' in ret:
-    
-      rowID = ret[ 'lastRowId' ]
-    
-      ret = self._getFields( tableName, [idName], ['Name', 'CloudEndpoints', 'Requirements'],
-                                                  [imageName, cloudendpoints, requirements] )
-      if not ret[ 'OK' ]:
-        return ret 
-      
-      if not ret[ 'Value' ] or rowID <> ret[ 'Value' ][ 0 ][ 0 ]:
-        result = self.__getInfo( 'Image', rowID )
-        if result[ 'OK' ]:
-          image = result[ 'Value' ]
-          self.log.error( 'Trying to insert Name: "%s", CloudEndpoints: "%s", Requirements: "%s"' %
-                                            ( imageName, cloudendpoints, requirements ) )
-          self.log.error( 'But inserted     Name: "%s", CloudEndpoints: "%s", Requirements: "%s"' %
-                                            ( image['Name'], image['CloudEndpoints'], image['Requirements'] ) )
-        return self.__setError( 'Image', rowID, 'Failed to insert new Image' )
-      return S_OK( rowID )
-    
-    return S_ERROR( 'Failed to insert new Image' )
-
-  def __addInstanceHistory( self, instanceID, status, load = 0.0, jobs = 0,
-                            transferredFiles = 0, transferredBytes = 0 ):
-    """
-    Insert a History Record
-    """
-    try:
-      load = float( load )
-    except ValueError:
-      return S_ERROR( "Load has to be a float value" )
-    try:
-      jobs = int( jobs )
-    except ValueError:
-      return S_ERROR( "Jobs has to be an integer value" )
-    try:
-      transferredFiles = int( transferredFiles )
-    except ValueError:
-      return S_ERROR( "Transferred files has to be an integer value" )
-
-    self._insert( 'vm_History' , [ 'InstanceID', 'Status', 'Load',
-                                   'Update', 'Jobs', 'TransferredFiles',
-                                   'TransferredBytes' ],
-                                 [ instanceID, status, load,
-                                   Time.toString(), jobs,
-                                   transferredFiles, transferredBytes ] )
-    return
-
-  def __setLastLoadJobsAndUptime( self, instanceID, load, jobs, uptime ):
-    if not uptime:
-      sqlQuery = "SELECT MAX( UNIX_TIMESTAMP( `Update` ) ) - MIN( UNIX_TIMESTAMP( `Update` ) ) FROM `vm_History` WHERE InstanceID = %d GROUP BY InstanceID" % instanceID
-      result = self._query( sqlQuery )
-      if result[ 'OK' ] and len( result[ 'Value' ] ) > 0:
-        uptime = int( result[ 'Value' ][0][0] )
-    sqlUpdate = "UPDATE `vm_Instances` SET `Uptime` = %d, `Jobs`= %d, `Load` = %f WHERE `InstanceID` = %d" % ( uptime,
-                                                                                                     jobs,
-                                                                                                     load,
-                                                                                                     instanceID )
-    self._update( sqlUpdate )
-    return S_OK()
-
-  def __getInfo( self, element, iD ):
-    """
-    Return dictionary with info for Images and Instances by ID
-    """
-    tableName, _validStates, idName = self.__getTypeTuple( element )
-    if not tableName:
-      return S_ERROR( 'Unknown DB object: %s' % element )
-    
-    fields = self.tablesDesc[ tableName ][ 'Fields' ]
-    ret    = self._getFields( tableName , fields, [ idName ], [ iD ] )
-    if not ret[ 'OK' ]:
-      return ret
-    if not ret[ 'Value' ]:
-      return S_ERROR( 'Unknown %s = %s' % ( idName, iD ) )
-
-    data   = {}
-    values = ret[ 'Value' ][ 0 ]
-    fields = fields.keys()
-    
-    for i in xrange( len( fields ) ):
-      data[ fields[ i ] ] = values[ i ]
-
-    return S_OK( data )
-
-  def __getStatus( self, element, iD ):
-    """
-    Check and return status of Images and Instances by ID
-    returns:
-      S_OK(Status) if Status is valid and not Error 
-      S_ERROR(ErrorMessage) otherwise
-    """
-    tableName, validStates, idName = self.__getTypeTuple( element )
-    if not tableName:
-      return S_ERROR( 'Unknown DB object: %s' % element )
-
-    ret = self._getFields( tableName, [ 'Status', 'ErrorMessage' ], [ idName ], [ iD ] )
-    if not ret[ 'OK' ]:
-      return ret
-
-    if not ret[ 'Value' ]:
-      return S_ERROR( 'Unknown %s = %s' % ( idName, iD ) )
-
-    status, msg = ret[ 'Value' ][ 0 ]
-    if not status in validStates:
-      return self.__setError( element, iD, 'Invalid Status: %s' % status )
-    if status == validStates[ -1 ]:
-      return S_ERROR( msg )
-
-    return S_OK( status )
-
-  def __setError( self, element, iD, reason ):
-    """
-    """
-    ( tableName, validStates, idName ) = self.__getTypeTuple( element )
-    if not tableName:
-      return S_ERROR( 'Unknown DB object: %s' % element )
-
-    sqlUpdate = 'UPDATE `%s` SET Status = "%s", ErrorMessage = "%s", LastUpdate = UTC_TIMESTAMP() WHERE %s = %s'
-    sqlUpdate = sqlUpdate % ( tableName, validStates[ -1 ], reason, idName, iD )
-    ret = self._update( sqlUpdate )
-    if not ret[ 'OK' ]:
-      return ret
-
-    return S_ERROR( reason )
-
-  #Monitoring functions
+  #############################
+  # Monitoring Public Functions
+  #############################
 
   def getInstancesContent( self, selDict, sortList, start = 0, limit = 0 ):
     """
@@ -962,8 +725,8 @@ class VirtualMachineDB( DB ):
       parameters are a filter to the db
     """
     #Main fields
-    tables = ( "`vm_Images` AS img", "`vm_Instances` AS inst" )
-    imageFields = ( 'VMImageID', 'Name', 'CloudEndpoints' )
+    tables = ( "`vm_Images` AS img", "`vm_Instances` AS inst")
+    imageFields = ( 'VMImageID', 'Name')
     instanceFields = ( 'RunningPod', 'InstanceID', 'Name', 'UniqueID', 'VMImageID',
                        'Status', 'PublicIP', 'Status', 'ErrorMessage', 'LastUpdate', 'Load', 'Uptime', 'Jobs' )
 
@@ -1274,45 +1037,403 @@ class VirtualMachineDB( DB ):
     
     return self._query( sqlQuery )
 
-  def getRunningPodDict( self, runningPodName ):
+  #######################
+  # Private Functions
+  #######################
+
+  def __initializeDB( self ):
     """
-    Return from CS a Dictionary with RunningPod definition
+    Create the tables
+    """
+    tables = self._query( "show tables" )
+    if not tables[ 'OK' ]:
+      return tables
+
+    tablesInDB = [ table[0] for table in tables[ 'Value' ] ]
+    
+    tablesToCreate = {}
+    for tableName in self.tablesDesc:
+      if not tableName in tablesInDB:
+        tablesToCreate[ tableName ] = self.tablesDesc[ tableName ]
+
+    return self._createTables( tablesToCreate )
+
+  def __getTypeTuple( self, element ):
+    """
+    return tuple of (tableName, validStates, idName) for object
+    """
+    # defaults
+    tableName, validStates, idName = '', [], ''
+        
+    if element == 'Image':
+      tableName   = 'vm_Images'
+      validStates = self.validImageStates
+      idName      = 'VMImageID'
+    elif element == 'Instance':
+      tableName   = 'vm_Instances'
+      validStates = self.validInstanceStates
+      idName      = 'InstanceID'
+    elif element == 'RunningPod':
+      tableName = 'vm_RunningPods'
+      validStates = self.validRunningPodStates
+      idName = 'RunningPodID'
+
+    return ( tableName, validStates, idName )
+
+  def __insertInstance( self, imageName, instanceName, endpoint, runningPodName ):
+    """
+    Attempts to insert a new Instance for the given Image in a given Endpoint of a runningPodName
+    """
+    image = self.__getImageID( imageName, runningPodName )
+    if not image[ 'OK' ]:
+      return image
+    imageID = image[ 'Value' ]
+
+    tableName, validStates, _idName = self.__getTypeTuple( 'Instance' )
+
+    fields = [ 'RunningPod', 'Name', 'Endpoint', 'VMImageID', 'Status', 'LastUpdate' ]
+    values = [ runningPodName, instanceName, endpoint, imageID, validStates[ 0 ], Time.toString() ]
+    
+    runningPodDict = self.getRunningPodDict( runningPodName )
+    if not runningPodDict[ 'OK' ]:
+      return runningPodDict
+    runningPodDict = runningPodDict[ 'Value' ]
+    
+    if 'MaxAllowedPrice' in runningPodDict:
+      fields.append( 'MaxAllowedPrice' )
+      values.append( runningPodDict[ 'MaxAllowedPrice' ] )
+
+    instance = self._insert( tableName , fields, values )
+    if not instance[ 'OK' ]:
+      return instance
+
+    if 'lastRowId' in instance:
+      self.__addInstanceHistory( instance[ 'lastRowId' ], validStates[ 0 ] )
+      return S_OK( instance[ 'lastRowId' ] )   
+
+    return S_ERROR( 'Failed to insert new Instance' )
+
+  def __runningInstance( self, instanceID, load, jobs, transferredFiles, transferredBytes ):
+    """
+    Checks image status, set it to running and set instance status to running
+    """
+    # Check the Image is OK
+    imageID = self.__getImageForRunningInstance( instanceID )
+    if not imageID[ 'OK' ]:
+      self.__setError( 'Instance', instanceID, imageID[ 'Message' ] )
+      return imageID
+    imageID = imageID[ 'Value' ]
+
+    # Update Instance to Running
+    stateInstance = self.__setState( 'Instance', instanceID, 'Running' )
+    if not stateInstance[ 'OK' ]:
+      return stateInstance
+
+    # Update Image to Validated
+    stateImage = self.__setState( 'Image', imageID, 'Validated' )
+    if not stateImage[ 'OK' ]:
+      self.__setError( 'Instance', instanceID, stateImage[ 'Message' ] )
+      return stateImage
+
+    # Add History record
+    self.__addInstanceHistory( instanceID, 'Running', load, jobs, transferredFiles, transferredBytes )
+    return S_OK()
+
+  def __getImageForRunningInstance( self, instanceID ):
+    """
+    Looks for imageID for a given instanceID. 
+    Check image Transition to Running is allowed
+    Returns:
+      S_OK( imageID )
+      S_ERROR( Reason ) 
+    """
+    info = self.__getInfo( 'Instance', instanceID )
+    if not info[ 'OK' ]:
+      return info
+    info = info[ 'Value' ]
+    
+    _tableName, _validStates, idName = self.__getTypeTuple( 'Image' )
+
+    imageID = info[ idName ]
+
+    imageStatus = self.__getStatus( 'Image', imageID )
+    if not imageStatus[ 'OK' ]:
+      return imageStatus
+
+    return S_OK( imageID )
+
+  def __getOldInstanceIDs( self, secondsIdle, states ):
+    """
+    Return list of instance IDs that have not updated after the given time stamp
+    they are required to be in one of the given states
+    """
+    tableName, _validStates, idName = self.__getTypeTuple( 'Instance' )
+    
+    sqlCond = []
+    sqlCond.append( 'TIMESTAMPDIFF( SECOND, `LastUpdate`, UTC_TIMESTAMP() ) > % d' % secondsIdle )
+    sqlCond.append( 'Status IN ( "%s" )' % '", "'.join( states ) )
+    
+    sqlSelect = 'SELECT %s from `%s` WHERE %s' % ( idName, tableName, " AND ".join( sqlCond ) )
+          
+    return self._query( sqlSelect )
+
+  def __getSubmittedInstanceID( self, imageName ):
+    """
+    Retrieve and InstanceID associated to a submitted Instance for a given Image
+    """
+    tableName, _validStates, idName = self.__getTypeTuple( 'Image' )
+    
+    imageID = self._getFields( tableName, [ idName ], ['Name'], [imageName] )
+    if not imageID[ 'OK' ]:
+      return imageID
+    imageID = imageID[ 'Value' ]
+
+    if not imageID:
+      return S_ERROR( 'Unknown Image = %s' % imageName )
+
+    #FIXME: <> is obsolete
+    if len( imageID ) <> 1:
+      return S_ERROR( 'Image name "%s" is not unique' % imageName )
+
+    imageID     = imageID[ 0 ][ 0 ]
+    imageIDName = idName
+
+    tableName, _validStates, idName = self.__getTypeTuple( 'Instance' )
+
+    instanceID = self._getFields( tableName, [ idName ], [ imageIDName, 'Status' ], 
+                                  [ imageID, 'Submitted' ] )
+    if not instanceID[ 'OK' ]:
+      return instanceID
+    instanceID = instanceID[ 'Value' ]
+
+    if not instanceID:
+      return S_ERROR( 'No Submitted instance of "%s" found' % imageName )
+
+    return S_OK( instanceID[ 0 ][ 0 ] )
+
+  def __setState( self, element, iD, state ):
+    """
+    Attempt to set element in state, checking if transition is allowed
     """
     
-    #FIXME: this MUST not be on the DB module !! 
-    #FIXME: isn't checking for Image
+    knownStates = self.allowedTransitions[ element ].keys()
+    if not state in knownStates:
+      return S_ERROR( 'Transition to %s not possible' % state )
+
+    allowedStates = self.allowedTransitions[ element ][ state ]
+
+    currentState = self.__getStatus( element, iD )
+    if not currentState[ 'OK' ]:
+      return currentState
+    currentState = currentState[ 'Value' ]
+
+    if not currentState in allowedStates:
+      msg = 'Transition ( %s -> %s ) not allowed' % ( currentState, state )
+      return S_ERROR( msg )
+
+    tableName, _validStates, idName = self.__getTypeTuple( element )
     
-    runningPodsCSPath = '/Resources/VirtualMachines/RunningPods'
-    
-    definedRunningPods = gConfig.getSections( runningPodsCSPath )
-    if not definedRunningPods[ 'OK' ]:
-      return definedRunningPods
+    if currentState == state:
+      sqlUpdate = 'UPDATE `%s` SET LastUpdate = UTC_TIMESTAMP() WHERE %s = %s' % ( tableName, idName, iD )
 
-    if runningPodName not in definedRunningPods['Value']:
-      return S_ERROR( 'RunningPod "%s" not defined' % runningPodName )
-
-    runningPodCSPath = '%s/%s' % ( runningPodsCSPath, runningPodName )
-
-    runningPodDict = {}
-
-    cloudEndpoints = gConfig.getValue( '%s/CloudEndpoints' % runningPodCSPath , '' )
-    if not cloudEndpoints:
-      return S_ERROR( 'Missing CloudEndpoints for RunnningPod "%s"' % runningPodName )
-    
-    for option, value in gConfig.getOptionsDict( runningPodCSPath )['Value'].items():
-      runningPodDict[option] = value
+    else:
+      sqlUpdate = 'UPDATE `%s` SET Status = "%s", LastUpdate = UTC_TIMESTAMP() WHERE %s = %s' % \
+          ( tableName, state, idName, iD )
       
-    runningPodRequirementsDict = gConfig.getOptionsDict( '%s/Requirements' % runningPodCSPath )
-    if not runningPodRequirementsDict[ 'OK' ]:
-      return S_ERROR( 'Missing Requirements for RunningPod "%s"' % runningPodName )
-    if 'CPUTime' in runningPodRequirementsDict[ 'Value' ]:
-      runningPodRequirementsDict['Value']['CPUTime'] = int( runningPodRequirementsDict['Value']['CPUTime'] )
-    if 'OwnerGroup' in runningPodRequirementsDict[ 'Value' ]:
-      runningPodRequirementsDict['Value']['OwnerGroup'] = runningPodRequirementsDict['Value']['OwnerGroup'].split(', ')
 
-    runningPodDict['Requirements'] = runningPodRequirementsDict['Value']
+    ret = self._update( sqlUpdate )
+    if not ret[ 'OK' ]:
+      return ret
+    return S_OK( state )
 
-    return S_OK( runningPodDict )
+
+  def __setInstanceIPs( self, instanceID, publicIP, privateIP ):
+    """
+    Update parameters for an instanceID reporting as running
+    """
+    values = self._escapeValues( [ publicIP, privateIP ] )
+    if not values[ 'OK' ]:
+      return S_ERROR( "Cannot escape values: %s" % str( values ) )
+    publicIP, privateIP = values[ 'Value' ]
+
+    tableName, _validStates, idName = self.__getTypeTuple( 'Instance' )
+    sqlUpdate = 'UPDATE `%s` SET PublicIP = %s, PrivateIP = %s WHERE %s = %s' % \
+                ( tableName, publicIP, privateIP, idName, instanceID )
+
+    return self._update( sqlUpdate )
+
+  def __getInstanceID( self, uniqueID ):
+    """
+    For a given uniqueID of an instance return associated internal InstanceID 
+    """
+    tableName, _validStates, idName = self.__getTypeTuple( 'Instance' )
+    
+    instanceID = self._getFields( tableName, [ idName ], [ 'UniqueID' ], [ uniqueID ] )
+    if not instanceID[ 'OK' ]:
+      return instanceID
+    instanceID = instanceID[ 'Value' ]
+
+    if not instanceID:
+      return S_ERROR( 'Unknown %s = %s' % ( 'UniqueID', uniqueID ) )
+
+    return S_OK( instanceID[ 0 ][ 0 ] )
+
+  def __getImageID( self, imageName, runningPodName ):
+    """
+    For a given imageName return corresponding ID
+    Will insert the image in New Status if it does not exits, 
+    """
+    tableName, validStates, idName = self.__getTypeTuple( 'Image' )
+    imageID = self._getFields( tableName, [ idName ], [ 'Name' ], [ imageName ] )
+    if not imageID[ 'OK' ]:
+      return imageID
+    imageID = imageID[ 'Value' ]
+
+    if len( imageID ) > 1:
+      return S_ERROR( 'Image name "%s" is not unique' % imageName )
+    if len( imageID ) == 0:
+      # The image does not exits in DB, has to be inserted
+      imageID = 0
+    else:
+      # The image exits in DB, has to match
+      imageID = imageID[ 0 ][ 0 ]
+
+    if imageID:
+      ret = self._getFields( tableName, [ idName ], [ 'Name' ],
+                                                  [ imageName ] )
+      if not ret[ 'OK' ]:
+        return ret
+      if not ret[ 'Value' ]:
+        return S_ERROR( 'Image "%s" in DB but it does not match' % imageName )
+      else:
+        return S_OK( imageID )
+
+    ret = self._insert( tableName, [ 'Name', 'Status', 'LastUpdate' ],
+                                   [ imageName, validStates[ 0 ], Time.toString() ] )
+
+    if ret[ 'OK' ] and 'lastRowId' in ret:
+    
+      rowID = ret[ 'lastRowId' ]
+    
+      ret = self._getFields( tableName, [idName], ['Name'], [imageName] )
+      if not ret[ 'OK' ]:
+        return ret 
+      
+      if not ret[ 'Value' ] or rowID <> ret[ 'Value' ][ 0 ][ 0 ]:
+        result = self.__getInfo( 'Image', rowID )
+        if result[ 'OK' ]:
+          image = result[ 'Value' ]
+          self.log.error( 'Trying to insert Name: "%s"' % ( imageName ) )
+          self.log.error( 'But inserted     Name: "%s"' % ( image['Name'] ) )
+        return self.__setError( 'Image', rowID, 'Failed to insert new Image' )
+      return S_OK( rowID )
+    
+    return S_ERROR( 'Failed to insert new Image' )
+
+  def __addInstanceHistory( self, instanceID, status, load = 0.0, jobs = 0,
+                            transferredFiles = 0, transferredBytes = 0 ):
+    """
+    Insert a History Record
+    """
+    try:
+      load = float( load )
+    except ValueError:
+      return S_ERROR( "Load has to be a float value" )
+    try:
+      jobs = int( jobs )
+    except ValueError:
+      return S_ERROR( "Jobs has to be an integer value" )
+    try:
+      transferredFiles = int( transferredFiles )
+    except ValueError:
+      return S_ERROR( "Transferred files has to be an integer value" )
+
+    self._insert( 'vm_History' , [ 'InstanceID', 'Status', 'Load',
+                                   'Update', 'Jobs', 'TransferredFiles',
+                                   'TransferredBytes' ],
+                                 [ instanceID, status, load,
+                                   Time.toString(), jobs,
+                                   transferredFiles, transferredBytes ] )
+    return
+
+  def __setLastLoadJobsAndUptime( self, instanceID, load, jobs, uptime ):
+    if not uptime:
+      sqlQuery = "SELECT MAX( UNIX_TIMESTAMP( `Update` ) ) - MIN( UNIX_TIMESTAMP( `Update` ) ) FROM `vm_History` WHERE InstanceID = %d GROUP BY InstanceID" % instanceID
+      result = self._query( sqlQuery )
+      if result[ 'OK' ] and len( result[ 'Value' ] ) > 0:
+        uptime = int( result[ 'Value' ][0][0] )
+    sqlUpdate = "UPDATE `vm_Instances` SET `Uptime` = %d, `Jobs`= %d, `Load` = %f WHERE `InstanceID` = %d" % ( uptime,
+                                                                                                     jobs,
+                                                                                                     load,
+                                                                                                     instanceID )
+    self._update( sqlUpdate )
+    return S_OK()
+
+  def __getInfo( self, element, iD ):
+    """
+    Return dictionary with info for Images and Instances by ID
+    """
+    tableName, _validStates, idName = self.__getTypeTuple( element )
+    if not tableName:
+      return S_ERROR( 'Unknown DB object: %s' % element )
+    
+    fields = self.tablesDesc[ tableName ][ 'Fields' ]
+    ret    = self._getFields( tableName , fields, [ idName ], [ iD ] )
+    if not ret[ 'OK' ]:
+      return ret
+    if not ret[ 'Value' ]:
+      return S_ERROR( 'Unknown %s = %s' % ( idName, iD ) )
+
+    data   = {}
+    values = ret[ 'Value' ][ 0 ]
+    fields = fields.keys()
+    
+    for i in xrange( len( fields ) ):
+      data[ fields[ i ] ] = values[ i ]
+
+    return S_OK( data )
+
+  def __getStatus( self, element, iD ):
+    """
+    Check and return status of Images and Instances by ID
+    returns:
+      S_OK(Status) if Status is valid and not Error 
+      S_ERROR(ErrorMessage) otherwise
+    """
+    tableName, validStates, idName = self.__getTypeTuple( element )
+    if not tableName:
+      return S_ERROR( 'Unknown DB object: %s' % element )
+
+    ret = self._getFields( tableName, [ 'Status', 'ErrorMessage' ], [ idName ], [ iD ] )
+    if not ret[ 'OK' ]:
+      return ret
+
+    if not ret[ 'Value' ]:
+      return S_ERROR( 'Unknown %s = %s' % ( idName, iD ) )
+
+    status, msg = ret[ 'Value' ][ 0 ]
+    if not status in validStates:
+      return self.__setError( element, iD, 'Invalid Status: %s' % status )
+    if status == validStates[ -1 ]:
+      return S_ERROR( msg )
+
+    return S_OK( status )
+
+  def __setError( self, element, iD, reason ):
+    """
+    """
+    ( tableName, validStates, idName ) = self.__getTypeTuple( element )
+    if not tableName:
+      return S_ERROR( 'Unknown DB object: %s' % element )
+
+    sqlUpdate = 'UPDATE `%s` SET Status = "%s", ErrorMessage = "%s", LastUpdate = UTC_TIMESTAMP() WHERE %s = %s'
+    sqlUpdate = sqlUpdate % ( tableName, validStates[ -1 ], reason, idName, iD )
+    ret = self._update( sqlUpdate )
+    if not ret[ 'OK' ]:
+      return ret
+
+    return S_ERROR( reason )
 
 #...............................................................................
 #EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF
+

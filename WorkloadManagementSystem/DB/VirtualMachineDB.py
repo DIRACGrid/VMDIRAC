@@ -1306,8 +1306,10 @@ class VirtualMachineDB( DB ):
     if not runningPodRequirementsDict[ 'OK' ]:
       return S_ERROR( 'Missing Requirements for RunningPod "%s"' % runningPodName )
     if 'CPUTime' in runningPodRequirementsDict[ 'Value' ]:
-      
       runningPodRequirementsDict['Value']['CPUTime'] = int( runningPodRequirementsDict['Value']['CPUTime'] )
+    if 'OwnerGroup' in runningPodRequirementsDict[ 'Value' ]:
+      runningPodRequirementsDict['Value']['OwnerGroup'] = runningPodRequirementsDict['Value']['OwnerGroup'].split(', ')
+
     runningPodDict['Requirements'] = runningPodRequirementsDict['Value']
 
     return S_OK( runningPodDict )

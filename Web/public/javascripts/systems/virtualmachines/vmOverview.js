@@ -135,7 +135,8 @@ function plotSpace( panelConfig, spaceConfig )
 		
 		var plotStore = new Ext.data.SimpleStore({
 			fields:[ 'plotName', 'plotText' ],
-			data:[ [ 'load', 'Average load' ], [ 'running', 'Running VMs' ], [ 'runningbyendpoint', 'Running VMs EndPoints' ],
+			data:[ [ 'load', 'Average load' ], [ 'running', 'Running VMs' ], [ 'runningbyendpoint', 'Run. VMs by EndPoint' ],
+			       [ 'runningbyrunningpod', 'Run. VMs by RunningPod' ], [ 'runningbyimage', 'Run. VMs by Image' ],
 			       [ 'jobs', 'Started Jobs' ], [ 'transferbytes', 'Transferred Data' ],
 			       [ 'transferfiles', 'Transferred Files' ] ]
 		});
@@ -203,6 +204,12 @@ function plotSpace( panelConfig, spaceConfig )
 				break;
 			case 'runningbyendpoint':
 				this.requestRunningByEndPointPlot();
+				break;				
+			case 'runningbyrunningpod':
+				this.requestRunningByRunningPodPlot();
+				break;				
+			case 'runningbyimage':
+				this.requestRunningByImagePlot();
 				break;				
 			case 'jobs':
 				this.requestJobsPlot();
@@ -394,7 +401,7 @@ function plotSpace( panelConfig, spaceConfig )
 	{
 		Ext.Ajax.request({
 			url : "getRunningInstancesBEPHistory",
-			success : this.plotRunningBEP,
+			success : this.plotRunningByFields,
 			failure : ajaxFailure,
 			scope : this,
 			params : { 
@@ -404,7 +411,35 @@ function plotSpace( panelConfig, spaceConfig )
 		});
 	}
 
-	this.plotRunningBEP = function( ajaxResponse, reqArguments )
+	this.requestRunningByRunningPodPlot = function()
+	{
+		Ext.Ajax.request({
+			url : "getRunningInstancesByRunningPodHistory",
+			success : this.plotRunningByFields,
+			failure : ajaxFailure,
+			scope : this,
+			params : { 
+				bucketSize : 900,
+				timespan : this.plotTimespan
+			}
+		});
+	}
+
+	this.requestRunningByImagePlot = function()
+	{
+		Ext.Ajax.request({
+			url : "getRunningInstancesByImageHistory",
+			success : this.plotRunningByFields,
+			failure : ajaxFailure,
+			scope : this,
+			params : { 
+				bucketSize : 900,
+				timespan : this.plotTimespan
+			}
+		});
+	}
+
+	this.plotRunningByFields = function( ajaxResponse, reqArguments )
 	{
 		var retVal = Ext.util.JSON.decode( ajaxResponse.responseText );
 		if( ! retVal.OK )
@@ -507,7 +542,7 @@ function plotSpace( panelConfig, spaceConfig )
 		if (dates.length == 0){
 			var dataTable = new google.visualization.DataTable();
 			dataTable.addColumn( 'date', 'Date' );
-			dataTable.addColumn( 'number', 'No VMs Endpoints' );			
+			dataTable.addColumn( 'number', 'No VMs' );			
 			var rows = [];
 			dataTable.addRows( rows );			
 		    chart.draw( dataTable, chartConfig );

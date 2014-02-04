@@ -138,12 +138,14 @@ class SSHContext( ContextConfig ):
   * vmRunLogAgentURL : the runsvdir run.log file 
   * cpuTime : the VM cpuTime of the image
   * cloudDriver : the endpoint dirac cloud driver
+  * pubkey_path: path to the public key .pem file to be inserted in the VM allowing ssh
+  * ex_keyname: keyname to be created asociated to the ex_pubkey_path
   
   """
   MANDATORY_KEYS = [ 'vmCertPath', 
                      'vmKeyPath', 'vmContextualizeScriptPath', 'vmCvmfsContextURL', 
                      'vmDiracContextURL', 'vmRunJobAgentURL', 'vmRunVmMonitorAgentURL', 
-                     'vmRunVmUpdaterAgentURL', 'vmRunLogAgentURL' ]
+                     'vmRunVmUpdaterAgentURL', 'vmRunLogAgentURL', 'ex_pubkey_path', 'ex_keyname' ]
 
 #...............................................................................    
 # AdHoc Context
@@ -163,12 +165,13 @@ class AmiconfigContext( ContextConfig ):
   
   * ex_size
   * ex_image
-  * ex_keyname
+  * ex_security_groups
   * ex_userdata
     
   """
 
-  MANDATORY_KEYS = [ 'ex_size', 'ex_image', 'ex_keyname', 'ex_userdata' ]
+  MANDATORY_KEYS = [ 'ex_size', 'ex_image', 
+                     'ex_security_groups', 'ex_userdata' ]
 
   def __init__( self, imageName, contextName ):
     """

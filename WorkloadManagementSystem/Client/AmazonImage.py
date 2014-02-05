@@ -2,6 +2,7 @@
 
 import boto
 from boto.ec2.regioninfo import RegionInfo
+from boto.exception import EC2ResponseError
 import time
 import types
 from urlparse import urlparse
@@ -11,6 +12,7 @@ from DIRAC import gLogger, gConfig, S_OK, S_ERROR
 
 # VMDIRAC
 from VMDIRAC.WorkloadManagementSystem.Client.AmazonInstance import AmazonInstance
+from VMDIRAC.WorkloadManagementSystem.Utilities.Configuration import ImageConfiguration
 
 __RCSID__ = '$ID: $'
 
@@ -39,6 +41,9 @@ class AmazonImage:
       self.log.error( self.__errorStatus )
       return
     
+    # Get image configuration
+    self.imageConfig = ImageConfiguration( self.__vmName ).config()
+
     #Get AMI Id
     self.__vmAMI = self.__getCSImageOption( "AMI" )
     if not self.__vmAMI:
@@ -151,9 +156,29 @@ class AmazonImage:
                                                                         self.__vmAMI,
                                                                         instanceType ) )
     if not self.__vmImage:
-      self.__vmImage = self.__conn.get_image( self.__vmAMI )
+      try:
+        self.__vmImage = self.__conn.get_image( self.__vmAMI )
+      except EC2ResponseError, e:
+        if e.status == 400:
+          errmsg = "boto connection problem! Check connection properties."
+        else:
+          errmsg = "boto exception: "
+        self.log.error( errmsg )
+        return S_ERROR( errmsg+e.body)
     try:
-      reservation = self.__vmImage.run( min_count = numImages,
+      if self.imageConfig[ 'contextMethod' ] == 'amiconfig':
+        userDataPath = self.imageConfig[ 'contextConfig' ].get( 'ex_userdata', None )
+        keyname  = self.imageConfig[ 'contextConfig' ].get( 'ex_keyname' , None )
+        userData = ""
+        with open( userDataPath, 'r' ) as userDataFile: 
+          userData = ''.join( userDataFile.readlines() )
+        reservation = self.__vmImage.run( min_count = numImages,
+                                        max_count = numImages,
+                                        user_data = userData,
+                                        key_name = keyname,
+                                        instance_type = instanceType ) 
+      else:
+        reservation = self.__vmImage.run( min_count = numImages,
                                         max_count = numImages,
                                         instance_type = instanceType )
     except Exception, e:

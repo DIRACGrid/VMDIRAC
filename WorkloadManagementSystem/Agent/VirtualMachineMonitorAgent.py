@@ -204,7 +204,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
       self.__haltInstance()
       return S_ERROR( "Halting!" )
     self.__instanceInfo = result[ 'Value' ]
-    self.runningPod = self.__instanceInfo[ 'Image' ][ 'RunningPod' ]
+    self.runningPod = self.__instanceInfo[ 'Instance' ][ 'RunningPod' ]
     self.log.info( "Running pod name of the image is %s" % self.runningPod )
     #Get the cs config
     result = self.__getCSConfig()

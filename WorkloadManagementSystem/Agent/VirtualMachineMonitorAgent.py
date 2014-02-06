@@ -120,8 +120,6 @@ class VirtualMachineMonitorAgent( AgentModule ):
 
       path = "%s/%s" % ( imgPath, csOption )
       value = gConfig.getValue( path, csDefault )
-      if not value:
-        return S_ERROR( "%s is not defined" % path )
       setattr( self, varName, value )
 
     self.haltBeforeMargin = max( self.haltBeforeMargin, int( self.am_getPollingTime() ) + 5 )

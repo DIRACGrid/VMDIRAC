@@ -277,11 +277,18 @@ class VirtualMachineMonitorAgent( AgentModule ):
                                                      self.__outDataExecutor.getNumOKTransferredFiles(),
                                                      self.__outDataExecutor.getNumOKTransferredBytes(),
                                                      int( uptime ) )
+      status = None
       if result[ 'OK' ]:
         self.log.info( " heartbeat sent!" )
+        status = result[ 'Value' ]
       else:
-        self.log.error( "Could not send heartbeat", result[ 'Message' ] )
-      self.__processHeartBeatMessage( result[ 'Value' ] )
+        if "Transition" in result["Message"]:
+          self.log.error( "Error on service:", result[ 'Message' ] )
+          status = result['Status']
+        else:
+          self.log.error("Connection error", result["Message"])
+      if status:
+        self.__processHeartBeatMessage( status )
     #Check if there are local outgoing files
     localOutgoing = self.__outDataExecutor.getNumLocalOutgoingFiles()
     if localOutgoing or self.__outDataExecutor.transfersPending():

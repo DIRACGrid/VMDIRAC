@@ -115,6 +115,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
                                           ( "HaltPeriod", 600, "haltPeriod" ),
                                           ( "HaltBeforeMargin", 300, "haltBeforeMargin" ),
                                           ( "HeartBeatPeriod", 300, "heartBeatPeriod" ),
+                                          ( "DontStop", False, "dontStop")
                                         ):
 
       path = "%s/%s" % ( imgPath, csOption )
@@ -137,6 +138,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
     self.log.info( "HeartBeat Period      : %d" % self.heartBeatPeriod )
     if self.vmId:
       self.log.info( "ID                    : %s" % self.vmId )
+    self.log.info( "DontStop              : %s" % self.dontStop)
     self.log.info( "*************" )
     return S_OK()
 
@@ -342,6 +344,6 @@ class VirtualMachineMonitorAgent( AgentModule ):
       if i < retries - 1 :
         self.log.info( "Sleeping for %d seconds and retrying" % sleepTime )
         time.sleep( sleepTime )
-
-    #self.log.info( "Executing system halt..." )
-    #os.system( "halt" )
+    if not self.dontStop:
+      self.log.info( "Executing system halt..." )
+      os.system( "halt" )

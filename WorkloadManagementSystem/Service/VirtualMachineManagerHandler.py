@@ -275,7 +275,7 @@ class VirtualMachineManagerHandler( RequestHandler ):
         gLogger.error("Failed to connect to AWS")
         pass
       if awsima:
-        result = awsima.stopInstances( [uniqueID] )
+        result = awsima.stopInstances( uniqueID )
 
 
     else:

@@ -222,7 +222,11 @@ class AmazonImage:
     """
     if type( instancesList ) in ( types.StringType, types.UnicodeType ):
       instancesList = [ instancesList ]
-    self.__conn.terminate_instances( instancesList )
+    try:
+      self.__conn.terminate_instances( instancesList )
+    except Exception, error:
+      return S_ERROR("Exception: %s" % str(error))
+    return S_OK()
 
   def getAllInstances( self ):
     """

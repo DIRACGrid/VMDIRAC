@@ -96,7 +96,7 @@ class AmazonImage:
     except Exception, e:
       self.__errorStatus = "Can't connect to EC2: " + str(e)
       self.log.error( self.__errorStatus )
-      return
+      raise
 
     #FIXME: we will never reach a point where __errorStatus has anything
     if not self.__errorStatus:

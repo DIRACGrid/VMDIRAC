@@ -4,7 +4,7 @@
 # Author : Ricardo Graciani
 ########################################################################
 
-from DIRAC import S_OK
+from DIRAC import S_OK, S_ERROR
 from VMDIRAC.Resources.Cloud.VMDirector                  import VMDirector
 from VMDIRAC.WorkloadManagementSystem.Client.AmazonImage import AmazonImage
 
@@ -33,7 +33,10 @@ class AmazonDirector( VMDirector ):
     """
       Real backend method to submit a new Instance of a given Image
     """
-    ami = AmazonImage( imageName )
+    try:
+      ami = AmazonImage( imageName )
+    except Exception:
+      return S_ERROR("Failed to connect to AWS")  
     result = ami.startNewInstances()
     if not result[ 'OK' ]:
       return result

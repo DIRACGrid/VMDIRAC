@@ -22,8 +22,6 @@
        - ThreadStartDelay:
        - SubmitPools: All the Submit pools that are to be initialized
        - DefaultSubmitPools: If no specific pool is requested, use these
-       - VMsPerIteration: Number of VM to instantiate per iteration
-       - MaxRunningVMs: Maximum number of VMs to run
 
      For each backend there should be a section with at least the following:
        - Images: List of available Images
@@ -113,9 +111,6 @@ class VirtualMachineScheduler( AgentModule ):
     import threading
 
     self.am_setOption( "PollingTime", 60.0 )
-
-    self.am_setOption( "VMsPerIteration", 1 )
-    self.am_setOption( "MaxRunningVMs", 1 )
 
     self.am_setOption( "ThreadStartDelay", 1 )
     self.am_setOption( "SubmitPools", [] )

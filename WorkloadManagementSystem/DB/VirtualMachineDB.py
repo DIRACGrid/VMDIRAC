@@ -79,7 +79,7 @@ class VirtualMachineDB( DB ):
   tablesDesc = {}
 
   tablesDesc[ 'vm_Images' ] = { 'Fields' : { 'VMImageID' : 'BIGINT UNSIGNED AUTO_INCREMENT NOT NULL',
-                                             'RuningPodID' : 'INTEGER UNSIGNED NOT NULL',
+                                             'RunningPodID' : 'INTEGER UNSIGNED NOT NULL',
                                              'Name' : 'VARCHAR(255) NOT NULL',
                                              'Status' : 'VARCHAR(16) NOT NULL',
                                              'LastUpdate' : 'DATETIME',

@@ -259,29 +259,27 @@ class VirtualMachineDB( DB ):
     """
     tableName, validStates, idName = self.__getTypeTuple( 'RunningPod' )
     
-    runningPodID = self._getFields( tableName, [ idName ], [ 'RunningPod' ], [ runningPodName ] )
-    if not runningPodID[ 'OK' ]:
-      return runningPodID
-    runningPodID = runningPodID[ 'Value' ][0][0]
-
     runningPodDict = self.getRunningPodDict( runningPodName )
     if not runningPodDict[ 'OK' ]:
       return runningPodDict
     runningPodDict = runningPodDict[ 'Value' ]
 
-    if runningPodID > 0:
+    runningPodID = self.getFields( tableName, [ idName ], { 'RunningPod' : runningPodName } )
+    if not runningPodID[ 'OK' ]:
+      return runningPodID
+    if not runningPodID[ 'Value' ]:
+      # The runningPod does not exits in DB, has to be inserted
+      fields = [ 'RunningPod', 'CampaignStartDate', 'CampaignEndDate', 'Status']
+      values = [ runningPodName, runningPodDict['CampaignStartDate'], runningPodDict['CampaignEndDate'], 'New']
+      return self._insert( tableName , fields, values )
+
+    runningPodID = runningPodID[ 'Value' ][0][0]
+
+    if runningPodID > 0: 
       # updating CampaignStartDate, CampaignEndDate
       sqlUpdate = 'UPDATE `%s` SET CampaignStartDate = "%s", CampaignEndDate = "%s" WHERE %s = %s' % \
           ( tableName, runningPodDict['CampaignStartDate'], runningPodDict['CampaignEndDate'], idName, runningPodID )
       return self._update( sqlUpdate )
-
-    # The runningPod does not exits in DB, has to be inserted
-
-    fields = [ 'RunningPod', 'CampaignStartDate', 'CampaignEndDate', 'Status']
-    values = [ runningPodName, runningPodDict['CampaignStartDate'], runningPodDict['CampaignEndDate'], 'New']
-
-    return self._insert( tableName , fields, values )
-
 
 
   def checkImageStatus( self, imageName, runningPodName = "" ):

@@ -98,6 +98,8 @@ class AmazonImage:
                        path = _path,
                        port = _port,
                        debug = _debug)
+      if not self.__conn.get_all_images():
+        raise Exception
     except Exception, e:
       self.__errorStatus = "Can't connect to EC2: " + str(e)
       self.log.error( self.__errorStatus )

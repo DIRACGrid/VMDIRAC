@@ -421,7 +421,6 @@ class StratusLabConfiguration( EndpointConfiguration ):
 
     return S_OK()
   
->>>>>>> upstream/integration
 #...............................................................................    
 
 class ImageConfiguration( object ):

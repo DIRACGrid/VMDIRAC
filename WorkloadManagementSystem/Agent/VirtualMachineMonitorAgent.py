@@ -284,7 +284,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
       else:
         if "Transition" in result["Message"]:
           self.log.error( "Error on service:", result[ 'Message' ] )
-          status = result['Status']
+          status = result['State']
         else:
           self.log.error("Connection error", result["Message"])
       if status:

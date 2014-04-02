@@ -115,12 +115,11 @@ class VirtualMachineMonitorAgent( AgentModule ):
                                           ( "HaltPeriod", 600, "haltPeriod" ),
                                           ( "HaltBeforeMargin", 300, "haltBeforeMargin" ),
                                           ( "HeartBeatPeriod", 300, "heartBeatPeriod" ),
+                                          ( "DontStop", False, "dontStop")
                                         ):
 
       path = "%s/%s" % ( imgPath, csOption )
       value = gConfig.getValue( path, csDefault )
-      if not value:
-        return S_ERROR( "%s is not defined" % path )
       setattr( self, varName, value )
 
     self.haltBeforeMargin = max( self.haltBeforeMargin, int( self.am_getPollingTime() ) + 5 )
@@ -137,6 +136,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
     self.log.info( "HeartBeat Period      : %d" % self.heartBeatPeriod )
     if self.vmId:
       self.log.info( "ID                    : %s" % self.vmId )
+    self.log.info( "DontStop              : %s" % self.dontStop)
     self.log.info( "*************" )
     return S_OK()
 
@@ -277,11 +277,18 @@ class VirtualMachineMonitorAgent( AgentModule ):
                                                      self.__outDataExecutor.getNumOKTransferredFiles(),
                                                      self.__outDataExecutor.getNumOKTransferredBytes(),
                                                      int( uptime ) )
+      status = None
       if result[ 'OK' ]:
         self.log.info( " heartbeat sent!" )
+        status = result[ 'Value' ]
       else:
-        self.log.error( "Could not send heartbeat", result[ 'Message' ] )
-      self.__processHeartBeatMessage( result[ 'Value' ] )
+        if "Transition" in result["Message"]:
+          self.log.error( "Error on service:", result[ 'Message' ] )
+          status = result['State']
+        else:
+          self.log.error("Connection error", result["Message"])
+      if status:
+        self.__processHeartBeatMessage( status )
     #Check if there are local outgoing files
     localOutgoing = self.__outDataExecutor.getNumLocalOutgoingFiles()
     if localOutgoing or self.__outDataExecutor.transfersPending():
@@ -335,6 +342,6 @@ class VirtualMachineMonitorAgent( AgentModule ):
       if i < retries - 1 :
         self.log.info( "Sleeping for %d seconds and retrying" % sleepTime )
         time.sleep( sleepTime )
-
-    #self.log.info( "Executing system halt..." )
-    #os.system( "halt" )
+    if not self.dontStop:
+      self.log.info( "Executing system halt..." )
+      os.system( "halt" )

@@ -329,7 +329,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
     if hbMsg == 'halt':
       self.__haltInstance()
 
-  def __haltInstance( self, avgLoad = 0 ):
+  def __haltInstance( self, avgLoad = 0.0 ):
     self.log.info( "Halting instance..." )
     retries = 3
     sleepTime = 10

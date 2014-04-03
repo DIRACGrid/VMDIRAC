@@ -288,7 +288,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
         else:
           self.log.error("Connection error", result["Message"])
       if status:
-        self.__processHeartBeatMessage( status )
+        self.__processHeartBeatMessage( status, avgLoad )
     #Check if there are local outgoing files
     localOutgoing = self.__outDataExecutor.getNumLocalOutgoingFiles()
     if localOutgoing or self.__outDataExecutor.transfersPending():
@@ -309,7 +309,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
         self.log.info( "VM stoppage policy is defined to never (until SaaS or site request)")
     return S_OK()
 
-  def __processHeartBeatMessage( self, hbMsg ):
+  def __processHeartBeatMessage( self, hbMsg, avgLoad = 0.0 ):
     if hbMsg == 'stop':
       #Write stop file for jobAgent
       self.log.info( "Received STOP signal. Writing stop files..." )
@@ -327,7 +327,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
         except Exception, e:
           self.log.error( "Could not write stop agent file", stopFile )
     if hbMsg == 'halt':
-      self.__haltInstance()
+      self.__haltInstance( avgLoad )
 
   def __haltInstance( self, avgLoad = 0.0 ):
     self.log.info( "Halting instance..." )

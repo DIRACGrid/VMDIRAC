@@ -260,7 +260,7 @@ class VirtualMachineManagerHandler( RequestHandler ):
       
       result = nima.stopInstance( uniqueID, publicIP )
 
-    elif ( cloudDriver == 'Amazon' ):
+    elif ( cloudDriver == 'amazon' ):
       imageName = gVirtualMachineDB.getImageNameFromInstance( uniqueID )
       if not imageName[ 'OK' ]:
         self.__logResult( 'declareInstanceHalting getImageNameFromInstance: ', imageName )

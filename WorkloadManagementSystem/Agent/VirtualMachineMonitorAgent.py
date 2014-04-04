@@ -5,6 +5,7 @@ import os
 import simplejson
 import time
 import urllib2
+import types
 
 try:
   from hashlib import md5
@@ -119,6 +120,9 @@ class VirtualMachineMonitorAgent( AgentModule ):
 
       path = "%s/%s" % ( imgPath, csOption )
       value = gConfig.getValue( path, csDefault )
+      if type(value) != types.BooleanType and type(value) not in types.StringTypes:
+        if not value > 0:
+          return S_ERROR( "%s has an incorrect value, must be > 0" % path )
       setattr( self, varName, value )
 
     self.haltBeforeMargin = max( self.haltBeforeMargin, int( self.am_getPollingTime() ) + 5 )

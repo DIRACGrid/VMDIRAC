@@ -120,7 +120,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
 
       path = "%s/%s" % ( imgPath, csOption )
       value = gConfig.getValue( path, csDefault )
-      if type(value) != types.BooleanType and type(value) not in types.StringTypes:
+      if type(value) in [types.IntType, types.FloatType]:
         if not value > 0:
           return S_ERROR( "%s has an incorrect value, must be > 0" % path )
       setattr( self, varName, value )

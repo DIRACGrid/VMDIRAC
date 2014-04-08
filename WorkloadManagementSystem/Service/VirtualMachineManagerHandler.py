@@ -220,8 +220,11 @@ class VirtualMachineManagerHandler( RequestHandler ):
 
     result = gVirtualMachineDB.declareInstanceHalting( uniqueID, load )
     if not result[ 'OK' ]:
-      self.__logResult( 'declareInstanceHalting on change status: ', result )
-      return result
+      if "Halted ->" not in result["Message"]:
+        self.__logResult( 'declareInstanceHalting on change status: ', result )
+        return result
+      else:
+        gLogger.info("Bad transition from Halted to something, will assume Halted")
    
     if ( cloudDriver == 'occi-0.9' or cloudDriver == 'occi-0.8' or cloudDriver == 'rocci-1.1' ):
       imageName = gVirtualMachineDB.getImageNameFromInstance( uniqueID )

@@ -1229,7 +1229,13 @@ class VirtualMachineDB( DB ):
 
     if not currentState in allowedStates:
       msg = 'Transition ( %s -> %s ) not allowed' % ( currentState, state )
-      return S_ERROR( msg )
+      if currentState == "Halted":
+        val_state = "halt"
+      elif currentState == "Stopping":
+        val_state = "stop"
+      else:
+        val_state = currentState
+      return {'OK': False, "Message": msg, 'State': val_state }
 
     tableName, _validStates, idName = self.__getTypeTuple( element )
     

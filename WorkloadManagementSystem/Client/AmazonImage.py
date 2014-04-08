@@ -101,7 +101,7 @@ class AmazonImage:
     except Exception, e:
       self.__errorStatus = "Can't connect to EC2: " + str(e)
       self.log.error( self.__errorStatus )
-      return
+      raise
 
     #FIXME: we will never reach a point where __errorStatus has anything
     if not self.__errorStatus:
@@ -243,7 +243,11 @@ class AmazonImage:
     """
     if type( instancesList ) in ( types.StringType, types.UnicodeType ):
       instancesList = [ instancesList ]
-    self.__conn.terminate_instances( instancesList )
+    try:
+      self.__conn.terminate_instances( instancesList )
+    except Exception, error:
+      return S_ERROR("Exception: %s" % str(error))
+    return S_OK()
 
   def getAllInstances( self ):
     """

@@ -259,21 +259,23 @@ class VirtualMachineDB( DB ):
     """
     tableName, validStates, idName = self.__getTypeTuple( 'RunningPod' )
     
-    runningPodID = self._getFields( tableName, [ idName ], [ 'RunningPod' ], [ runningPodName ] )
-    if not runningPodID[ 'OK' ]:
-      return runningPodID
-    runningPodID = runningPodID[ 'Value' ][0][0]
-
     runningPodDict = self.getRunningPodDict( runningPodName )
     if not runningPodDict[ 'OK' ]:
       return runningPodDict
     runningPodDict = runningPodDict[ 'Value' ]
 
-    if runningPodID > 0:
-      # updating CampaignStartDate, CampaignEndDate
-      sqlUpdate = 'UPDATE `%s` SET CampaignStartDate = "%s", CampaignEndDate = "%s" WHERE %s = %s' % \
+    runningPodID = self._getFields( tableName, [ idName ], [ 'RunningPod' ], [ runningPodName ] )
+    if not runningPodID[ 'OK' ]:
+      return runningPodID
+    #runningPodID = runningPodID[ 'Value' ][0][0]
+
+    if runningPodID[ 'Value' ]:
+      runningPodID = runningPodID[ 'Value' ][0][0]
+      if runningPodID > 0:
+        # updating CampaignStartDate, CampaignEndDate
+        sqlUpdate = 'UPDATE `%s` SET CampaignStartDate = "%s", CampaignEndDate = "%s" WHERE %s = %s' % \
           ( tableName, runningPodDict['CampaignStartDate'], runningPodDict['CampaignEndDate'], idName, runningPodID )
-      return self._update( sqlUpdate )
+        return self._update( sqlUpdate )
 
     # The runningPod does not exits in DB, has to be inserted
 
@@ -1229,7 +1231,13 @@ class VirtualMachineDB( DB ):
 
     if not currentState in allowedStates:
       msg = 'Transition ( %s -> %s ) not allowed' % ( currentState, state )
-      return S_ERROR( msg )
+      if currentState == "Halted":
+        val_state = "halt"
+      elif currentState == "Stopping":
+        val_state = "stop"
+      else:
+        val_state = currentState
+      return {'OK': False, "Message": msg, 'State': val_state }
 
     tableName, _validStates, idName = self.__getTypeTuple( element )
     

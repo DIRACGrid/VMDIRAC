@@ -2,6 +2,7 @@
 
 import boto
 from boto.ec2.regioninfo import RegionInfo
+from boto.exception import EC2ResponseError
 import time
 import types
 from urlparse import urlparse
@@ -11,6 +12,7 @@ from DIRAC import gLogger, gConfig, S_OK, S_ERROR
 
 # VMDIRAC
 from VMDIRAC.WorkloadManagementSystem.Client.AmazonInstance import AmazonInstance
+from VMDIRAC.WorkloadManagementSystem.Utilities.Configuration import ImageConfiguration
 
 __RCSID__ = '$ID: $'
 
@@ -39,6 +41,9 @@ class AmazonImage:
       self.log.error( self.__errorStatus )
       return
     
+    # Get image configuration
+    self.imageConfig = ImageConfiguration( self.__vmName ).config()
+
     #Get AMI Id
     self.__vmAMI = self.__getCSImageOption( "AMI" )
     if not self.__vmAMI:
@@ -73,9 +78,9 @@ class AmazonImage:
     # RegionName
     self.__RegionName = self.__getCSCloudEndpointOption( "RegionName" )
     if not self.__RegionName:
-      self.__errorStatus = "Can't find RegionName for Endpoint %s" % self.__endpoint
-      self.log.error( self.__errorStatus )
-      return
+      self.__infoStatus = "Can't find RegionName for Endpoint %s. Default name cloudEC2 will be used." % self.__endpoint
+      self.log.info( self.__infoStatus )
+      self.__RegionName = 'cloudEC2'
 
     #Try connection
     try:
@@ -96,15 +101,11 @@ class AmazonImage:
     except Exception, e:
       self.__errorStatus = "Can't connect to EC2: " + str(e)
       self.log.error( self.__errorStatus )
-      return
+      raise
 
     #FIXME: we will never reach a point where __errorStatus has anything
     if not self.__errorStatus:
       self.log.info( "Amazon image %s initialized" % self.__vmName )
-
-  def getKeys(self):
-    print keys
-    return keys
 
   def __getCSImageOption( self, option, defValue = "" ):
     return gConfig.getValue( "/Resources/VirtualMachines/Images/%s/%s" % ( self.__vmName, option ), defValue )
@@ -136,16 +137,16 @@ class AmazonImage:
     In a typical Amazon Web Services account, a maximum of 20 instances can run at once.
     Use http://aws.amazon.com/contact-us/ec2-request/ to request an increase for your account.
     """
-    
+
     if self.__errorStatus:
       return S_ERROR( self.__errorStatus )
-    
+
     if not instanceType:
       instanceType = self.__getCSImageOption( 'InstanceType' , "m1.large" )
-      
+
     if forceNormalInstance or not self.__vmMaxAllowedPrice:
       return self.__startNormalInstances( numImages, instanceType, waitForConfirmation )
-    
+
     self.log.info( "Requesting spot instances" )
     return self.__startSpotInstances( numImages, instanceType, waitForConfirmation )
 
@@ -155,9 +156,29 @@ class AmazonImage:
                                                                         self.__vmAMI,
                                                                         instanceType ) )
     if not self.__vmImage:
-      self.__vmImage = self.__conn.get_image( self.__vmAMI )
+      try:
+        self.__vmImage = self.__conn.get_image( self.__vmAMI )
+      except EC2ResponseError, e:
+        if e.status == 400:
+          errmsg = "boto connection problem! Check connection properties."
+        else:
+          errmsg = "boto exception: "
+        self.log.error( errmsg )
+        return S_ERROR( errmsg+e.body)
     try:
-      reservation = self.__vmImage.run( min_count = numImages,
+      if self.imageConfig[ 'contextMethod' ] == 'amiconfig':
+        userDataPath = self.imageConfig[ 'contextConfig' ].get( 'ex_userdata', None )
+        keyname  = self.imageConfig[ 'contextConfig' ].get( 'ex_keyname' , None )
+        userData = ""
+        with open( userDataPath, 'r' ) as userDataFile: 
+          userData = ''.join( userDataFile.readlines() )
+        reservation = self.__vmImage.run( min_count = numImages,
+                                        max_count = numImages,
+                                        user_data = userData,
+                                        key_name = keyname,
+                                        instance_type = instanceType ) 
+      else:
+        reservation = self.__vmImage.run( min_count = numImages,
                                         max_count = numImages,
                                         instance_type = instanceType )
     except Exception, e:
@@ -222,7 +243,11 @@ class AmazonImage:
     """
     if type( instancesList ) in ( types.StringType, types.UnicodeType ):
       instancesList = [ instancesList ]
-    self.__conn.terminate_instances( instancesList )
+    try:
+      self.__conn.terminate_instances( instancesList )
+    except Exception, error:
+      return S_ERROR("Exception: %s" % str(error))
+    return S_OK()
 
   def getAllInstances( self ):
     """

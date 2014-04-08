@@ -23,6 +23,8 @@ from DIRAC.Core.Utilities.ThreadScheduler import gThreadScheduler
 # VMDIRAC
 from VMDIRAC.WorkloadManagementSystem.Client.NovaImage    import NovaImage
 from VMDIRAC.WorkloadManagementSystem.Client.OcciImage    import OcciImage
+from VMDIRAC.WorkloadManagementSystem.Client.AmazonImage  import AmazonImage
+
 from VMDIRAC.WorkloadManagementSystem.DB.VirtualMachineDB import VirtualMachineDB
 from VMDIRAC.Security                                     import VmProperties
 
@@ -220,8 +222,11 @@ class VirtualMachineManagerHandler( RequestHandler ):
 
     result = gVirtualMachineDB.declareInstanceHalting( uniqueID, load )
     if not result[ 'OK' ]:
-      self.__logResult( 'declareInstanceHalting on change status: ', result )
-      return result
+      if "Halted ->" not in result["Message"]:
+        self.__logResult( 'declareInstanceHalting on change status: ', result )
+        return result
+      else:
+        gLogger.info("Bad transition from Halted to something, will assume Halted")
    
     if ( cloudDriver == 'occi-0.9' or cloudDriver == 'occi-0.8' or cloudDriver == 'rocci-1.1' ):
       imageName = gVirtualMachineDB.getImageNameFromInstance( uniqueID )
@@ -230,7 +235,7 @@ class VirtualMachineManagerHandler( RequestHandler ):
         return imageName
       imageName = imageName[ 'Value' ]
 
-      gLogger.info( 'Declare instance haltig:  %s, endpoint: %s imageName: %s' % (str(uniqueID),endpoint,imageName) )
+      gLogger.info( 'Declare instance halting:  %s, endpoint: %s imageName: %s' % (str(uniqueID),endpoint,imageName) )
       oima   = OcciImage( imageName, endpoint )
       connOcci = oima.connectOcci()
       if not connOcci[ 'OK' ]:
@@ -257,6 +262,24 @@ class VirtualMachineManagerHandler( RequestHandler ):
       publicIP = publicIP[ 'Value' ]
       
       result = nima.stopInstance( uniqueID, publicIP )
+
+    elif ( cloudDriver == 'amazon' ):
+      imageName = gVirtualMachineDB.getImageNameFromInstance( uniqueID )
+      if not imageName[ 'OK' ]:
+        self.__logResult( 'declareInstanceHalting getImageNameFromInstance: ', imageName )
+        return imageName
+      imageName = imageName[ 'Value' ]
+
+      gLogger.info( 'Declare instance halting:  %s, endpoint: %s imageName: %s' % (str(uniqueID),endpoint,imageName) )
+      awsima = None
+      try:
+        awsima = AmazonImage( imageName, endpoint )
+      except Exception:
+        gLogger.error("Failed to connect to AWS")
+        pass
+      if awsima:
+        result = awsima.stopInstances( uniqueID )
+
 
     else:
       gLogger.warn( 'Unexpected cloud driver:  %s' % cloudDriver )

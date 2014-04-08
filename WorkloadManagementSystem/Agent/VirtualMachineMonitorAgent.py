@@ -5,6 +5,7 @@ import os
 import simplejson
 import time
 import urllib2
+import types
 
 try:
   from hashlib import md5
@@ -29,10 +30,10 @@ class VirtualMachineMonitorAgent( AgentModule ):
       fd = urllib2.urlopen("http://instance-data.ec2.internal/latest/meta-data/instance-id", timeout=30)
     except urllib2.URLError:
       gLogger.warn("Can not connect to EC2 URL. Trying address 169.254.169.254 directly...")
-    try:
-      fd = urllib2.urlopen("http://169.254.169.254/latest/meta-data/instance-id", timeout=30)
-    except urllib2.URLError, e:
-      return S_ERROR( "Could not retrieve amazon instance id: %s" % str( e ) )
+      try:
+        fd = urllib2.urlopen("http://169.254.169.254/latest/meta-data/instance-id", timeout=30)
+      except urllib2.URLError, e:
+        return S_ERROR( "Could not retrieve amazon instance id: %s" % str( e ) )
     iD = fd.read().strip()
     fd.close()
     return S_OK( iD )
@@ -111,7 +112,6 @@ class VirtualMachineMonitorAgent( AgentModule ):
     imgPath = "/Resources/VirtualMachines/RunningPods/%s" % self.runningPod
     for csOption, csDefault, varName in ( ( "MinWorkingLoad", 0.01, "vmMinWorkingLoad" ),
                                           ( "LoadAverageTimespan", 60, "vmLoadAvgTimespan" ),
-                                          ( "JobWrappersLocation", "/tmp/", "vmJobWrappersLocation" ),
                                           ( "HaltPeriod", 600, "haltPeriod" ),
                                           ( "HaltBeforeMargin", 300, "haltBeforeMargin" ),
                                           ( "HeartBeatPeriod", 300, "heartBeatPeriod" ),
@@ -119,8 +119,18 @@ class VirtualMachineMonitorAgent( AgentModule ):
 
       path = "%s/%s" % ( imgPath, csOption )
       value = gConfig.getValue( path, csDefault )
-      if not value:
-        return S_ERROR( "%s is not defined" % path )
+      if not value > 0:
+        return S_ERROR( "%s has an incorrect value, must be > 0" % path )
+      setattr( self, varName, value )
+
+    for csOption, csDefault, varName in ( 
+                                          ( "JobWrappersLocation", "/tmp/", "vmJobWrappersLocation" )
+                                        ):
+
+      path = "%s/%s" % ( imgPath, csOption )
+      value = gConfig.getValue( path, csDefault )
+      if not value :
+        return S_ERROR( "%s points to an empty string, cannot be!" % path )
       setattr( self, varName, value )
 
     self.haltBeforeMargin = max( self.haltBeforeMargin, int( self.am_getPollingTime() ) + 5 )
@@ -204,7 +214,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
       self.__haltInstance()
       return S_ERROR( "Halting!" )
     self.__instanceInfo = result[ 'Value' ]
-    self.runningPod = self.__instanceInfo[ 'Image' ][ 'RunningPod' ]
+    self.runningPod = self.__instanceInfo[ 'Instance' ][ 'RunningPod' ]
     self.log.info( "Running pod name of the image is %s" % self.runningPod )
     #Get the cs config
     result = self.__getCSConfig()
@@ -277,11 +287,18 @@ class VirtualMachineMonitorAgent( AgentModule ):
                                                      self.__outDataExecutor.getNumOKTransferredFiles(),
                                                      self.__outDataExecutor.getNumOKTransferredBytes(),
                                                      int( uptime ) )
+      status = None
       if result[ 'OK' ]:
         self.log.info( " heartbeat sent!" )
+        status = result['Value']
       else:
-        self.log.error( "Could not send heartbeat", result[ 'Message' ] )
-      self.__processHeartBeatMessage( result[ 'Value' ] )
+        if "Transition" in result["Message"]:
+          self.log.error( "Error on service:", result[ 'Message' ] )
+          status = result['State']
+        else:
+          self.log.error("Connection error", result["Message"])
+      if status:
+        self.__processHeartBeatMessage( status, avgLoad )
     #Check if there are local outgoing files
     localOutgoing = self.__outDataExecutor.getNumLocalOutgoingFiles()
     if localOutgoing or self.__outDataExecutor.transfersPending():
@@ -302,7 +319,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
         self.log.info( "VM stoppage policy is defined to never (until SaaS or site request)")
     return S_OK()
 
-  def __processHeartBeatMessage( self, hbMsg ):
+  def __processHeartBeatMessage( self, hbMsg, avgLoad = 0.0 ):
     if hbMsg == 'stop':
       #Write stop file for jobAgent
       self.log.info( "Received STOP signal. Writing stop files..." )
@@ -320,9 +337,9 @@ class VirtualMachineMonitorAgent( AgentModule ):
         except Exception, e:
           self.log.error( "Could not write stop agent file", stopFile )
     if hbMsg == 'halt':
-      self.__haltInstance()
+      self.__haltInstance( avgLoad )
 
-  def __haltInstance( self, avgLoad = 0 ):
+  def __haltInstance( self, avgLoad = 0.0 ):
     self.log.info( "Halting instance..." )
     retries = 3
     sleepTime = 10

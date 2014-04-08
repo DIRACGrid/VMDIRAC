@@ -156,6 +156,7 @@ class VirtualmachinesController( BaseController ):
     svcData = result[ 'Value' ]
     data = []
     olderThan = Time.toEpoch() - 400
+    rL = []
     for record in svcData:
       eTime = Time.toEpoch( record[0] )
       if eTime < olderThan:

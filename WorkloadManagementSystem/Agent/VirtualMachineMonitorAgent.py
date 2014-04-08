@@ -5,6 +5,7 @@ import os
 import simplejson
 import time
 import urllib2
+import types
 
 try:
   from hashlib import md5
@@ -111,7 +112,6 @@ class VirtualMachineMonitorAgent( AgentModule ):
     imgPath = "/Resources/VirtualMachines/RunningPods/%s" % self.runningPod
     for csOption, csDefault, varName in ( ( "MinWorkingLoad", 0.01, "vmMinWorkingLoad" ),
                                           ( "LoadAverageTimespan", 60, "vmLoadAvgTimespan" ),
-                                          ( "JobWrappersLocation", "/tmp/", "vmJobWrappersLocation" ),
                                           ( "HaltPeriod", 600, "haltPeriod" ),
                                           ( "HaltBeforeMargin", 300, "haltBeforeMargin" ),
                                           ( "HeartBeatPeriod", 300, "heartBeatPeriod" ),
@@ -119,8 +119,18 @@ class VirtualMachineMonitorAgent( AgentModule ):
 
       path = "%s/%s" % ( imgPath, csOption )
       value = gConfig.getValue( path, csDefault )
-      if not value:
-        return S_ERROR( "%s is not defined" % path )
+      if not value > 0:
+        return S_ERROR( "%s has an incorrect value, must be > 0" % path )
+      setattr( self, varName, value )
+
+    for csOption, csDefault, varName in ( 
+                                          ( "JobWrappersLocation", "/tmp/", "vmJobWrappersLocation" )
+                                        ):
+
+      path = "%s/%s" % ( imgPath, csOption )
+      value = gConfig.getValue( path, csDefault )
+      if not value :
+        return S_ERROR( "%s points to an empty string, cannot be!" % path )
       setattr( self, varName, value )
 
     self.haltBeforeMargin = max( self.haltBeforeMargin, int( self.am_getPollingTime() ) + 5 )

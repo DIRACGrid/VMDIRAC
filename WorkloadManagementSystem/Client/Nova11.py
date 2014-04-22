@@ -207,9 +207,6 @@ class NovaClient:
       with open( userdata, 'r' ) as userDataFile: 
         userdata = ''.join( userDataFile.readlines() )
     
-    if vmdiracInstanceID is not None:
-      metadata.update( { 'vmdiracid' : str( vmdiracInstanceID ) } )
-    
     bootImage = self.get_image( bootImageName )
     if not bootImage[ 'OK' ]:
       self.log.error( bootImage[ 'Message' ] )

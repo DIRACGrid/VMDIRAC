@@ -57,7 +57,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
       jsonFile = opener.open( request )
       jsonDict = simplejson.load( jsonFile )
  
-      return S_OK( jsonDict[ 'meta' ][ 'vmdiracid' ] )
+      return S_OK( jsonDict[ 'meta' ][ 'uuid' ] )
         
     except:
       pass  
@@ -195,7 +195,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
       return S_ERROR( "Unknown cloudDriver %s" % self.cloudDriver )
     if not result[ 'OK' ]:
       return S_ERROR( "Could not generate VM id: %s" % result[ 'Message' ] )
-    self.vmId = result[ 'Value' ]
+    self.vmId = str(result[ 'Value' ])
     self.log.info( "VM ID is %s" % self.vmId )
     #Discover net address
     netData = Network.discoverInterfaces()

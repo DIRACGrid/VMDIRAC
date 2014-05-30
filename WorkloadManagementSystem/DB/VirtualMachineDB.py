@@ -729,7 +729,7 @@ class VirtualMachineDB( DB ):
     #Main fields
     tables = ( "`vm_Images` AS img", "`vm_Instances` AS inst")
     imageFields = ( 'VMImageID', 'Name')
-    instanceFields = ( 'RunningPod', 'InstanceID', 'Name', 'UniqueID', 'VMImageID',
+    instanceFields = ( 'RunningPod', 'InstanceID', 'Endpoint', 'Name', 'UniqueID', 'VMImageID',
                        'Status', 'PublicIP', 'Status', 'ErrorMessage', 'LastUpdate', 'Load', 'Uptime', 'Jobs' )
 
     fields = [ 'img.%s' % f for f in imageFields ] + [ 'inst.%s' % f for f in instanceFields ]

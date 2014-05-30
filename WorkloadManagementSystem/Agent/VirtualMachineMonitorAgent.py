@@ -124,7 +124,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
       setattr( self, varName, value )
 
     for csOption, csDefault, varName in ( 
-                                          ( "JobWrappersLocation", "/tmp/", "vmJobWrappersLocation" )
+                                          ( "JobWrappersLocation", "/tmp/", "vmJobWrappersLocation" ),
                                         ):
 
       path = "%s/%s" % ( imgPath, csOption )

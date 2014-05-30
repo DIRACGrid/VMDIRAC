@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# dirac contextualization script for EGI FedCloud
+# dirac contextualization script 
 # To be run as root on VM
 #
 
@@ -26,7 +26,7 @@ submitPool=${9}
 cpuTime=${10}
 cloudDriver=${11}
 
-echo "Running EGI-Fedcloud-general-DIRAC-context.sh '<siteName>' '<vmStopPolicy>' '<putCertPath>' '<putKeyPath>' '<localVmRunJobAgent>' '<localVmRunVmMonitorAgent>' '<localVmRunVmUpdaterAgent>' '<localVmRunLogAgent>' '<submitPool>' '<cpuTime>' '<cloudDriver>'" >> /var/log/dirac-context-script.log 2>&1
+echo "Running dirac-contex.sh '<siteName>' '<vmStopPolicy>' '<putCertPath>' '<putKeyPath>' '<localVmRunJobAgent>' '<localVmRunVmMonitorAgent>' '<localVmRunVmUpdaterAgent>' '<localVmRunLogAgent>' '<submitPool>' '<cpuTime>' '<cloudDriver>'" >> /var/log/dirac-context-script.log 2>&1
 echo "1 $siteName" >> /var/log/dirac-context-script.log 2>&1
 echo "2 $vmStopPolicy" >> /var/log/dirac-context-script.log 2>&1
 echo "3 $putCertPath" >> /var/log/dirac-context-script.log 2>&1
@@ -40,7 +40,7 @@ echo "10 $cpuTime" >> /var/log/dirac-context-script.log 2>&1
 echo "11 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 
 # dirac user:
-        /usr/sbin/useradd -d /opt/dirac dirac
+        /usr/sbin/useradd -m -d /opt/dirac dirac
 # To work wiht the cmvfs LB_LOGIN of LHCb:
         chmod g+w /root
         chown root:dirac /root

@@ -169,7 +169,7 @@ class NovaClient:
       
     return S_OK( [ secGroup for secGroup in secGroups if secGroup.name in securityGroupNames ] )   
 
-  def create_VMInstance( self, vmdiracInstanceID = None, cpuTime, submitPool ):
+  def create_VMInstance( self, vmdiracInstanceID = None, cpuTime=None, submitPool=None ):
     """
     This creates a VM instance for the given boot image 
     and creates a context script, taken the given parameters.
@@ -263,7 +263,9 @@ class NovaClient:
     try:
       if contextMethod == 'cloudinit':
         cloudinitScript = BuildCloudinitScript();
-        result = cloudinitScript.buildCloudinitScript(self.imageConfig, self.endpointConfig, cpuTime, submitPool)
+        result = cloudinitScript.buildCloudinitScript(self.imageConfig, self.endpointConfig, 
+							cpuTime = cpuTime,
+                                                        submitPool = submitPool)
         if not result[ 'OK' ]:
           return result
         composedUserdataPath = result[ 'Value' ] 
@@ -274,7 +276,7 @@ class NovaClient:
                                             size               = flavor,
                                             ex_userdata        = composedUserdataPath,
                                             ex_security_groups = secGroup)
-      else if contextMethod == 'amiconfig':
+      elif contextMethod == 'amiconfig':
         vmNode = self.__driver.create_node( name               = vm_name, 
                                             image              = bootImage, 
                                             size               = flavor,

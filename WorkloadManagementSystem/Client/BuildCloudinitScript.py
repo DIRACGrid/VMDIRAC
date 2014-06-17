@@ -47,7 +47,7 @@ class BuildCloudinitScript:
       cpuTime = kwargs.get( 'cpuTime' )
       submitPool = kwargs.get( 'submitPool' )
 
-      result = self.__buildCloudinitScript( DIRACImageName = DIRACImageName,
+      result = self.__buildCloudinitScript( DIRACImageName = imageName,
                                         siteName = siteName,
                                         cloudDriver = cloudDriver,
                                         cvmfs_http_proxy = cvmfs_http_proxy,
@@ -106,27 +106,27 @@ class BuildCloudinitScript:
 
     #buildin the necesary arguments
     putCertPath = "/root/vmservicecert.pem"
-    file.write('putCertPath=%s' % (putCertPath))
+    file.write('putCertPath=%s\n' % (putCertPath))
     putKeyPath = "/root/vmservicekey.pem"
-    file.write('putKeyPath=%s' % (putKeyPath))
-    file.write('vmRunJobAgent=%s' % (vmRunJobAgent))
-    file.write('vmRunVmMonitorAgent=%s' % (vmRunVmMonitorAgent))
-    file.write('vmRunVmUpdaterAgent=%s' % (vmRunVmUpdaterAgent))
-    file.write('vmRunLogAgent=%s' % (vmRunLogAgent))
-    file.write('vmCvmfsContextURL=%s' % (vmCvmfsContextURL))
-    file.write('vmDiracContextURL=%s' % (vmDiracContextURL))
-    file.write('cvmfs_http_proxy=%s' % (cvmfs_http_proxy))
-    file.write('siteName=%s' % (siteName))
-    file.write('cloudDriver=%s' % (cloudDriver))
-    file.write('cpuTime=%s' % (cpuTime))
-    file.write('vmStopPolicy=%s' % (vmStopPolicy))
-    file.write('submitPool=%s' % (submitPool))
+    file.write('putKeyPath=%s\n' % (putKeyPath))
+    file.write('vmRunJobAgentURL=%s\n' % (vmRunJobAgentURL))
+    file.write('vmRunVmMonitorAgentURL=%s\n' % (vmRunVmMonitorAgentURL))
+    file.write('vmRunVmUpdaterAgentURL=%s\n' % (vmRunVmUpdaterAgentURL))
+    file.write('vmRunLogAgentURL=%s\n' % (vmRunLogAgentURL))
+    file.write('vmCvmfsContextURL=%s\n' % (vmCvmfsContextURL))
+    file.write('vmDiracContextURL=%s\n' % (vmDiracContextURL))
+    file.write('cvmfs_http_proxy=%s\n' % (cvmfs_http_proxy))
+    file.write('siteName=%s\n' % (siteName))
+    file.write('cloudDriver=%s\n' % (cloudDriver))
+    file.write('cpuTime=%s\n' % (cpuTime))
+    file.write('vmStopPolicy=%s\n' % (vmStopPolicy))
+    file.write('submitPool=%s\n' % (submitPool))
 
     # 0) Previous copy of necessary files using build in cloudinit script
     # 0.1) DIRAC service public key
 
     pubkeyPath = os.path.expanduser( '~/.ssh/id_rsa.pub' )
-    file.write("cat << 'EOF' > /root/.ssh/authorized_keys")
+    file.write("cat << 'EOF' > /root/.ssh/authorized_keys\n")
 
     try:
       with open(pubkeyPath) as fp:
@@ -135,10 +135,10 @@ class BuildCloudinitScript:
     except Exception, errmsg:
       return S_ERROR( errmsg )
 
-    file.write("EOF")
+    file.write("EOF\n")
 
     # VM DIRAC service cert 
-    file.write("cat << 'EOF' > %s" % (putCertPath))
+    file.write("cat << 'EOF' > %s\n" % (putCertPath))
 
     try:
       with open(vmCertPath) as fp:
@@ -147,10 +147,10 @@ class BuildCloudinitScript:
     except Exception, errmsg:
       return S_ERROR( errmsg )
 
-    file.write("EOF")
+    file.write("EOF\n")
 
     # VM DIRAC service key 
-    file.write("cat << 'EOF' > %s" % (putKeyPath))
+    file.write("cat << 'EOF' > %s\n" % (putKeyPath))
 
     try:
       with open(vmKeyPath) as fp:
@@ -159,7 +159,7 @@ class BuildCloudinitScript:
     except Exception, errmsg:
       return S_ERROR( errmsg )
 
-    file.write("EOF")
+    file.write("EOF\n")
 
     #now the static part of the cloudinit
 

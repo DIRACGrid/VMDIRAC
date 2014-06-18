@@ -82,7 +82,9 @@ echo "11 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 	done
 	cd /opt/dirac
 
+        ls -l /opt/dirac >> /var/log/dirac-context-script.log 2>&1
         source bashrc >> /var/log/dirac-context-script.log 2>&1
+        env >> /var/log/dirac-context-script.log 2>&1
         # to the runsvdir stuff:
 	export PATH
 	export LD_LIBRARY_PATH

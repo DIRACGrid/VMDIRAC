@@ -85,6 +85,7 @@ echo "11 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
         ls -l /opt/dirac >> /var/log/dirac-context-script.log 2>&1
         source bashrc >> /var/log/dirac-context-script.log 2>&1
         env >> /var/log/dirac-context-script.log 2>&1
+        echo "****************************************" >> /var/log/dirac-context-script.log 2>&1
         # to the runsvdir stuff:
 	export PATH
 	export LD_LIBRARY_PATH
@@ -95,7 +96,7 @@ echo "11 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
         # if CAs are not download we retry
         for retry in 0 1 2 3 4 5 6 7 8 9
         do
-		su dirac -c"dirac-configure -UHddd -o /LocalSite/SubmitPool=$submitPool -o /LocalSite/CPUTime=$cpuTime -o /LocalSite/CloudDriver=$cloudDriver -o /LocalSite/Site=$siteName  -o /LocalSite/VMStopPolicy=$vmStopPolicy  -o /LocalSite/CE=CE-nouse defaults-VMDIRAC.cfg"  >> /var/log/dirac-context-script.log 2>&1
+		su dirac -c"source /opt/dirac/bashrc;env >> /var/log/dirac-context-script.log 2>&1;dirac-configure -UHddd -o /LocalSite/SubmitPool=$submitPool -o /LocalSite/CPUTime=$cpuTime -o /LocalSite/CloudDriver=$cloudDriver -o /LocalSite/Site=$siteName  -o /LocalSite/VMStopPolicy=$vmStopPolicy  -o /LocalSite/CE=CE-nouse defaults-VMDIRAC.cfg"  >> /var/log/dirac-context-script.log 2>&1
 		# options H: SkipCAChecks, dd: debug level 2, U: UseServerCertificate 
 		# options only for debuging D: SkipCADownload
 		# after UseServerCertificate = yes for the configuration with CS

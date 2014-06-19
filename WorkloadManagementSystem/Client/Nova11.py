@@ -273,9 +273,6 @@ class NovaClient:
         with open( composedUserdataPath, 'r' ) as userDataFile: 
           userdata = ''.join( userDataFile.readlines() )
 
-        print "userdata: "
-        print userdata
- 
         vmNode = self.__driver.create_node( name               = vm_name, 
                                             image              = bootImage, 
                                             size               = flavor,

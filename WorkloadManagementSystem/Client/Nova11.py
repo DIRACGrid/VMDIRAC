@@ -423,24 +423,24 @@ class NovaClient:
 
     if ipPool is not None:
 
-      try:
-        pool_list = self.__driver.ex_list_floating_ip_pools()
+      if ( ipPool != 'nouse' ):
+        try:
+          pool_list = self.__driver.ex_list_floating_ip_pools()
 
-        for pool in pool_list:
-          if pool.name == ipPool:
-            floating_ip = pool.create_floating_ip()
-            self.__driver.ex_attach_floating_ip_to_node(node, floating_ip)
-            public_ip = floating_ip.ip_address
-            return S_OK( public_ip )  
+          for pool in pool_list:
+            if pool.name == ipPool:
+              floating_ip = pool.create_floating_ip()
+              self.__driver.ex_attach_floating_ip_to_node(node, floating_ip)
+              public_ip = floating_ip.ip_address
+              return S_OK( public_ip )  
 
-        return S_ERROR( 'Context parameter ipPool=%s is not defined in the openstack endpoint' % ipPool )
+          return S_ERROR( 'Context parameter ipPool=%s is not defined in the openstack endpoint' % ipPool )
 
-      except Exception, errmsg:
-        return S_ERROR( errmsg )
+        except Exception, errmsg:
+          return S_ERROR( errmsg )
  
-    else:
-      # for the case of not using floating ip assigment
-      public_ip = node.public_ip
+    # for the case of not using floating ip assigment
+    public_ip = node.public_ip
 
     return S_OK( public_ip )  
       

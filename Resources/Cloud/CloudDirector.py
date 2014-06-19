@@ -84,7 +84,7 @@ class CloudDirector( VMDirector ):
       connNova = nima.connectNova()
       if not connNova[ 'OK' ]:
         return connNova
-      result = nima.startNewInstance( instanceID )
+      result = nima.startNewInstance( instanceID, CPUTime, submitPool )
       if not result[ 'OK' ]:
         return result
       return S_OK( result['Value'] )

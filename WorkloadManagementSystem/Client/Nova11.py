@@ -21,6 +21,7 @@ from DIRAC import gLogger, S_OK, S_ERROR
 
 # VMDIRAC
 from VMDIRAC.WorkloadManagementSystem.Client.SshContextualize   import SshContextualize
+from VMDIRAC.WorkloadManagementSystem.Client.BuildCloudinitScript   import BuildCloudinitScript
 
 __RCSID__ = '$Id: $'
 
@@ -52,7 +53,7 @@ class NovaClient:
     
     self.endpointConfig = endpointConfig
     self.imageConfig    = imageConfig
-  
+ 
     # Variables needed to contact the service  
     ex_force_auth_url       = endpointConfig.get( 'ex_force_auth_url', None )
     ex_force_service_region = endpointConfig.get( 'ex_force_service_region', None ) 
@@ -168,7 +169,7 @@ class NovaClient:
       
     return S_OK( [ secGroup for secGroup in secGroups if secGroup.name in securityGroupNames ] )   
 
-  def create_VMInstance( self, vmdiracInstanceID = None ):
+  def create_VMInstance( self, vmdiracInstanceID = None, cpuTime=None, submitPool=None ):
     """
     This creates a VM instance for the given boot image 
     and creates a context script, taken the given parameters.
@@ -260,7 +261,24 @@ class NovaClient:
     self.log.verbose( "ex_pubkey_path : %s" % pubkeyPath )
 
     try:
-      if contextMethod == 'amiconfig':
+      if contextMethod == 'cloudinit':
+        cloudinitScript = BuildCloudinitScript();
+        result = cloudinitScript.buildCloudinitScript(self.imageConfig, self.endpointConfig, 
+							cpuTime = cpuTime,
+                                                        submitPool = submitPool)
+        if not result[ 'OK' ]:
+          return result
+        composedUserdataPath = result[ 'Value' ] 
+        self.log.info( "cloudinitScript : %s" % composedUserdataPath )
+        with open( composedUserdataPath, 'r' ) as userDataFile: 
+          userdata = ''.join( userDataFile.readlines() )
+
+        vmNode = self.__driver.create_node( name               = vm_name, 
+                                            image              = bootImage, 
+                                            size               = flavor,
+                                            ex_userdata        = userdata,
+                                            ex_security_groups = secGroup)
+      elif contextMethod == 'amiconfig':
         vmNode = self.__driver.create_node( name               = vm_name, 
                                             image              = bootImage, 
                                             size               = flavor,
@@ -440,7 +458,7 @@ class NovaClient:
           return S_ERROR( errmsg )
  
     # for the case of not using floating ip assigment
-    public_ip = node.public_ip
+    public_ip = ''
 
     return S_OK( public_ip )  
       

@@ -281,7 +281,6 @@ class NovaClient:
                                             size               = flavor,
                                             ex_userdata        = userdata,
                                             ex_security_groups = secGroup)
-        print vmNode
       elif contextMethod == 'amiconfig':
         vmNode = self.__driver.create_node( name               = vm_name, 
                                             image              = bootImage, 
@@ -462,7 +461,7 @@ class NovaClient:
           return S_ERROR( errmsg )
  
     # for the case of not using floating ip assigment
-    public_ip = node.public_ip
+    public_ip = node.private_ips[0]
 
     return S_OK( public_ip )  
       

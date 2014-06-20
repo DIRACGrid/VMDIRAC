@@ -47,6 +47,7 @@ echo "11 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 
 # servercert/serverkey previouslly to this script copied 
 #
+        chown dirac:dirac /opt/dirac
 	cd /opt/dirac
 	su dirac -c'mkdir -p etc/grid-security' >> /var/log/dirac-context-script.log 2>&1
 	chmod -R 755 etc >> /var/log/dirac-context-script.log 2>&1
@@ -64,7 +65,6 @@ echo "11 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 # Installing DIRAC
 # FOR DEBUGGIN PURPOSES installing debuggin github version instead of cvmfs repository released DIRAC:
 #
-        chown dirac:dirac /opt/dirac
 	cd /opt/dirac
 	wget --no-check-certificate -O dirac-install 'https://github.com/DIRACGrid/DIRAC/raw/integration/Core/scripts/dirac-install.py' >> /var/log/dirac-context-script.log 2>&1
 

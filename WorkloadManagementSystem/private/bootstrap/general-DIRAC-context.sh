@@ -47,7 +47,6 @@ echo "11 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 
 # servercert/serverkey previouslly to this script copied 
 #
-        chown dirac:dirac /opt/dirac
 	cd /opt/dirac
 	su dirac -c'mkdir -p etc/grid-security' >> /var/log/dirac-context-script.log 2>&1
 	chmod -R 755 etc >> /var/log/dirac-context-script.log 2>&1

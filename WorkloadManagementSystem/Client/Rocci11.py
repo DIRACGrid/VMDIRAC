@@ -151,7 +151,23 @@ class OcciClient:
 
     request = Request()
 
-    command = 'occi --endpoint ' + occiURI + '  --action create --resource compute --mixin os_tpl#' + osTemplateName + ' --mixin resource_tpl#' + flavorName + ' --attributes title="' + vmName + '" --output-format json ' + self.__authArg
+    if contextMethod == 'cloudinit':
+      cloudinitScript = BuildCloudinitScript();
+      result = cloudinitScript.buildCloudinitScript(self.imageConfig, self.endpointConfig, 
+        cpuTime = cpuTime, submitPool = submitPool)
+      if not result[ 'OK' ]:
+        return result
+      composedUserdataPath = result[ 'Value' ] 
+#      self.log.info( "cloudinitScript : %s" % composedUserdataPath )
+#      with open( composedUserdataPath, 'r' ) as userDataFile: 
+#        userdata = ''.join( userDataFile.readlines() )
+#
+#      print "rocci userdata: "
+#      print userdata
+
+      command = 'occi --endpoint ' + occiURI + '  --action create --resource compute --mixin os_tpl#' + osTemplateName + ' --mixin resource_tpl#' + flavorName + ' --attributes title="' + vmName + '" --output-format json ' + self.__authArg + ' --context user_data="file://%s"' % composedUserdataPath
+    else:
+      command = 'occi --endpoint ' + occiURI + '  --action create --resource compute --mixin os_tpl#' + osTemplateName + ' --mixin resource_tpl#' + flavorName + ' --attributes title="' + vmName + '" --output-format json ' + self.__authArg
 
     request.exec_no_wait(command)
 

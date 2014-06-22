@@ -6,7 +6,7 @@
 
         echo "Starting dirac-context-script.sh" > /var/log/dirac-context-script.log 2>&1
 
-if [ $# -ne 11 ]
+if [ $# -ne 9 ]
 then
     echo "ERROR: Given $# parameters" >> /var/log/dirac-context-script.log 2>&1
     echo "       Given parameters: $@" >> /var/log/dirac-context-script.log 2>&1

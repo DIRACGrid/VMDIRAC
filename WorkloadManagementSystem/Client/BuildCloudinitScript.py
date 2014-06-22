@@ -9,6 +9,7 @@
 """
 
 import os
+import sys
 
 
 # DIRAC
@@ -18,7 +19,7 @@ __RCSID__ = "$Id: $"
 
 class BuildCloudinitScript:
 
-  def buildCloudinitScript( self, imageConfig, endpointConfig, **kwargs ):
+  def buildCloudinitScript( self, imageConfig, endpointConfig, runningPodRequirements ):
 
     # logger
     self.log = gLogger.getSubLogger( self.__class__.__name__ )
@@ -43,10 +44,6 @@ class BuildCloudinitScript:
       vmCvmfsContextURL             = contextConfig[ 'vmCvmfsContextURL' ]
       vmDiracContextURL             = contextConfig[ 'vmDiracContextURL' ]
 
-      #RunningPod requirements are passed as arguments
-      cpuTime = kwargs.get( 'cpuTime' )
-      submitPool = kwargs.get( 'submitPool' )
-
       result = self.__buildCloudinitScript( DIRACImageName = imageName,
                                         siteName = siteName,
                                         cloudDriver = cloudDriver,
@@ -62,8 +59,7 @@ class BuildCloudinitScript:
                                         vmRunLogAgentURL = vmRunLogAgentURL,
                                         vmCvmfsContextURL = vmCvmfsContextURL,
                                         vmDiracContextURL = vmDiracContextURL,
-                                        cpuTime = cpuTime,
-                                        submitPool = submitPool
+                                        runningPodRequirements = runningPodRequirements
                                       )
     elif contextMethod == 'ssh':
       result = S_ERROR( 'ssh context method found instead of cloudinit method' )
@@ -93,8 +89,7 @@ class BuildCloudinitScript:
                                         vmRunLogAgentURL,
                                         vmCvmfsContextURL,
                                         vmDiracContextURL,
-                                        cpuTime,
-                                        submitPool
+                                        runningPodRequirements
                         ):
     # The function return S_OK with the name of the created cloudinit script
     # If the cloudinit context script was previously created, then overwriten
@@ -118,9 +113,13 @@ class BuildCloudinitScript:
     file.write('cvmfs_http_proxy=%s\n' % (cvmfs_http_proxy))
     file.write('siteName=%s\n' % (siteName))
     file.write('cloudDriver=%s\n' % (cloudDriver))
-    file.write('cpuTime=%s\n' % (cpuTime))
     file.write('vmStopPolicy=%s\n' % (vmStopPolicy))
-    file.write('submitPool=%s\n' % (submitPool))
+
+    # dynamic runningPod requirements for LocalSite
+    file.write("cat << 'EOF' > /root/LocalSiteRequirements\n")
+    for key, value in runningPodRequirements.items():
+      file.write('%s=%s\n' % (key,value))
+    file.write("EOF\n")
 
     # 0) Previous copy of necessary files using build in cloudinit script
     # 0.1) DIRAC service public key

@@ -36,7 +36,7 @@ echo "8 $localVmRunLogAgent" >> /var/log/dirac-context-script.log 2>&1
 echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 
 # dirac user:
-        /usr/sbin/useradd -m -s /bin/bash -d /opt/dirac dirac
+        /usr/sbin/useradd -m -s /bin/bash -d /opt/dirac dirac >> /var/log/dirac-context-script.log 2>&1
 # To work wiht the cmvfs LB_LOGIN of LHCb:
         chmod g+w /root
         chown root:dirac /root
@@ -78,7 +78,7 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 	done
 	cd /opt/dirac
 
-        source bashrc
+        source bashrc >> /var/log/dirac-context-script.log 2>&1
         chown ugo+w /var/log/dirac-context-script.log 
 
         # to the runsvdir stuff:

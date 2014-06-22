@@ -79,6 +79,7 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 	cd /opt/dirac
 
         source bashrc >> /var/log/dirac-context-script.log 2>&1
+        env >> /var/log/dirac-context-script.log 2>&1
         chown ugo+w /var/log/dirac-context-script.log 
 
         # to the runsvdir stuff:

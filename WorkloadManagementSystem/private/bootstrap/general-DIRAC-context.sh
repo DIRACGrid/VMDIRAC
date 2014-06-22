@@ -49,7 +49,7 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 	mv ${putCertPath} etc/grid-security/servercert.pem >> /var/log/dirac-context-script.log 2>&1
 	mv ${putKeyPath} etc/grid-security/serverkey.pem >> /var/log/dirac-context-script.log 2>&1
 
-	sleep 20
+	sleep 1
 
 	chmod 444 etc/grid-security/servercert.pem >> /var/log/dirac-context-script.log 2>&1
 	chmod 400 etc/grid-security/serverkey.pem >> /var/log/dirac-context-script.log 2>&1
@@ -114,6 +114,8 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 	echo "etc/dirac.cfg content previous to agents run: "  >> /var/log/dirac-context-script.log 2>&1
 	cat etc/dirac.cfg >> /var/log/dirac-context-script.log 2>&1
 	echo >> /var/log/dirac-context-script.log 2>&1
+
+        falla
 
 # start the agents: VirtualMachineMonitor, JobAgent, VirtualMachineConfigUpdater
 

@@ -46,9 +46,7 @@ echo "vmDiracContextURL $vmDiracContextURL" >> /var/log/contextualize-script.log
 echo "cvmfs_http_proxy $cvmfs_http_proxy" >> /var/log/contextualize-script.log 2>&1
 echo "siteName $siteName" >> /var/log/contextualize-script.log 2>&1
 echo "cloudDriver $cloudDriver" >> /var/log/contextualize-script.log 2>&1
-echo "cpuTime $cpuTime" >> /var/log/contextualize-script.log 2>&1
 echo "vmStopPolicy $vmStopPolicy" >> /var/log/contextualize-script.log 2>&1
-echo "submitPool $submitPool" >> /var/log/contextualize-script.log 2>&1
 
 #TODO: remember the unique_id stuff !!
 
@@ -98,10 +96,10 @@ fi
 if [ ${vmDiracContextURL} != 'nouse' ]
 then
     echo "Ready for running dirac contextualize script: ${localDiracContextPath}" >> /var/log/contextualize-script.log 2>&1
-    echo "    Parameters: ${siteName} ${vmStopPolicy} ${putCertPath} ${putKeyPath} ${localVmRunJobAgent} ${localVmRunVmMonitorAgent} ${localVmRunVmUpdaterAgent} ${localVmRunLogAgent} ${submitPool} ${cpuTime} ${cloudDriver}" >> /var/log/contextualize-script.log 2>&1
+    echo "    Parameters: ${siteName} ${vmStopPolicy} ${putCertPath} ${putKeyPath} ${localVmRunJobAgent} ${localVmRunVmMonitorAgent} ${localVmRunVmUpdaterAgent} ${localVmRunLogAgent} ${cloudDriver}" >> /var/log/contextualize-script.log 2>&1
 
     chmod u+x ${localDiracContextPath} >> /var/log/contextualize-script.log 2>&1
-    bash ${localDiracContextPath} ${siteName} ${vmStopPolicy} ${putCertPath} ${putKeyPath} ${localVmRunJobAgent} ${localVmRunVmMonitorAgent} ${localVmRunVmUpdaterAgent} ${localVmRunLogAgent} ${submitPool} ${cpuTime} ${cloudDriver}
+    bash ${localDiracContextPath} ${siteName} ${vmStopPolicy} ${putCertPath} ${putKeyPath} ${localVmRunJobAgent} ${localVmRunVmMonitorAgent} ${localVmRunVmUpdaterAgent} ${localVmRunLogAgent} ${cloudDriver}
 else
     echo "Context configured with 'nouse' of dirac contextualize script" >> /var/log/contextualize-script.log 2>&1
 fi

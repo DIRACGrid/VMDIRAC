@@ -10,7 +10,7 @@ if [ $# -ne 11 ]
 then
     echo "ERROR: Given $# parameters" >> /var/log/dirac-context-script.log 2>&1
     echo "       Given parameters: $@" >> /var/log/dirac-context-script.log 2>&1
-    echo "       Required parameters: general-DIRAC-context.sh '<siteName>' '<vmStopPolicy>' '<putCertPath>' '<putKeyPath>' '<localVmRunJobAgent>' '<localVmRunVmMonitorAgent>' '<localVmRunVmUpdaterAgent>' '<localVmRunLogAgent>' '<submitPool>' '<cpuTime>' '<cloudDriver>'" >> /var/log/dirac-context-script.log 2>&1
+    echo "       Required parameters: general-DIRAC-context.sh '<siteName>' '<vmStopPolicy>' '<putCertPath>' '<putKeyPath>' '<localVmRunJobAgent>' '<localVmRunVmMonitorAgent>' '<localVmRunVmUpdaterAgent>' '<localVmRunLogAgent>' '<cloudDriver>'" >> /var/log/dirac-context-script.log 2>&1
     exit 1
 fi
 
@@ -22,11 +22,9 @@ localVmRunJobAgent=${5}
 localVmRunVmMonitorAgent=${6}
 localVmRunVmUpdaterAgent=${7}
 localVmRunLogAgent=${8}
-submitPool=${9}
-cpuTime=${10}
 cloudDriver=${11}
 
-echo "Running dirac-contex.sh '<siteName>' '<vmStopPolicy>' '<putCertPath>' '<putKeyPath>' '<localVmRunJobAgent>' '<localVmRunVmMonitorAgent>' '<localVmRunVmUpdaterAgent>' '<localVmRunLogAgent>' '<submitPool>' '<cpuTime>' '<cloudDriver>'" >> /var/log/dirac-context-script.log 2>&1
+echo "Running dirac-contex.sh '<siteName>' '<vmStopPolicy>' '<putCertPath>' '<putKeyPath>' '<localVmRunJobAgent>' '<localVmRunVmMonitorAgent>' '<localVmRunVmUpdaterAgent>' '<localVmRunLogAgent>' '<cloudDriver>'" >> /var/log/dirac-context-script.log 2>&1
 echo "1 $siteName" >> /var/log/dirac-context-script.log 2>&1
 echo "2 $vmStopPolicy" >> /var/log/dirac-context-script.log 2>&1
 echo "3 $putCertPath" >> /var/log/dirac-context-script.log 2>&1
@@ -35,9 +33,7 @@ echo "5 $localVmRunJobAgent" >> /var/log/dirac-context-script.log 2>&1
 echo "6 $localVmRunVmMonitorAgent" >> /var/log/dirac-context-script.log 2>&1
 echo "7 $localVmRunVmUpdaterAgent" >> /var/log/dirac-context-script.log 2>&1
 echo "8 $localVmRunLogAgent" >> /var/log/dirac-context-script.log 2>&1
-echo "9 $submitPool" >> /var/log/dirac-context-script.log 2>&1
-echo "10 $cpuTime" >> /var/log/dirac-context-script.log 2>&1
-echo "11 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
+echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 
 # dirac user:
         /usr/sbin/useradd -m -s /bin/bash -d /opt/dirac dirac
@@ -89,12 +85,17 @@ echo "11 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 	export LD_LIBRARY_PATH
         # for the VM Monitor
         echo "Installing easy_install simplejson for the VM Monitor" >> /var/log/dirac-context-script.log 2>&1
-        python `which easy_install` simplejson >> /var/log/dirac-context-script.log 2>&1
-	# also the options for the agents: CPUTime, Occi SumbitPools, Site...
-        # if CAs are not download we retry
+        easy_install simplejson >> /var/log/dirac-context-script.log 2>&1
+        # getting RunningPodRequirements
+        requirements=''
+        while read keyval           
+        do           
+            requirements=`echo "$requirements -o /LocalSite/$keyval"`
+        done </root/LocalSiteRequirements
+        # configure, if CAs are not download we retry
         for retry in 0 1 2 3 4 5 6 7 8 9
         do
-		su dirac -c"dirac-configure -UHddd -o /LocalSite/SubmitPool=$submitPool -o /LocalSite/CPUTime=$cpuTime -o /LocalSite/CloudDriver=$cloudDriver -o /LocalSite/Site=$siteName  -o /LocalSite/VMStopPolicy=$vmStopPolicy  -o /LocalSite/CE=CE-nouse defaults-VMDIRAC.cfg"  >> /var/log/dirac-context-script.log 2>&1
+		su dirac -c"dirac-configure -UHddd $requirements -o /LocalSite/CloudDriver=$cloudDriver -o /LocalSite/Site=$siteName  -o /LocalSite/VMStopPolicy=$vmStopPolicy  -o /LocalSite/CE=CE-nouse defaults-VMDIRAC.cfg"  >> /var/log/dirac-context-script.log 2>&1
 		# options H: SkipCAChecks, dd: debug level 2, U: UseServerCertificate 
 		# options only for debuging D: SkipCADownload
 		# after UseServerCertificate = yes for the configuration with CS

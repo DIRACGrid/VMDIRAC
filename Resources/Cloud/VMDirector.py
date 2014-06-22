@@ -121,7 +121,7 @@ class VMDirector:
       if not submitPool:
         return S_ERROR( 'Unknown submitPool in Requirements of the RunningPod %s' % runningPodName )
 
-      dictVMSubmitted = self._submitInstance( imageName, endpoint, cpuTime, instanceID, submitPool )
+      dictVMSubmitted = self._submitInstance( imageName, endpoint, instanceID, runningRequirementsDict )
       if not dictVMSubmitted[ 'OK' ]:
         return dictVMSubmitted
 

@@ -22,7 +22,7 @@ localVmRunJobAgent=${5}
 localVmRunVmMonitorAgent=${6}
 localVmRunVmUpdaterAgent=${7}
 localVmRunLogAgent=${8}
-cloudDriver=${11}
+cloudDriver=${9}
 
 echo "Running dirac-contex.sh '<siteName>' '<vmStopPolicy>' '<putCertPath>' '<putKeyPath>' '<localVmRunJobAgent>' '<localVmRunVmMonitorAgent>' '<localVmRunVmUpdaterAgent>' '<localVmRunLogAgent>' '<cloudDriver>'" >> /var/log/dirac-context-script.log 2>&1
 echo "1 $siteName" >> /var/log/dirac-context-script.log 2>&1

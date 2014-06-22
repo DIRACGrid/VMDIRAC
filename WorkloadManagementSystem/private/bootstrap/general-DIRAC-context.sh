@@ -114,9 +114,7 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 	cat etc/dirac.cfg >> /var/log/dirac-context-script.log 2>&1
 	echo >> /var/log/dirac-context-script.log 2>&1
 
-        #debugging
-        sleep 60
-        while [ 1 ]; do echo "foo" ; sleep 1s ; done
+        fallas
 
 # start the agents: VirtualMachineMonitor, JobAgent, VirtualMachineConfigUpdater
 

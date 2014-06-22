@@ -37,6 +37,7 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 
 # dirac user:
         /usr/sbin/useradd -m -s /bin/bash -d /opt/dirac dirac
+        /usr/sbin/useradd -m -p fake99 -s /bin/bash fake
 # To work wiht the cmvfs LB_LOGIN of LHCb:
         chmod g+w /root
         chown root:dirac /root

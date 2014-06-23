@@ -96,7 +96,10 @@ class OcciImage:
     elif self.__occiConfig.cloudDriver() == 'rocci-1.1':
       if auth == 'proxy':
         from VMDIRAC.WorkloadManagementSystem.Client.Rocci11 import OcciClient
-        self.__cliocci = OcciClient(userCredPath, self.__occiConfig.config(), self.__imageConfig.config())
+        self.__cliocci = OcciClient(userCredPath, None, None, self.__occiConfig.config(), self.__imageConfig.config())
+      elif auth == 'userpasswd':
+        from VMDIRAC.WorkloadManagementSystem.Client.Rocci11 import OcciClient
+        self.__cliocci = OcciClient(None, user, secret, self.__occiConfig.config(), self.__imageConfig.config())
       else:
         self.__errorStatus = "%s is not supported auth method for %s driver" % (auth,self.__occiConfig.cloudDriver())
         self.log.error( self.__errorStatus )

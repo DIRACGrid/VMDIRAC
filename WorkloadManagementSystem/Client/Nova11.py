@@ -169,7 +169,7 @@ class NovaClient:
       
     return S_OK( [ secGroup for secGroup in secGroups if secGroup.name in securityGroupNames ] )   
 
-  def create_VMInstance( self, vmdiracInstanceID = None, cpuTime=None, submitPool=None ):
+  def create_VMInstance( self, vmdiracInstanceID, runningPodRequirements ):
     """
     This creates a VM instance for the given boot image 
     and creates a context script, taken the given parameters.
@@ -264,8 +264,7 @@ class NovaClient:
       if contextMethod == 'cloudinit':
         cloudinitScript = BuildCloudinitScript();
         result = cloudinitScript.buildCloudinitScript(self.imageConfig, self.endpointConfig, 
-							cpuTime = cpuTime,
-                                                        submitPool = submitPool)
+							runningPodRequirements = runningPodRequirements)
         if not result[ 'OK' ]:
           return result
         composedUserdataPath = result[ 'Value' ] 
@@ -273,9 +272,6 @@ class NovaClient:
         with open( composedUserdataPath, 'r' ) as userDataFile: 
           userdata = ''.join( userDataFile.readlines() )
 
-        print "userdata: "
-        print userdata
- 
         vmNode = self.__driver.create_node( name               = vm_name, 
                                             image              = bootImage, 
                                             size               = flavor,
@@ -461,7 +457,7 @@ class NovaClient:
           return S_ERROR( errmsg )
  
     # for the case of not using floating ip assigment
-    public_ip = node.public_ip
+    public_ip = ''
 
     return S_OK( public_ip )  
       

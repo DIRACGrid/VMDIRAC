@@ -57,7 +57,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
       jsonFile = opener.open( request )
       jsonDict = simplejson.load( jsonFile )
  
-      return S_OK( jsonDict[ 'meta' ][ 'uuid' ] )
+      return S_OK( jsonDict[ 'uuid' ] )
         
     except:
       pass  

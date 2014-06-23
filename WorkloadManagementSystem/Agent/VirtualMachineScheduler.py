@@ -81,6 +81,7 @@
 
 """
 
+import sys
 import random, time
 import DIRAC
 
@@ -184,7 +185,6 @@ class VirtualMachineScheduler( AgentModule ):
           self.log.info( '%s >= %s Running instances reach MaxInstances for runningPod: %s, skipping' % ( instances, maxInstances, runningPodName ) )
           continue
 
-        endpointFound = False
         cloudEndpointsStr = runningPodDict['CloudEndpoints']
 	      # random
         cloudEndpoints = [element for element in cloudEndpointsStr.split( ',' )]
@@ -226,50 +226,48 @@ class VirtualMachineScheduler( AgentModule ):
             if vmPolicy == 'static':
               numVMs = maxEndpointInstances - endpointInstances
             numVMsToSubmit.update({str(endpoint): int(numVMs) })
-            endpointFound = True
+
+          # site to match with TQ:
+          siteToMatch = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, 'siteName' ), "" )
+          runningPodRequirementsDict = runningPodDict['Requirements']
+          runningPodRequirementsDict['Site'] = siteToMatch
+
+          #self.log.info( 'Requirements to match: ', runningPodRequirementsDict )
+          result = taskQueueDB.getMatchingTaskQueues( runningPodRequirementsDict )
+          if not result['OK']:
+            self.log.error( 'Could not retrieve TaskQueues from TaskQueueDB', result['Message'] )
+            return result
+          taskQueueDict = result['Value']
+          #self.log.info( 'Task Queues Dict: ', taskQueueDict )
+          jobs = 0
+          priority = 0
+          cpu = 0
+          for tq in taskQueueDict:
+            jobs += taskQueueDict[tq]['Jobs']
+            priority += taskQueueDict[tq]['Priority']
+            cpu += taskQueueDict[tq]['Jobs'] * taskQueueDict[tq]['CPUTime']
+
+          if not jobs:
+            self.log.info( 'No matching jobs for %s found, skipping' % imageName )
+            continue
+
+          if instances and ( cpu / instances ) < runningPodDict['CPUPerInstance']:
+            self.log.info( 'Waiting CPU per Running instance %s < %s, skipping' % ( cpu / instances, runningPodDict['CPUPerInstance'] ) )
             break
 
-        if not endpointFound:
-          self.log.info( 'Skipping, from list %s; there is no endpoint with free slots found for image %s' % ( runningPodDict['CloudEndpoints'], imageName ) )
-          continue
-
-        runningPodRequirementsDict = runningPodDict['Requirements']
-        #self.log.info( 'RunningPod Requirements Dict: ', runningPodRequirementsDict )
-        result = taskQueueDB.getMatchingTaskQueues( runningPodRequirementsDict )
-        if not result['OK']:
-          self.log.error( 'Could not retrieve TaskQueues from TaskQueueDB', result['Message'] )
-          return result
-        taskQueueDict = result['Value']
-        #self.log.info( 'Task Queues Dict: ', taskQueueDict )
-        jobs = 0
-        priority = 0
-        cpu = 0
-        for tq in taskQueueDict:
-          jobs += taskQueueDict[tq]['Jobs']
-          priority += taskQueueDict[tq]['Priority']
-          cpu += taskQueueDict[tq]['Jobs'] * taskQueueDict[tq]['CPUTime']
-
-        if not jobs:
-          self.log.info( 'No matching jobs for %s found, skipping' % imageName )
-          continue
-
-        if instances and ( cpu / instances ) < runningPodDict['CPUPerInstance']:
-          self.log.info( 'Waiting CPU per Running instance %s < %s, skipping' % ( cpu / instances, runningPodDict['CPUPerInstance'] ) )
-          continue
-
-        if directorName not in imagesToSubmit:
-          imagesToSubmit[directorName] = {}
-        if imageName not in imagesToSubmit[directorName]:
-          imagesToSubmit[directorName][imageName] = {}
-        numVMs = numVMsToSubmit.get( endpoint )
-        imagesToSubmit[directorName][imageName] = { 'Jobs': jobs,
-                                                    'TQPriority': priority,
-                                                    'CPUTime': cpu,
-                                                    'CloudEndpoint': endpoint,
-                                                    'NumVMsToSubmit': numVMs,
-                                                    'VMPolicy': vmPolicy,
-                                                    'RunningPodName': runningPodName,
-                                                    'VMPriority': runningPodDict['Priority'] }
+          if directorName not in imagesToSubmit:
+            imagesToSubmit[directorName] = {}
+          if imageName not in imagesToSubmit[directorName]:
+            imagesToSubmit[directorName][imageName] = {}
+          numVMs = numVMsToSubmit.get( endpoint )
+          imagesToSubmit[directorName][imageName] = { 'Jobs': jobs,
+                                                      'TQPriority': priority,
+                                                      'CPUTime': cpu,
+                                                      'CloudEndpoint': endpoint,
+                                                      'NumVMsToSubmit': numVMs,
+                                                      'VMPolicy': vmPolicy,
+                                                      'RunningPodName': runningPodName,
+                                                      'VMPriority': runningPodDict['Priority'] }
 
     for directorName, imageOfJobsToSubmitDict in imagesToSubmit.items():
       for imageName, jobsToSubmitDict in imageOfJobsToSubmitDict.items():

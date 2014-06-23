@@ -87,7 +87,7 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 	export LD_LIBRARY_PATH
         # for the VM Monitor
         echo "Installing easy_install simplejson for the VM Monitor" >> /var/log/dirac-context-script.log 2>&1
-        easy_install simplejson >> /var/log/dirac-context-script.log 2>&1
+        python easy_install simplejson >> /var/log/dirac-context-script.log 2>&1
         # getting RunningPodRequirements
         requirements=''
         while read keyval           

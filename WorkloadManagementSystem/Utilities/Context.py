@@ -7,6 +7,7 @@
   and it will make sure is the right one.
   
   This module provides Context helpers for the contextualisation methods:
+  * cloudinit
   * occiOpenNebula
   * ssh
   * adhoc
@@ -34,19 +35,21 @@ class ContextConfig( object ):
   def __new__( cls, _imageName, contextName ):
     """
     Uses the contextName parameter to decide which class to load. If not in
-    `ssh`, `adhoc`, `amiconfig` or `OcciOpennebulaContext` raises a NotImplementedException
+    `cloudinit`, `ssh`, `adhoc`, `amiconfig` or `OcciOpennebulaContext` raises a NotImplementedException
     
     :Parameters:
       **_imageName** - `string` 
         name of the image on the CS ( unused )
       **contextName** - `string`
         string with the type of context on the CS. It decides which class to load. 
-        Either `ssh`,`adhoc`,`amiconfig`.
+        Either `cloudinit`, `ssh`,`adhoc`,`amiconfig`.
     
     :raises: NotImplementedException    
     """
     if cls is ContextConfig:
-      if contextName == 'ssh':
+      if contextName == 'cloudinit':
+        cls = SSHContext
+      elif contextName == 'ssh':
         cls = SSHContext
       elif contextName == 'adhoc':
         cls = AdHocContext
@@ -138,14 +141,12 @@ class SSHContext( ContextConfig ):
   * vmRunLogAgentURL : the runsvdir run.log file 
   * cpuTime : the VM cpuTime of the image
   * cloudDriver : the endpoint dirac cloud driver
-  * pubkey_path: path to the public key .pem file to be inserted in the VM allowing ssh
-  * ex_keyname: keyname to be created asociated to the ex_pubkey_path
   
   """
   MANDATORY_KEYS = [ 'vmCertPath', 
                      'vmKeyPath', 'vmContextualizeScriptPath', 'vmCvmfsContextURL', 
                      'vmDiracContextURL', 'vmRunJobAgentURL', 'vmRunVmMonitorAgentURL', 
-                     'vmRunVmUpdaterAgentURL', 'vmRunLogAgentURL', 'ex_pubkey_path', 'ex_keyname' ]
+                     'vmRunVmUpdaterAgentURL', 'vmRunLogAgentURL']
 
 #...............................................................................    
 # AdHoc Context
@@ -185,7 +186,7 @@ class AmiconfigContext( ContextConfig ):
         name of the image on the CS
       **contextName** - `string`
         string with the type of context on the CS. It decides which class to load. 
-        Either `ssh`,`adhoc`,`amiconfig`, `occi_opennebula`.
+        Either `cloudinit`, `ssh`,`adhoc`,`amiconfig`, `occi_opennebula`.
     
     """
     

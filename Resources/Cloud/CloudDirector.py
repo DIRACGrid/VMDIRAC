@@ -73,13 +73,11 @@ class CloudDirector( VMDirector ):
       connOcci = oima.connectOcci()
       if not connOcci[ 'OK' ]:
         return connOcci
-      if ( driver =='rocci-1.1' ):
-        result = oima.startNewInstance( runningRequirementsDict )
-      else:
-        # this is for maintenance of old occi 0.8 like, CPUTime and  SubmitPool have been checked at VMDIRECTOR father class
-        CPUTime = runningRequirementsDict['CPUTime']
-        submitPool = runningRequirementsDict['SubmitPool']
-        result = oima.startNewInstance( CPUTime, submitPool )
+
+      # CPUTime and  SubmitPool are for maintenance of old occi 0.8 like, checked at VMDIRECTOR father class
+      CPUTime = runningRequirementsDict['CPUTime']
+      submitPool = runningRequirementsDict['SubmitPool']
+      result = oima.startNewInstance( CPUTime, submitPool, runningRequirementsDict )
       if not result[ 'OK' ]:
         return result
       idInstance = result['Value']

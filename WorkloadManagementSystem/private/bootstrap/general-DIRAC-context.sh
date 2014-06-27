@@ -68,6 +68,11 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 	# FOR DEBUGGIN PURPOSES overwriting with last released in the local vmendez git folder: 
         rm -rf VMDIRAC
         wget --no-check-certificate -O vmdirac.zip 'https://github.com/vmendez/VMDIRAC/archive/master.zip' >> /var/log/dirac-context-script.log 2>&1
+        # checking if unzip installed
+        if [ ! `which unzip` ]
+        then
+          yum -y install unzip
+        fi
 	unzip vmdirac.zip >> /var/log/dirac-context-script.log 2>&1
         mv VMDIRAC-master VMDIRAC
 	chown -R dirac:dirac VMDIRAC

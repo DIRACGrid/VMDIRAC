@@ -89,7 +89,7 @@ class VirtualMachineManagerHandler( RequestHandler ):
     
     return res
 
-  types_getUniqueID = [ LongType ]
+  types_getUniqueID = [ StringType ]
   def export_getUniqueID( self, instanceID):
     """
     return cloud manager uniqueID form VMDIRAC instanceID

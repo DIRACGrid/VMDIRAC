@@ -10,6 +10,7 @@
     - declareInstanceHalting
     - getInstancesByStatus
     - declareInstancesStopping
+    - getUniqueID( instanceID ) return cloud manager uniqueID form VMDIRAC instanceID
 
 """
 
@@ -88,6 +89,15 @@ class VirtualMachineManagerHandler( RequestHandler ):
     
     return res
 
+  types_getUniqueID = [ LongType ]
+  def export_getUniqueID( self, instanceID):
+    """
+    return cloud manager uniqueID form VMDIRAC instanceID
+    """    
+    res = gVirtualMachineDB.getUniqueID( instanceID )
+    self.__logResult( 'getUniqueID', res )
+    
+    return res
 
   types_setInstanceUniqueID = [ LongType, ( StringType, UnicodeType ) ]
   def export_setInstanceUniqueID( self, instanceID, uniqueID ):

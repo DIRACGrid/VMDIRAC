@@ -19,7 +19,7 @@ __RCSID__ = "$Id: $"
 
 class BuildCloudinitScript:
 
-  def buildCloudinitScript( self, imageConfig, endpointConfig, runningPodRequirements ):
+  def buildCloudinitScript( self, imageConfig, endpointConfig, runningPodRequirements, instanceID = None ):
 
     # logger
     self.log = gLogger.getSubLogger( self.__class__.__name__ )
@@ -59,7 +59,8 @@ class BuildCloudinitScript:
                                         vmRunLogAgentURL = vmRunLogAgentURL,
                                         vmCvmfsContextURL = vmCvmfsContextURL,
                                         vmDiracContextURL = vmDiracContextURL,
-                                        runningPodRequirements = runningPodRequirements
+                                        runningPodRequirements = runningPodRequirements,
+					instanceID = instanceID
                                       )
     elif contextMethod == 'ssh':
       result = S_ERROR( 'ssh context method found instead of cloudinit method' )
@@ -89,7 +90,8 @@ class BuildCloudinitScript:
                                         vmRunLogAgentURL,
                                         vmCvmfsContextURL,
                                         vmDiracContextURL,
-                                        runningPodRequirements
+                                        runningPodRequirements,
+					instanceID
                         ):
     # The function return S_OK with the name of the created cloudinit script
     # If the cloudinit context script was previously created, then overwriten
@@ -114,6 +116,7 @@ class BuildCloudinitScript:
     file.write('siteName=%s\n' % (siteName))
     file.write('cloudDriver=%s\n' % (cloudDriver))
     file.write('vmStopPolicy=%s\n' % (vmStopPolicy))
+    file.write('instanceID=%s\n' % (instanceID))
 
     # dynamic runningPod requirements for LocalSite
     file.write("cat << 'EOF' > /root/LocalSiteRequirements\n")

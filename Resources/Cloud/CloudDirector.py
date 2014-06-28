@@ -75,9 +75,10 @@ class CloudDirector( VMDirector ):
         return connOcci
 
       # CPUTime and  SubmitPool are for maintenance of old occi 0.8 like, checked at VMDIRECTOR father class
+      # DIRAC instanceID used instead of metadata service not installed in most opennebula sites
       CPUTime = runningRequirementsDict['CPUTime']
       submitPool = runningRequirementsDict['SubmitPool']
-      result = oima.startNewInstance( CPUTime, submitPool, runningRequirementsDict )
+      result = oima.startNewInstance( CPUTime, submitPool, runningRequirementsDict, instanceID )
       if not result[ 'OK' ]:
         return result
       idInstance = result['Value']

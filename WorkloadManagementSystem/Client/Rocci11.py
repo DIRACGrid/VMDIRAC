@@ -122,7 +122,7 @@ class OcciClient:
     request.exec_and_wait(command, timelife)
     return request
    
-  def create_VMInstance(self, cpuTime = None, submitPool = None, runningPodRequirements = None):
+  def create_VMInstance(self, cpuTime = None, submitPool = None, runningPodRequirements = None, instanceID = None):
     """
     This creates a VM instance for the given boot image 
     if context method is adhoc then boot image is create to be in Submitted status
@@ -155,7 +155,8 @@ class OcciClient:
     if contextMethod == 'cloudinit':
       cloudinitScript = BuildCloudinitScript();
       result = cloudinitScript.buildCloudinitScript(self.imageConfig, self.endpointConfig, 
-        						runningPodRequirements = runningPodRequirements)
+        						runningPodRequirements = runningPodRequirements,
+							instanceID = instanceID)
       if not result[ 'OK' ]:
         return result
       composedUserdataPath = result[ 'Value' ] 

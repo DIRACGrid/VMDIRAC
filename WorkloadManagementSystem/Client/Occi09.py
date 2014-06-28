@@ -4,7 +4,6 @@
 # Author : Victor Mendez ( vmendez.tic@gmail.com )
 ########################################################################
 # subset occi API based in the OpenNebula client command line implemention
-# PIC rt 2764 
 
 import os
 import time
@@ -22,6 +21,7 @@ __RCSID__ = '$Id: $'
 class Request:
   """ 
   This class is to perform syncronous and asyncronous request 
+  For operational reasons (mainly image management, it is recomendable to use rocci instead of native OCCI)
   """
   def __init__(self):
     self.stdout = None
@@ -158,13 +158,14 @@ class OcciClient:
 
     return request
 
-  def create_VMInstance(self, cpuTime, submitPool):
+  def create_VMInstance(self, cpuTime, submitPool,runningPodRequirements,instanceID):
     """
     This creates a VM instance for the given boot image 
     if context method is adhoc then boot image is create to be in Submitted status
     if context method is ssh then boot image is created to be in Wait_ssh_context (for contextualization agent)
     if context method is occi_opennebula context is in hdc image, and also de OCCI context on-the-fly image, taken the given parameters
     Successful creation returns instance id  and the IP
+    runningPodRequirements,instanceID NOT implemented
     """
 
     #Comming from running pod specific:

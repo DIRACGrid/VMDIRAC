@@ -15,6 +15,7 @@ from DIRAC import gLogger, S_OK, S_ERROR
 
 # VMDIRAC
 from VMDIRAC.WorkloadManagementSystem.Client.SshContextualize   import SshContextualize
+from VMDIRAC.WorkloadManagementSystem.Client.BuildCloudinitScript   import BuildCloudinitScript
 
 __RCSID__ = '$Id: $'
 
@@ -81,7 +82,7 @@ class Request:
 
 class OcciClient:
   
-  def __init__(  self, userCredPath, endpointConfig, imageConfig):
+  def __init__(  self, userCredPath, user, secret, endpointConfig, imageConfig):
     """
     Constructor: uses user / secret authentication for the time being. 
     copy the endpointConfig and ImageConfig dictionaries to the OcciClient
@@ -102,6 +103,13 @@ class OcciClient:
     self.endpointConfig   = endpointConfig
     self.imageConfig      = imageConfig
     self.__userCredPath   = userCredPath
+    self.__user           = user
+    self.__password       = secret
+
+    if userCredPath is not None:
+      self.__authArg = ' --auth x509 --user-cred ' + self.__userCredPath + ' --voms '
+    else:
+      self.__authArg = ' --auth digest --username %s --password %s ' % (self.__user, self.__password)
 
   def check_connection(self, timelife = 10):
     """
@@ -110,11 +118,11 @@ class OcciClient:
     """
 
     request = Request()
-    command = 'occi --endpoint ' + self.endpointConfig['occiURI'] + ' --action list --resource compute --auth x509 --user-cred ' + self.__userCredPath + ' --voms' 
+    command = 'occi --endpoint ' + self.endpointConfig['occiURI'] + ' --action list --resource compute ' + self.__authArg
     request.exec_and_wait(command, timelife)
     return request
    
-  def create_VMInstance(self, cpuTime, submitPool='Cloud'):
+  def create_VMInstance(self, cpuTime = None, submitPool = None, runningPodRequirements = None, instanceID = None):
     """
     This creates a VM instance for the given boot image 
     if context method is adhoc then boot image is create to be in Submitted status
@@ -133,8 +141,8 @@ class OcciClient:
     osTemplateName  = self.imageConfig[ 'bootImageName' ]
     flavorName  = self.imageConfig[ 'flavorName' ]
     contextMethod  = self.imageConfig[ 'contextMethod' ]
-    if contextMethod != 'ssh':
-      self.__errorStatus = "Current rOcci DIRAC driver suports only ssh contextMethod "
+    if not ( contextMethod == 'ssh' or contextMethod == 'cloudinit'):
+      self.__errorStatus = "Current rOcci DIRAC driver suports cotextMethod: ssh, cloudinit "
       self.log.error( self.__errorStatus )
       return
 
@@ -144,9 +152,31 @@ class OcciClient:
 
     request = Request()
 
-    command = 'occi --endpoint ' + occiURI + '  --action create --resource compute --mixin os_tpl#' + osTemplateName + ' --mixin resource_tpl#' + flavorName + ' --attributes title="' + vmName + '" --output-format json --auth x509 --user-cred ' + self.__userCredPath + ' --voms' 
+    if contextMethod == 'cloudinit':
+      cloudinitScript = BuildCloudinitScript();
+      result = cloudinitScript.buildCloudinitScript(self.imageConfig, self.endpointConfig, 
+        						runningPodRequirements = runningPodRequirements,
+							instanceID = instanceID)
+      if not result[ 'OK' ]:
+        return result
+      composedUserdataPath = result[ 'Value' ] 
+      self.log.info( "cloudinitScript : %s" % composedUserdataPath )
+      with open( composedUserdataPath, 'r' ) as userDataFile: 
+        userdata = ''.join( userDataFile.readlines() )
+
+#      print "rocci userdata: "
+#      print userdata
+
+      command = 'occi --endpoint ' + occiURI + '  --action create --resource compute --mixin os_tpl#' + osTemplateName + ' --mixin resource_tpl#' + flavorName + ' --attribute occi.core.title="' + vmName + '" --output-format json ' + self.__authArg + ' --context user_data="file://%s"' % composedUserdataPath
+#      command = 'occi --endpoint ' + occiURI + '  --action create --resource compute --mixin os_tpl#' + osTemplateName + ' --mixin resource_tpl#' + flavorName + ' --attribute occi.core.title="' + vmName + '" --output-format json ' + self.__authArg + ' --context user_data="%s"' % userdata
+
+    else:
+      command = 'occi --endpoint ' + occiURI + '  --action create --resource compute --mixin os_tpl#' + osTemplateName + ' --mixin resource_tpl#' + flavorName + ' --attribute occi.core.title="' + vmName + '" --output-format json ' + self.__authArg
 
     request.exec_no_wait(command)
+
+    print "command "
+    print command
 
     if request.stdout == "nil":
         request.returncode = 1
@@ -162,24 +192,38 @@ class OcciClient:
     first += len(searchstr)
     last = len(request.stdout)
     iD = request.stdout[first:last]
-
+ 
     # giving time sleep to REST API caching the instance to be available:
     time.sleep( 5 )
 
+    # TODO: getting IP should go in a standar way
+    # rocci 4.2.5 client is reading stdin for describe, when actually expecting nothing
+    # Popen could give ioctl for None or if PIPE then the stdin redirection (-) 
+    # for this reason rocci 4.2.5 could not sucessful reply from Popen, giving stdin argument error
+    # As workaround I have prepare the following HACK, which is compatible with previous rocci releases:
+    # occi command will fail, but I put debug option to occi, and capture stderr to stdout then redirect to a /tmp/[iD]
+    command = 'occi -d --endpoint ' + occiURI + '  --action describe --resource /compute/' + iD + ' ' + self.__authArg + ' 2>&1 | grep occi.networkinterface.address >/tmp/' + iD
 
-    command = 'occi --endpoint ' + occiURI + '  --action describe --resource /compute/' + iD + ' --output-format json --auth x509 --user-cred ' + self.__userCredPath + ' --voms ' 
+    request.exec_and_wait(command)
 
-    request.exec_no_wait(command)
+    # continue HACK: I open the occi debug file containing the ip line (actually a couple of lines, only one valid)
+    filepath='/tmp/' + iD
+    hackstr=''
+    with open(filepath) as fp:
+      for line in fp:
+        hackstr=hackstr + line
+    os.remove(filepath)
 
-    searchstr = '\"networkinterface\":{\"address\":\"'
-    first = request.stdout.find(searchstr) 
+    # searchstr = '\"networkinterface\":{\"address\":\"'
+    searchstr = 'occi.networkinterface.address='
+    first = hackstr.find(searchstr) 
     if first < 0:
       request.returncode = 1
       return request
-    first += len(searchstr)
+    first += len(searchstr) + 2
     request.returncode = 0
-    last = request.stdout.find("\"", first) 
-    publicIP = request.stdout[first:last]
+    last = hackstr.find("\"", first) - 1
+    publicIP = hackstr[first:last]
     request.stdout = iD + ', ' + publicIP 
     return request
   
@@ -189,7 +233,7 @@ class OcciClient:
     """
     occiURI  = self.endpointConfig[ 'occiURI' ]
     request = Request()
-    command = 'occi --endpoint ' + occiURI + '  --action delete --resource /compute/' + instanceId + ' --output-format json --auth x509 --user-cred ' + self.__userCredPath + ' --voms ' 
+    command = 'occi --endpoint ' + occiURI + '  --action delete --resource /compute/' + instanceId + ' --output-format json ' + self.__authArg
 
     request.exec_no_wait(command)
 
@@ -206,7 +250,7 @@ class OcciClient:
     """
     occiURI  = self.endpointConfig[ 'occiURI' ]
     request = Request()
-    command = 'occi --endpoint ' + occiURI + '  --action describe --resource /compute/' + instanceId + ' --output-format json --auth x509 --user-cred ' + self.__userCredPath + ' --voms ' 
+    command = 'occi --endpoint ' + occiURI + '  --action describe --resource /compute/' + instanceId + ' --output-format json ' + self.__authArg
 
     request.exec_no_wait(command)
 

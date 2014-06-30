@@ -68,6 +68,11 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 	# FOR DEBUGGIN PURPOSES overwriting with last released in the local vmendez git folder: 
         rm -rf VMDIRAC
         wget --no-check-certificate -O vmdirac.zip 'https://github.com/vmendez/VMDIRAC/archive/master.zip' >> /var/log/dirac-context-script.log 2>&1
+        # checking if unzip installed
+        if [ ! `which unzip` ]
+        then
+          yum -y install unzip
+        fi
 	unzip vmdirac.zip >> /var/log/dirac-context-script.log 2>&1
         mv VMDIRAC-master VMDIRAC
 	chown -R dirac:dirac VMDIRAC
@@ -80,14 +85,15 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 
         source bashrc >> /var/log/dirac-context-script.log 2>&1
         env >> /var/log/dirac-context-script.log 2>&1
-        chown ugo+w /var/log/dirac-context-script.log 
+        chmod ugo+w /var/log/dirac-context-script.log 
 
         # to the runsvdir stuff:
 	export PATH
 	export LD_LIBRARY_PATH
+        platform=`dirac-platform`
         # for the VM Monitor
         echo "Installing easy_install simplejson for the VM Monitor" >> /var/log/dirac-context-script.log 2>&1
-        python easy_install simplejson >> /var/log/dirac-context-script.log 2>&1
+        `which python` `which easy_install` simplejson >> /var/log/dirac-context-script.log 2>&1
         # getting RunningPodRequirements
         requirements=''
         while read keyval           

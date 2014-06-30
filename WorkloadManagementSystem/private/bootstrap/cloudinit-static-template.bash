@@ -6,6 +6,11 @@
 
 echo "Starting /root/contextualize-script.bash" > /var/log/contextualize-script.log
 
+if [ ${instanceID} != None ]
+then
+  echo ${instanceID}>/root/VMDIRAC_instanceID
+fi
+
 if [ ${vmRunJobAgentURL} != 'nouse' ]
 then
   localVmRunJobAgent=/root/run.job-agent

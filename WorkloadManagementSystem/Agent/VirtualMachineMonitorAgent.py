@@ -39,13 +39,25 @@ class VirtualMachineMonitorAgent( AgentModule ):
     return S_OK( iD )
 
   def getOcciVMId( self ):
+    # opennebula metadata it is not standar installation in most sites, trying different means of context:
     try:
       fd = open( os.path.join( '/etc', 'VMID' ), 'r' )
       iD = fd.read().strip()
       fd.close()
       return S_OK( iD )
     except Exception, e:
+      pass
+
+    # interacting with VMDIRAC with the VMDIRAC instanceID, to get the opennebula uniqueID
+    try:
+      fd = open( os.path.join( '/root', 'VMDIRAC_instanceID' ), 'r' )
+      vmdirac_instanceID = fd.read().strip()
+      fd.close()
+      res = virtualMachineDB.getUniqueID( vmdirac_instanceID )
+      return res
+    except Exception, e:
       return S_ERROR( "Could not retrieve occi instance id: %s" % str( e ) )
+
 
   def getNovaVMId( self ):
     

@@ -431,7 +431,7 @@ class ImageConfiguration( object ):
    
     imageOptions = gConfig.getOptionsDict( '/Resources/VirtualMachines/Images/%s' % imageName )
     if not imageOptions[ 'OK' ]:
-      self.log.error( imageOptions[ 'Messages' ] )
+      self.log.error( imageOptions[ 'Message' ] )
       imageOptions = {}
     else:
       imageOptions = imageOptions[ 'Value' ] 

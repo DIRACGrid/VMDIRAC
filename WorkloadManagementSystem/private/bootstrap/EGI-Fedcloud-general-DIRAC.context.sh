@@ -72,6 +72,11 @@ echo "11 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 	# FOR DEBUGGIN PURPOSES overwriting with last released in the local vmendez git folder: 
         rm -rf VMDIRAC
         wget --no-check-certificate -O vmdirac.zip 'https://github.com/vmendez/VMDIRAC/archive/master.zip' >> /var/log/dirac-context-script.log 2>&1
+        # checking if unzip installed
+        if [ ! `which unzip` ]
+        then
+          yum -y install unzip
+        fi
 	unzip vmdirac.zip >> /var/log/dirac-context-script.log 2>&1
         mv VMDIRAC-master VMDIRAC
 	chown -R dirac:dirac VMDIRAC
@@ -88,7 +93,7 @@ echo "11 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 	export LD_LIBRARY_PATH
         # for the VM Monitor
         echo "Installing easy_install simplejson for the VM Monitor" >> /var/log/dirac-context-script.log 2>&1
-        easy_install simplejson >> /var/log/dirac-context-script.log 2>&1
+        `which python` `which easy_install` simplejson >> /var/log/dirac-context-script.log 2>&1
 	# also the options for the agents: CPUTime, Occi SumbitPools, Site...
         # if CAs are not download we retry
         for retry in 0 1 2 3 4 5 6 7 8 9

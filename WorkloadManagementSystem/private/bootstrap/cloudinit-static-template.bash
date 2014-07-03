@@ -58,7 +58,7 @@ echo "vmStopPolicy $vmStopPolicy" >> /var/log/contextualize-script.log 2>&1
 # vmcert and key have been previoslly copy to VM, these paths are local, the rest of files are on some repo... 
 # 1) download the necesary files:
 
-if [ ! `which wget`]
+if [ ! `which wget` ]
 then
   yum install -y wget
 fi

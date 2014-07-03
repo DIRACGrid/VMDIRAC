@@ -114,13 +114,6 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 		fi
 		echo "certificates was not download in dirac-configure at retry: $retry"  >> /var/log/dirac-context-script.log 2>&1
 	done
-        # vomses for EGI fedcloud:
-        su dirac -c'mkdir etc/grid-security/vomses'
-        cat << 'EOF' > etc/grid-security/vomses/fedcloud.egi.eu
-"fedcloud.egi.eu" "voms2.egee.cesnet.cz" "15002" "/DC=org/DC=terena/DC=tcs/C=CZ/O=CESNET/CN=voms2.egee.cesnet.cz" "fedcloud.egi.eu" "24"
-"fedcloud.egi.eu" "voms1.egee.cesnet.cz" "15002" "/DC=org/DC=terena/DC=tcs/C=CZ/O=CESNET/CN=voms1.egee.cesnet.cz" "fedcloud.egi.eu" "24"
-EOF
-        chown dirac:dirac etc/grid-security/vomses/fedcloud.egi.eu
 	# we have to change to allow user proxy delegation for agents:
         su dirac -c'sed "s/UseServerCertificate = yes/#UseServerCertificate = yes/" etc/dirac.cfg > dirac.cfg.aux'
         su dirac -c'cp etc/dirac.cfg dirac.cfg.postconfigure'

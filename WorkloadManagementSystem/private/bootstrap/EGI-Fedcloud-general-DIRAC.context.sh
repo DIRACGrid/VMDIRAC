@@ -163,6 +163,8 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 	chmod 755 startup/WorkloadManagement_VirtualMachineMonitorAgent/log/run 
 	chmod 755 startup/WorkloadManagement_VirtualMachineMonitorAgent/run 
 
+  debugeate
+
 	echo "runsvdir startup, have a look to DIRAC JobAgent, VirtualMachineMonitorAgent and VirtualMachineConfigUpdater logs" >> /var/log/dirac-context-script.log 2>&1
 	runsvdir -P /opt/dirac/startup 'log:  DIRAC runsv' &
 
@@ -170,7 +172,6 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 # END installing DIRAC
 #
 
-  debugeate
 # avoiding ssh conection refused:
 #	echo "After DIRAC install:" >> /var/log/dirac-context-script.log 2>&1
 #	ls -l /etc/ssh >> /var/log/dirac-context-script.log 2>&1

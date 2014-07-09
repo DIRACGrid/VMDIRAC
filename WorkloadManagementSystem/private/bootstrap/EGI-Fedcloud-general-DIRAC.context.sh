@@ -170,6 +170,7 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 # END installing DIRAC
 #
 
+  debugeate
 # avoiding ssh conection refused:
 #	echo "After DIRAC install:" >> /var/log/dirac-context-script.log 2>&1
 #	ls -l /etc/ssh >> /var/log/dirac-context-script.log 2>&1

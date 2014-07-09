@@ -6,6 +6,7 @@
 
         echo "Starting dirac-context-script.sh" > /var/log/dirac-context-script.log 2>&1
 
+
 if [ $# -ne 9 ]
 then
     echo "ERROR: Given $# parameters" >> /var/log/dirac-context-script.log 2>&1
@@ -162,8 +163,6 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 	mv ${localVmRunLogAgent} startup/WorkloadManagement_VirtualMachineMonitorAgent/log/run >> /var/log/dirac-context-script.log 2>&1
 	chmod 755 startup/WorkloadManagement_VirtualMachineMonitorAgent/log/run 
 	chmod 755 startup/WorkloadManagement_VirtualMachineMonitorAgent/run 
-
-  debugeate
 
 	echo "runsvdir startup, have a look to DIRAC JobAgent, VirtualMachineMonitorAgent and VirtualMachineConfigUpdater logs" >> /var/log/dirac-context-script.log 2>&1
 	runsvdir -P /opt/dirac/startup 'log:  DIRAC runsv' &

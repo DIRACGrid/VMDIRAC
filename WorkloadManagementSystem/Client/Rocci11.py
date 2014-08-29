@@ -193,12 +193,12 @@ class OcciClient:
       return request
     first += len(searchstr)
     last = len(request.stdout)
-    iD = request.stdout[first:last]
+    iD = request.stdout
  
     # giving time sleep to REST API caching the instance to be available:
     time.sleep( 5 )
 
-    command = 'occi --endpoint ' + occiURI + '  --action describe --resource /compute/' + iD + ' ' + self.__authArg + ' --output-format json_extended'
+    command = 'occi --endpoint ' + occiURI + '  --action describe --resource ' + iD + ' ' + self.__authArg + ' --output-format json_extended'
 
     request.exec_and_wait(command)
 
@@ -219,7 +219,7 @@ class OcciClient:
     """
     occiURI  = self.endpointConfig[ 'occiURI' ]
     request = Request()
-    command = 'occi --endpoint ' + occiURI + '  --action delete --resource /compute/' + instanceId + ' --output-format json ' + self.__authArg
+    command = 'occi --endpoint ' + occiURI + '  --action delete --resource ' + instanceId + ' --output-format json ' + self.__authArg
 
     request.exec_no_wait(command)
 
@@ -236,7 +236,7 @@ class OcciClient:
     """
     occiURI  = self.endpointConfig[ 'occiURI' ]
     request = Request()
-    command = 'occi --endpoint ' + occiURI + '  --action describe --resource /compute/' + instanceId + ' --output-format json ' + self.__authArg
+    command = 'occi --endpoint ' + occiURI + '  --action describe --resource ' + instanceId + ' --output-format json ' + self.__authArg
 
     request.exec_no_wait(command)
 

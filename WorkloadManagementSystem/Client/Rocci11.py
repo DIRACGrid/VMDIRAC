@@ -150,6 +150,11 @@ class OcciClient:
 
     vmName = osTemplateName + '_' + contextMethod + '_' + str( time.time() )[0:10]
 
+    if flavorName != 'nouse':
+      flavorArg = ' --mixin resource_tpl#' + flavorName + ' '
+    else:
+      flavorArg = ' '
+
     request = Request()
 
     if contextMethod == 'cloudinit':
@@ -161,17 +166,14 @@ class OcciClient:
         return result
       composedUserdataPath = result[ 'Value' ] 
       self.log.info( "cloudinitScript : %s" % composedUserdataPath )
-      with open( composedUserdataPath, 'r' ) as userDataFile: 
-        userdata = ''.join( userDataFile.readlines() )
+#      with open( composedUserdataPath, 'r' ) as userDataFile: 
+#        userdata = ''.join( userDataFile.readlines() )
 
-#      print "rocci userdata: "
-#      print userdata
-
-      command = 'occi --endpoint ' + occiURI + '  --action create --resource compute --mixin os_tpl#' + osTemplateName + ' --mixin resource_tpl#' + flavorName + ' --attribute occi.core.title="' + vmName + '" --output-format json ' + self.__authArg + ' --context user_data="file://%s"' % composedUserdataPath
-#      command = 'occi --endpoint ' + occiURI + '  --action create --resource compute --mixin os_tpl#' + osTemplateName + ' --mixin resource_tpl#' + flavorName + ' --attribute occi.core.title="' + vmName + '" --output-format json ' + self.__authArg + ' --context user_data="%s"' % userdata
+      command = 'occi --endpoint ' + occiURI + '  --action create --resource compute --mixin os_tpl#' + osTemplateName + flavorArg + ' --attribute occi.core.title="' + vmName + '" --output-format json ' + self.__authArg + ' --context user_data="file://%s"' % composedUserdataPath
+#      command = 'occi --endpoint ' + occiURI + '  --action create --resource compute --mixin os_tpl#' + osTemplateName + flavorArg + ' --attribute occi.core.title="' + vmName + '" --output-format json ' + self.__authArg + ' --context user_data="%s"' % userdata
 
     else:
-      command = 'occi --endpoint ' + occiURI + '  --action create --resource compute --mixin os_tpl#' + osTemplateName + ' --mixin resource_tpl#' + flavorName + ' --attribute occi.core.title="' + vmName + '" --output-format json ' + self.__authArg
+      command = 'occi --endpoint ' + occiURI + '  --action create --resource compute --mixin os_tpl#' + osTemplateName + flavorArg + ' --attribute occi.core.title="' + vmName + '" --output-format json ' + self.__authArg
 
     request.exec_no_wait(command)
 

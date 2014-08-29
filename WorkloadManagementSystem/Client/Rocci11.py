@@ -109,7 +109,7 @@ class OcciClient:
     if userCredPath is not None:
       self.__authArg = ' --auth x509 --user-cred ' + self.__userCredPath + ' --voms '
     else:
-      self.__authArg = ' --auth digest --username %s --password %s ' % (self.__user, self.__password)
+      self.__authArg = ' --auth basic --username %s --password %s ' % (self.__user, self.__password)
 
   def check_connection(self, timelife = 10):
     """

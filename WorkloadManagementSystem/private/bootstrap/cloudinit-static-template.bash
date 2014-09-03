@@ -60,7 +60,7 @@ echo "vmStopPolicy $vmStopPolicy" >> /var/log/contextualize-script.log 2>&1
 
 if [ ! `which wget` ]
 then
-  yum install -y wget
+  yum install -y wget >> /var/log/contextualize-script.log 2>&1
 fi
 
 if [ ${vmRunJobAgentURL} != 'nouse' ]

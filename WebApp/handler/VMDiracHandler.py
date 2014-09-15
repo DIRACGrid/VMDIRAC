@@ -5,7 +5,7 @@ from DIRAC.Core.DISET.RPCClient import RPCClient
 from DIRAC import gConfig, S_OK, S_ERROR, gLogger
 
 import tempfile
-import simplejson
+import json
 import types
 import datetime
 import json
@@ -40,7 +40,7 @@ class VMDiracHandler(WebHandler):
         condDict = {}
         try:
           if 'cond' in self.request.arguments:
-            dec = simplejson.loads(self.request.arguments[ 'cond' ][0])
+            dec = json.loads(self.request.arguments[ 'cond' ][0])
             for k in dec:
               v = dec[ k ]
               if type(v) in (types.StringType, types.UnicodeType):
@@ -79,7 +79,7 @@ class VMDiracHandler(WebHandler):
         self.write(callback)
 
     def web_stopInstances(self):
-        webIds = simplejson.loads(self.request.arguments[ 'idList' ][0])
+        webIds = json.loads(self.request.arguments[ 'idList' ][0])
         rpcClient = RPCClient("WorkloadManagement/VirtualMachineManager")
         result = rpcClient.declareInstancesStopping(webIds)
         callback = {"success":"true", "result":result}
@@ -118,7 +118,7 @@ class VMDiracHandler(WebHandler):
 
     def web_getHistoryValues(self):
         try:
-            dbVars = [ str(f) for f in simplejson.loads(self.request.arguments[ 'vars' ][0]) ]
+            dbVars = [ str(f) for f in json.loads(self.request.arguments[ 'vars' ][0]) ]
         except:
             dbVars = [ 'Load', 'Jobs', 'TransferredFiles' ]
         try:

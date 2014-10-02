@@ -274,6 +274,14 @@ class VirtualMachineDB( DB ):
           ( tableName, runningPodDict['CampaignStartDate'], runningPodDict['CampaignEndDate'], idName, runningPodID )
         return self._update( sqlUpdate )
 
+    # The runningPod does not exits in DB, has to be inserted
+
+    fields = [ 'RunningPod', 'CampaignStartDate', 'CampaignEndDate', 'Status']
+    values = [ runningPodName, runningPodDict['CampaignStartDate'], runningPodDict['CampaignEndDate'], 'New']
+
+    return self._insert( tableName , fields, values )
+
+
 
   def checkImageStatus( self, imageName, runningPodName = "" ):
     """ 

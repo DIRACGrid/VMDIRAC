@@ -79,15 +79,12 @@ class VirtualMachineDB( DB ):
   tablesDesc = {}
 
   tablesDesc[ 'vm_Images' ] = { 'Fields' : { 'VMImageID' : 'BIGINT UNSIGNED AUTO_INCREMENT NOT NULL',
-                                             'RunningPodID' : 'INTEGER UNSIGNED NOT NULL',
                                              'Name' : 'VARCHAR(255) NOT NULL',
                                              'Status' : 'VARCHAR(16) NOT NULL',
                                              'LastUpdate' : 'DATETIME',
                                              'ErrorMessage' : 'VARCHAR(255) NOT NULL DEFAULT ""',
                                            },
                                'PrimaryKey' : 'VMImageID',
-                               'Indexes': { 'Image': [ 'Name', 'RunningPodID' ]
-                                          }
                              }
 
   tablesDesc[ 'vm_Instances' ] = { 'Fields' : { 'InstanceID' : 'BIGINT UNSIGNED AUTO_INCREMENT NOT NULL',
@@ -264,22 +261,18 @@ class VirtualMachineDB( DB ):
       return runningPodDict
     runningPodDict = runningPodDict[ 'Value' ]
 
-    runningPodID = self.getFields( tableName, [ idName ], { 'RunningPod' : runningPodName } )
+    runningPodID = self._getFields( tableName, [ idName ], [ 'RunningPod' ], [ runningPodName ] )
     if not runningPodID[ 'OK' ]:
       return runningPodID
-    if not runningPodID[ 'Value' ]:
-      # The runningPod does not exits in DB, has to be inserted
-      fields = [ 'RunningPod', 'CampaignStartDate', 'CampaignEndDate', 'Status']
-      values = [ runningPodName, runningPodDict['CampaignStartDate'], runningPodDict['CampaignEndDate'], 'New']
-      return self._insert( tableName , fields, values )
+    #runningPodID = runningPodID[ 'Value' ][0][0]
 
-    runningPodID = runningPodID[ 'Value' ][0][0]
-
-    if runningPodID > 0: 
-      # updating CampaignStartDate, CampaignEndDate
-      sqlUpdate = 'UPDATE `%s` SET CampaignStartDate = "%s", CampaignEndDate = "%s" WHERE %s = %s' % \
+    if runningPodID[ 'Value' ]:
+      runningPodID = runningPodID[ 'Value' ][0][0]
+      if runningPodID > 0:
+        # updating CampaignStartDate, CampaignEndDate
+        sqlUpdate = 'UPDATE `%s` SET CampaignStartDate = "%s", CampaignEndDate = "%s" WHERE %s = %s' % \
           ( tableName, runningPodDict['CampaignStartDate'], runningPodDict['CampaignEndDate'], idName, runningPodID )
-      return self._update( sqlUpdate )
+        return self._update( sqlUpdate )
 
 
   def checkImageStatus( self, imageName, runningPodName = "" ):
@@ -725,7 +718,7 @@ class VirtualMachineDB( DB ):
     #Main fields
     tables = ( "`vm_Images` AS img", "`vm_Instances` AS inst")
     imageFields = ( 'VMImageID', 'Name')
-    instanceFields = ( 'RunningPod', 'InstanceID', 'Name', 'UniqueID', 'VMImageID',
+    instanceFields = ( 'RunningPod', 'InstanceID', 'Endpoint', 'Name', 'UniqueID', 'VMImageID',
                        'Status', 'PublicIP', 'Status', 'ErrorMessage', 'LastUpdate', 'Load', 'Uptime', 'Jobs' )
 
     fields = [ 'img.%s' % f for f in imageFields ] + [ 'inst.%s' % f for f in instanceFields ]
@@ -1227,7 +1220,13 @@ class VirtualMachineDB( DB ):
 
     if not currentState in allowedStates:
       msg = 'Transition ( %s -> %s ) not allowed' % ( currentState, state )
-      return S_ERROR( msg )
+      if currentState == "Halted":
+        val_state = "halt"
+      elif currentState == "Stopping":
+        val_state = "stop"
+      else:
+        val_state = currentState
+      return {'OK': False, "Message": msg, 'State': val_state }
 
     tableName, _validStates, idName = self.__getTypeTuple( element )
     

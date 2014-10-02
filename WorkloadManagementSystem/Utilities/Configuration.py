@@ -431,11 +431,12 @@ class ImageConfiguration( object ):
    
     imageOptions = gConfig.getOptionsDict( '/Resources/VirtualMachines/Images/%s' % imageName )
     if not imageOptions[ 'OK' ]:
-      self.log.error( imageOptions[ 'Messages' ] )
+      self.log.error( imageOptions[ 'Message' ] )
       imageOptions = {}
     else:
       imageOptions = imageOptions[ 'Value' ] 
   
+    self.__ic_DIRACImageName  = imageName
     self.__ic_bootImageName  = imageOptions.get( 'bootImageName'     , None )
     self.__ic_contextMethod  = imageOptions.get( 'contextMethod'     , None )
     self.__ic_flavorName     = imageOptions.get( 'flavorName'        , None )
@@ -445,6 +446,7 @@ class ImageConfiguration( object ):
   def config( self ):
     
     config = {
+              'DIRACImageName' : self.__ic_DIRACImageName,
               'bootImageName' : self.__ic_bootImageName,
               'contextMethod' : self.__ic_contextMethod,
               'flavorName'    : self.__ic_flavorName,  
@@ -455,6 +457,8 @@ class ImageConfiguration( object ):
 
   def validate( self ):
     
+    if self.__ic_DIRACImageName is None:
+      return S_ERROR( 'self._ic_DIRACImageName is None' )
     if self.__ic_bootImageName is None:
       return S_ERROR( 'self._ic_bootImageName is None' )
     if self.__ic_contextMethod is None:
@@ -469,6 +473,7 @@ class ImageConfiguration( object ):
     
     self.log.info( 'Displaying image info' )
     self.log.info( '*' * 50 )
+    self.log.info( 'ic_DIRACImageName %s' % self.__ic_DIRACImageName )
     self.log.info( 'ic_bootImageName %s' % self.__ic_bootImageName )
     self.log.info( 'ic_contextMethod %s' % self.__ic_contextMethod )
     for key, value in self.__ic_contextConfig.config().iteritems():

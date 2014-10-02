@@ -96,7 +96,10 @@ class OcciImage:
     elif self.__occiConfig.cloudDriver() == 'rocci-1.1':
       if auth == 'proxy':
         from VMDIRAC.WorkloadManagementSystem.Client.Rocci11 import OcciClient
-        self.__cliocci = OcciClient(userCredPath, self.__occiConfig.config(), self.__imageConfig.config())
+        self.__cliocci = OcciClient(userCredPath, None, None, self.__occiConfig.config(), self.__imageConfig.config())
+      elif auth == 'userpasswd':
+        from VMDIRAC.WorkloadManagementSystem.Client.Rocci11 import OcciClient
+        self.__cliocci = OcciClient(None, user, secret, self.__occiConfig.config(), self.__imageConfig.config())
       else:
         self.__errorStatus = "%s is not supported auth method for %s driver" % (auth,self.__occiConfig.cloudDriver())
         self.log.error( self.__errorStatus )
@@ -117,15 +120,16 @@ class OcciImage:
 
     return S_OK( request.stdout )
 
-  def startNewInstance( self, cpuTime, submitPool="Cloud" ):
+  def startNewInstance( self, cpuTime = None, submitPool = None, runningPodRequirements = None, instanceID = None ):
     """
     Prior to use, virtual machine images are uploaded to the OCCI cloud manager assigned an id (OII in a URI). 
+    cpuTime and submitPool have been scheck ad VMDIRECTOR level, used for maintenance ONE 0.8 drivers
     """
     if self.__errorStatus:
       return S_ERROR( self.__errorStatus )
 
     self.log.info( "Starting new instance for DIRAC image: %s; to endpoint %s" % ( self.imageName, self.endPoint) )
-    request = self.__cliocci.create_VMInstance(cpuTime,submitPool)
+    request = self.__cliocci.create_VMInstance(cpuTime,submitPool,runningPodRequirements,instanceID)
     if request.returncode != 0:
       self.__errorStatus = "Can't create instance for DIRAC image: %s; to endpoint %s" % ( self.imageName, self.endPoint) 
       self.log.error( self.__errorStatus )

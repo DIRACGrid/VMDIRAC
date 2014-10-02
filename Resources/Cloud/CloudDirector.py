@@ -37,7 +37,7 @@ class CloudDirector( VMDirector ):
     """
     VMDirector.configureFromSection( self, mySection )
 
-  def _submitInstance( self, imageName, endpoint, CPUTime, instanceID, submitPool ):
+  def _submitInstance( self, imageName, endpoint, instanceID, runningRequirementsDict ):
     """
       Real backend method to submit a new Instance of a given Image
       It has the decision logic of sumbission to the multi-endpoint, from the available from a given imageName, first approach: FirstFit 
@@ -73,7 +73,12 @@ class CloudDirector( VMDirector ):
       connOcci = oima.connectOcci()
       if not connOcci[ 'OK' ]:
         return connOcci
-      result = oima.startNewInstance( CPUTime, submitPool )
+
+      # CPUTime and  SubmitPool are for maintenance of old occi 0.8 like, checked at VMDIRECTOR father class
+      # DIRAC instanceID used instead of metadata service not installed in most opennebula sites
+      CPUTime = runningRequirementsDict['CPUTime']
+      submitPool = runningRequirementsDict['SubmitPool']
+      result = oima.startNewInstance( CPUTime, submitPool, runningRequirementsDict, instanceID )
       if not result[ 'OK' ]:
         return result
       idInstance = result['Value']
@@ -84,7 +89,7 @@ class CloudDirector( VMDirector ):
       connNova = nima.connectNova()
       if not connNova[ 'OK' ]:
         return connNova
-      result = nima.startNewInstance( instanceID )
+      result = nima.startNewInstance( instanceID, runningRequirementsDict )
       if not result[ 'OK' ]:
         return result
       return S_OK( result['Value'] )

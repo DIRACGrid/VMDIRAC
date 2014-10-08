@@ -271,7 +271,7 @@ class VirtualMachineScheduler( AgentModule ):
 
     for directorName, imageOfJobsToSubmitDict in imagesToSubmit.items():
       for imageName, jobsToSubmitDict in imageOfJobsToSubmitDict.items():
-        if self.directors[directorName]['isEnabled']:
+        if self.directors[directorName]['isEnabled'] and self.__isConnectionToEndpoint(endpoint):
           self.log.info( 'Requesting submission of %s to %s' % ( imageName, directorName ) )
 
           director = self.directors[directorName]['director']
@@ -363,6 +363,14 @@ class VirtualMachineScheduler( AgentModule ):
         break
 
     return DIRAC.S_OK( pilotsToSubmit )
+
+  def __isConnectionToEndpoint( self, endpoint):
+    driver = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, "cloudDriver" ) ) 
+    if driver == 'Amazon':
+      from VMDIRAC.WorkloadManagementSystem.Client.AmazonImage  import AmazonImage
+      inst = AmazonImage( endpoint )
+      return inst.isConnected()
+    return True
 
   def __checkSubmitPools( self ):
     # this method is called at initialization and at the beginning of each execution cycle

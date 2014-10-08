@@ -50,10 +50,10 @@ class CloudDirector( VMDirector ):
 
     if driver == 'Amazon':
       try:
-        ami = AmazonImage( imageName, endpoint )
+        ami = AmazonImage( endpoint )
       except Exception:
         return S_ERROR("Failed to connect to AWS")  
-      result = ami.startNewInstances()
+      result = ami.startNewInstances(imageName)
       if not result[ 'OK' ]:
         return result
       idInstance = result['Value'][0]

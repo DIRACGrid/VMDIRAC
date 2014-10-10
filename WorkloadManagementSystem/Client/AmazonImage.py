@@ -102,7 +102,7 @@ class AmazonImage:
     return gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( self.__endpoint, option ), defValue )
 
   def __getMaxAllowedPrice( self, imageName):
-    price = self.__getCSImageOption( "MaxAllowedPrice", 0.0 )
+    price = self.__getCSImageOption( imageName, "MaxAllowedPrice", 0.0 )
     if price:
       return price
     else:

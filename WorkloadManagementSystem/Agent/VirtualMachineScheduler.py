@@ -190,6 +190,7 @@ class VirtualMachineScheduler( AgentModule ):
         cloudEndpoints = [element for element in cloudEndpointsStr.split( ',' )]
         shuffle( cloudEndpoints )
         self.log.info( 'cloudEndpoints random failover: %s' % cloudEndpoints )
+        numVMs = 0
         numVMsToSubmit = {}
         for endpoint in cloudEndpoints:
           self.log.info( 'Checking to submit to: %s' % endpoint )
@@ -225,7 +226,7 @@ class VirtualMachineScheduler( AgentModule ):
               numVMs = 1
             if vmPolicy == 'static':
               numVMs = maxEndpointInstances - endpointInstances
-            numVMsToSubmit.update({str(endpoint): int(numVMs) })
+          numVMsToSubmit.update({str(endpoint): int(numVMs) })
 
           # site to match with TQ:
           siteToMatch = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, 'siteName' ), "" )
@@ -271,7 +272,7 @@ class VirtualMachineScheduler( AgentModule ):
 
     for directorName, imageOfJobsToSubmitDict in imagesToSubmit.items():
       for imageName, jobsToSubmitDict in imageOfJobsToSubmitDict.items():
-        if self.directors[directorName]['isEnabled'] and self.__isConnectionToEndpoint(endpoint):
+        if self.directors[directorName]['isEnabled'] and numVMs > 0 and self.__isConnectionToEndpoint(endpoint):
           self.log.info( 'Requesting submission of %s to %s' % ( imageName, directorName ) )
 
           director = self.directors[directorName]['director']

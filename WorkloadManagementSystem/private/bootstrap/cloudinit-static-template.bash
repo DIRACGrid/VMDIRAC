@@ -80,7 +80,7 @@ install_wget() {
 if [ ! `which wget` ]
 then
   echo "Wget not installed. Installing"
-  yum install -y wget
+  install_wget
 fi
 
 if [ ${vmRunJobAgentURL} != 'nouse' ]

@@ -77,7 +77,8 @@ get_packaging_system() {
 
 install_wget() {
     get_packaging_system
-    $PACKAGE_MANAGER -y install wget
+    [ ! -z $PACKAGE_MANAGER ] && $PACKAGE_MANAGER -y install wget
+
 }
 
 if [ ! `which wget` ]

@@ -58,8 +58,28 @@ echo "vmStopPolicy $vmStopPolicy" >> /var/log/contextualize-script.log 2>&1
 # vmcert and key have been previoslly copy to VM, these paths are local, the rest of files are on some repo... 
 # 1) download the necesary files:
 
+get_packaging_system() {
+    YUM_CMD=$(which yum)
+    APT_GET_CMD=$(which apt-get)
+    PACKAGE_MANAGER="apt-get"
+
+    if [ ! -z $YUM_CMD ]
+    then
+        echo "RedHat based"
+        PACKAGE_MANAGER="yum"
+    else
+        echo "Package manager not implemented."
+    fi
+}
+
+install_wget() {
+    get_packaging_system
+    $PACKAGE_MANAGER -y install wget
+}
+
 if [ ! `which wget` ]
 then
+  echo "Wget not installed. Installing"
   yum install -y wget
 fi
 

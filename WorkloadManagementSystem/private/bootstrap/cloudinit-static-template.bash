@@ -61,12 +61,15 @@ echo "vmStopPolicy $vmStopPolicy" >> /var/log/contextualize-script.log 2>&1
 get_packaging_system() {
     YUM_CMD=$(which yum)
     APT_GET_CMD=$(which apt-get)
-    PACKAGE_MANAGER="apt-get"
 
     if [ ! -z $YUM_CMD ]
     then
         echo "RedHat based"
         PACKAGE_MANAGER="yum"
+    elif [ ! -z $APT_GET_CMD ]
+    then
+        echo "Debian based"
+        PACKAGE_MANAGER="apt-get"
     else
         echo "Package manager not implemented."
     fi

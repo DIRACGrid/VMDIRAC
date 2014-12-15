@@ -109,7 +109,7 @@ class OcciClient:
     if userCredPath is not None:
       self.__authArg = ' --auth x509 --user-cred ' + self.__userCredPath + ' --voms '
     else:
-      self.__authArg = ' --auth digest --username %s --password %s ' % (self.__user, self.__password)
+      self.__authArg = ' --auth basic --username %s --password %s ' % (self.__user, self.__password)
 
   def check_connection(self, timelife = 10):
     """
@@ -150,6 +150,11 @@ class OcciClient:
 
     vmName = osTemplateName + '_' + contextMethod + '_' + str( time.time() )[0:10]
 
+    if flavorName != 'nouse':
+      flavorArg = ' --mixin resource_tpl#' + flavorName + ' '
+    else:
+      flavorArg = ' '
+
     request = Request()
 
     if contextMethod == 'cloudinit':
@@ -161,17 +166,14 @@ class OcciClient:
         return result
       composedUserdataPath = result[ 'Value' ] 
       self.log.info( "cloudinitScript : %s" % composedUserdataPath )
-      with open( composedUserdataPath, 'r' ) as userDataFile: 
-        userdata = ''.join( userDataFile.readlines() )
+#      with open( composedUserdataPath, 'r' ) as userDataFile: 
+#        userdata = ''.join( userDataFile.readlines() )
 
-#      print "rocci userdata: "
-#      print userdata
-
-      command = 'occi --endpoint ' + occiURI + '  --action create --resource compute --mixin os_tpl#' + osTemplateName + ' --mixin resource_tpl#' + flavorName + ' --attribute occi.core.title="' + vmName + '" --output-format json ' + self.__authArg + ' --context user_data="file://%s"' % composedUserdataPath
-#      command = 'occi --endpoint ' + occiURI + '  --action create --resource compute --mixin os_tpl#' + osTemplateName + ' --mixin resource_tpl#' + flavorName + ' --attribute occi.core.title="' + vmName + '" --output-format json ' + self.__authArg + ' --context user_data="%s"' % userdata
+      command = 'occi --endpoint ' + occiURI + '  --action create --resource compute --mixin os_tpl#' + osTemplateName + flavorArg + ' --attribute occi.core.title="' + vmName + '" --output-format json ' + self.__authArg + ' --context user_data="file://%s"' % composedUserdataPath
+#      command = 'occi --endpoint ' + occiURI + '  --action create --resource compute --mixin os_tpl#' + osTemplateName + flavorArg + ' --attribute occi.core.title="' + vmName + '" --output-format json ' + self.__authArg + ' --context user_data="%s"' % userdata
 
     else:
-      command = 'occi --endpoint ' + occiURI + '  --action create --resource compute --mixin os_tpl#' + osTemplateName + ' --mixin resource_tpl#' + flavorName + ' --attribute occi.core.title="' + vmName + '" --output-format json ' + self.__authArg
+      command = 'occi --endpoint ' + occiURI + '  --action create --resource compute --mixin os_tpl#' + osTemplateName + flavorArg + ' --attribute occi.core.title="' + vmName + '" --output-format json ' + self.__authArg
 
     request.exec_no_wait(command)
 
@@ -185,45 +187,29 @@ class OcciClient:
     # FIXME use simplejson, filtering non-json output lines
 
     searchstr = occiURI + '/compute/'
-    first = request.stdout.find(searchstr) 
+    first = request.stdout.find(searchstr)
     if first < 0:
       request.returncode = 1
       return request
     first += len(searchstr)
     last = len(request.stdout)
-    iD = request.stdout[first:last]
+    iD = request.stdout
  
     # giving time sleep to REST API caching the instance to be available:
     time.sleep( 5 )
 
-    # TODO: getting IP should go in a standar way
-    # rocci 4.2.5 client is reading stdin for describe, when actually expecting nothing
-    # Popen could give ioctl for None or if PIPE then the stdin redirection (-) 
-    # for this reason rocci 4.2.5 could not sucessful reply from Popen, giving stdin argument error
-    # As workaround I have prepare the following HACK, which is compatible with previous rocci releases:
-    # occi command will fail, but I put debug option to occi, and capture stderr to stdout then redirect to a /tmp/[iD]
-    command = 'occi -d --endpoint ' + occiURI + '  --action describe --resource /compute/' + iD + ' ' + self.__authArg + ' 2>&1 | grep occi.networkinterface.address >/tmp/' + iD
+    command = 'occi --endpoint ' + occiURI + '  --action describe --resource ' + iD + ' ' + self.__authArg + ' --output-format json_extended'
 
     request.exec_and_wait(command)
 
-    # continue HACK: I open the occi debug file containing the ip line (actually a couple of lines, only one valid)
-    filepath='/tmp/' + iD
-    hackstr=''
-    with open(filepath) as fp:
-      for line in fp:
-        hackstr=hackstr + line
-    os.remove(filepath)
-
-    # searchstr = '\"networkinterface\":{\"address\":\"'
-    searchstr = 'occi.networkinterface.address='
-    first = hackstr.find(searchstr) 
-    if first < 0:
+    infoDict = simplejson.loads(request.stdout)
+    try:
+      publicIP = infoDict[0]['links'][1]['attributes']['occi']['networkinterface']['address']
+    except Exception as e:
+      self.log.error( 'The description of %s does not include the ip address: ' % iD, e )
       request.returncode = 1
       return request
-    first += len(searchstr) + 2
     request.returncode = 0
-    last = hackstr.find("\"", first) - 1
-    publicIP = hackstr[first:last]
     request.stdout = iD + ', ' + publicIP 
     return request
   
@@ -233,7 +219,7 @@ class OcciClient:
     """
     occiURI  = self.endpointConfig[ 'occiURI' ]
     request = Request()
-    command = 'occi --endpoint ' + occiURI + '  --action delete --resource /compute/' + instanceId + ' --output-format json ' + self.__authArg
+    command = 'occi --endpoint ' + occiURI + '  --action delete --resource ' + instanceId + ' --output-format json ' + self.__authArg
 
     request.exec_no_wait(command)
 
@@ -250,7 +236,7 @@ class OcciClient:
     """
     occiURI  = self.endpointConfig[ 'occiURI' ]
     request = Request()
-    command = 'occi --endpoint ' + occiURI + '  --action describe --resource /compute/' + instanceId + ' --output-format json ' + self.__authArg
+    command = 'occi --endpoint ' + occiURI + '  --action describe --resource ' + instanceId + ' --output-format json ' + self.__authArg
 
     request.exec_no_wait(command)
 

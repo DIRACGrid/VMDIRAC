@@ -121,7 +121,11 @@ class BuildCloudinitScript:
     # dynamic runningPod requirements for LocalSite
     file.write("cat << 'EOF' > /root/LocalSiteRequirements\n")
     for key, value in runningPodRequirements.items():
-      file.write('%s=%s\n' % (key,value))
+      if type(value) is list:
+        file.write('%s=%s\n' % (key,','.join(value)))
+      else:
+        file.write('%s=%s\n' % (key,value))
+
     file.write("EOF\n")
 
     # 0) Previous copy of necessary files using build in cloudinit script

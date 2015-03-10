@@ -283,7 +283,7 @@ class VirtualMachineManagerHandler( RequestHandler ):
       gLogger.info( 'Declare instance halting:  %s, endpoint: %s imageName: %s' % (str(uniqueID),endpoint,imageName) )
       awsima = None
       try:
-        awsima = AmazonImage( imageName, endpoint )
+        awsima = AmazonImage( endpoint )
       except Exception:
         gLogger.error("Failed to connect to AWS")
         pass

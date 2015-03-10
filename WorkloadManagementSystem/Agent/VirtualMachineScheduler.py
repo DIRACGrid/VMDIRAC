@@ -190,6 +190,7 @@ class VirtualMachineScheduler( AgentModule ):
         cloudEndpoints = [element for element in cloudEndpointsStr.split( ',' )]
         shuffle( cloudEndpoints )
         self.log.info( 'cloudEndpoints random failover: %s' % cloudEndpoints )
+        numVMs = 0
         numVMsToSubmit = {}
         for endpoint in cloudEndpoints:
           self.log.info( 'Checking to submit to: %s' % endpoint )
@@ -225,7 +226,7 @@ class VirtualMachineScheduler( AgentModule ):
               numVMs = 1
             if vmPolicy == 'static':
               numVMs = maxEndpointInstances - endpointInstances
-            numVMsToSubmit.update({str(endpoint): int(numVMs) })
+          numVMsToSubmit.update({str(endpoint): int(numVMs) })
 
           # site to match with TQ:
           siteToMatch = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, 'siteName' ), "" )
@@ -271,7 +272,7 @@ class VirtualMachineScheduler( AgentModule ):
 
     for directorName, imageOfJobsToSubmitDict in imagesToSubmit.items():
       for imageName, jobsToSubmitDict in imageOfJobsToSubmitDict.items():
-        if self.directors[directorName]['isEnabled']:
+        if self.directors[directorName]['isEnabled'] and numVMs > 0 and self.__isConnectionToEndpoint(endpoint):
           self.log.info( 'Requesting submission of %s to %s' % ( imageName, directorName ) )
 
           director = self.directors[directorName]['director']
@@ -363,6 +364,14 @@ class VirtualMachineScheduler( AgentModule ):
         break
 
     return DIRAC.S_OK( pilotsToSubmit )
+
+  def __isConnectionToEndpoint( self, endpoint):
+    driver = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, "cloudDriver" ) ) 
+    if driver == 'Amazon':
+      from VMDIRAC.WorkloadManagementSystem.Client.AmazonImage  import AmazonImage
+      inst = AmazonImage( endpoint )
+      return inst.isConnected()
+    return True
 
   def __checkSubmitPools( self ):
     # this method is called at initialization and at the beginning of each execution cycle

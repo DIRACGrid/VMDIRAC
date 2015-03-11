@@ -138,6 +138,11 @@ class AmazonImage:
     if self.__errorStatus:
       return S_ERROR( self.__errorStatus )
 
+    imageConfig = ImageConfiguration(imageName)
+    imageConfigStatus = imageConfig.validate()
+    if not imageConfigStatus[ 'OK' ]:
+      self.log.error(imageConfigStatus)
+
     if not instanceType:
       instanceType = self.__getCSImageOption( imageName, 'InstanceType' , "m1.large" )
 

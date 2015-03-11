@@ -175,7 +175,18 @@ class AmazonImage:
                                         max_count = numImages,
                                         user_data = userData,
                                         key_name = keyname,
-                                        instance_type = instanceType ) 
+                                        instance_type = instanceType )
+      elif self.imageConfig[ 'contextMethod' ] == 'cloudinit':
+        userDataPath = self.imageConfig[ 'contextConfig' ].get( 'ex_userdata', None )
+        keyname  = self.imageConfig[ 'contextConfig' ].get( 'ex_keyname' , None )
+        userData = ""
+        with open( userDataPath, 'r' ) as userDataFile: 
+          userData = ''.join( userDataFile.readlines() )
+        reservation = self.__vmImage.run( min_count = numImages,
+                                        max_count = numImages,
+                                        user_data = userData,
+                                        key_name = keyname,
+                                        instance_type = instanceType )
       else:
         reservation = self.__vmImage.run( min_count = numImages,
                                         max_count = numImages,

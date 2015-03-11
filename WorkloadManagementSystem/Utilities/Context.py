@@ -48,7 +48,7 @@ class ContextConfig( object ):
     """
     if cls is ContextConfig:
       if contextName == 'cloudinit':
-        cls = CloudInit
+        cls = CloudInitContext
       elif contextName == 'ssh':
         cls = SSHContext
       elif contextName == 'adhoc':
@@ -126,7 +126,7 @@ class ContextConfig( object ):
 #...............................................................................
 # CloudInit Context
 
-class CloudInit( ContextConfig):
+class CloudInitContext( ContextConfig):
   """
   CloudInit defines the following mandatory keys:
   * ex_keyname   : the virtualmachine key name earlier uploaded/generated in cloud

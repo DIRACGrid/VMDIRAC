@@ -89,7 +89,7 @@ class AmazonImage:
       self.log.info( "Amazon image for endpoint %s initialized" % endpoint )
 
   def __getAMI( self, imageName):
-    imageAMI = self.__getCSImageOption( imageName, "AMI" )
+    imageAMI = self.__getCSImageOption( imageName, "bootImageName" )
     if not imageAMI:
       self.__errorStatus = "Can't find AMI for image %s" % imageName
       self.log.error( self.__errorStatus )
@@ -144,7 +144,7 @@ class AmazonImage:
       self.log.error(imageConfigStatus)
 
     if not instanceType:
-      instanceType = self.__getCSImageOption( imageName, 'InstanceType' , "m1.large" )
+      instanceType = self.__getCSImageOption( imageName, 'flavorName' , "m1.large" )
 
     if forceNormalInstance or not self.__getMaxAllowedPrice(imageName):
       return self.__startNormalInstances( imageName, numImages, instanceType, waitForConfirmation )

@@ -139,7 +139,7 @@ class AmazonImage:
       return S_ERROR( self.__errorStatus )
 
     if not instanceType:
-      instanceType = self.__getCSImageOption( 'InstanceType' , "m1.large" )
+      instanceType = self.__getCSImageOption( imageName, 'InstanceType' , "m1.large" )
 
     if forceNormalInstance or not self.__getMaxAllowedPrice(imageName):
       return self.__startNormalInstances( imageName, numImages, instanceType, waitForConfirmation )

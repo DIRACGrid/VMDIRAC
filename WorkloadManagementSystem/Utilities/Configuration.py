@@ -458,13 +458,13 @@ class ImageConfiguration( object ):
   def validate( self ):
     
     if self.__ic_DIRACImageName is None:
-      return S_ERROR( 'self._ic_DIRACImageName is None' )
+      return S_ERROR( 'Specific image section does not exits in Images' )
     if self.__ic_bootImageName is None:
-      return S_ERROR( 'self._ic_bootImageName is None' )
+      return S_ERROR( 'bootImageName option is None' )
     if self.__ic_contextMethod is None:
-      return S_ERROR( 'self._ic_contextMethod is None' )
+      return S_ERROR( 'contextMethod option is None' )
     if self.__ic_flavorName is None:
-      return S_ERROR( 'self._ic_flavorName is None' )
+      return S_ERROR( 'flavorName option is None' )
    
     validateContext = self.__ic_contextConfig.validate()
     if not validateContext[ 'OK' ]:

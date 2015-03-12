@@ -332,6 +332,116 @@ class NovaConfiguration( EndpointConfiguration ):
 
 #...............................................................................  
 
+class AmazonConfiguration( EndpointConfiguration ):
+  """
+  AmazonConfiguration Class parses the section <amazonEndpoint> 
+  and builds a configuration if possible, with the information obtained from the CS.
+  """
+
+  # Keys that MUST be present on ANY Amazon CloudEndpoint configuration in the CS
+  MANDATORY_KEYS = [ 'accessKey', 'secretKey', 'cloudDriver', 'vmPolicy', 'vmStopPolicy', 'siteName', 'endpointURL', 'regionName', 'maxEndpointInstances', 'auth' ]
+    
+  def __init__( self, amazonEndpoint ):
+    """
+    Constructor
+    
+    :Parameters:
+      **amazonEndpoint** - `string`
+        string with the name of the CloudEndpoint defined on the CS
+    """
+    super( AmazonConfiguration, self ).__init__() 
+      
+    amazonOptions = gConfig.getOptionsDict( '%s/%s' % ( self.ENDPOINT_PATH, amazonEndpoint ) )
+    if not amazonOptions[ 'OK' ]:
+      self.log.error( amazonOptions[ 'Message' ] )
+      amazonOptions = {}
+    else:
+      amazonOptions = amazonOptions[ 'Value' ] 
+
+    # FIXME: make it generic !
+
+    # Purely endpoint configuration ............................................              
+    # This two are passed as arguments, not keyword arguments
+    self.__accessKey               = amazonOptions.get( 'accessKey'                   , None )
+    self.__secretKey               = amazonOptions.get( 'secretKey'                   , None )
+    self.__cloudDriver             = amazonOptions.get( 'cloudDriver'            , None )
+    self.__vmStopPolicy            = amazonOptions.get( 'vmStopPolicy'           , None )
+    self.__vmPolicy                = amazonOptions.get( 'vmPolicy'               , None )
+    self.__siteName                = amazonOptions.get( 'siteName'               , None )
+    self.__endpointURL             = amazonOptions.get( 'endpointURL'                 , None )
+    self.__regionName              = amazonOptions.get( 'regionName'                 , None )
+    self.__maxEndpointInstances    = amazonOptions.get( 'maxEndpointInstances'   , None )
+    self.__maxOportunisticEndpointInstances    = amazonOptions.get( 'maxOportunisticEndpointInstances'   , 0 )
+    self.__cvmfs_http_proxy        = amazonOptions.get( 'cvmfs_http_proxy'        , None )
+    
+    self.__auth                    = amazonOptions.get( 'auth'       , None )
+
+  def config( self ):
+    
+    config = {}
+    
+    config[ 'auth' ]                    = self.__auth
+    config[ 'accessKey' ]               = self.__accessKey
+    config[ 'secretKey' ]               = self.__secretKey
+
+    config[ 'cloudDriver' ]             = self.__cloudDriver
+    config[ 'vmPolicy' ]                = self.__vmPolicy
+    config[ 'vmStopPolicy' ]            = self.__vmStopPolicy
+    config[ 'siteName' ]                = self.__siteName
+    config[ 'endpointURL' ]                = self.__endpointURL
+    config[ 'regionName' ]                = self.__regionName
+    config[ 'maxEndpointInstances' ]    = self.__maxEndpointInstances
+    config[ 'maxOportunisticEndpointInstances' ]    = self.__maxOportunisticEndpointInstances
+    config[ 'cvmfs_http_proxy' ]        = self.__cvmfs_http_proxy
+
+    # Do not return dictionary with None values
+    for key, value in config.items():
+      if value is None:
+        del config[ key ]
+        
+    return config  
+
+  def validate( self ):
+    
+  
+    endpointConfig = self.config()
+
+ 
+    missingKeys = set( self.MANDATORY_KEYS ).difference( set( endpointConfig.keys() ) ) 
+    if missingKeys:
+      return S_ERROR( 'Missing mandatory keys on endpointConfig %s' % str( missingKeys ) )
+    
+    # on top of the MANDATORY_KEYS, we make sure the corresponding auth parameters are set:
+    if self.__auth == 'secretaccesskey':
+      if self.__accessKey is None:
+        return S_ERROR( 'accessKey is None' )
+      if self.__secretKey is None:
+        return S_ERROR( 'secretKey is None' )
+    else:
+      return S_ERROR( 'endpoint auth: %s not defined (secretaccesskey)' % self.__auth)
+    
+    self.log.info( '*' * 50 )
+    self.log.info( 'Displaying endpoint info' )
+    for key, value in endpointConfig.iteritems():
+      if key == 'accessKey':
+        self.log.info( '%s : *********' % ( key ) )
+      elif key == 'secretKey':
+        self.log.info( '%s : *********' % ( key ) )
+      else:
+        self.log.info( '%s : %s' % ( key, value ) )
+    self.log.info( 'accessKey and secretKey are NOT printed.')
+    
+    return S_OK()
+
+  def authConfig( self ):
+    
+    if self.__auth == 'secretaccesskey':
+      return ( self.__auth, self.__acccessKey, self.__secretKey )
+    else:
+      return S_ERROR( 'endpoint auth: %s not defined (userpasswd/proxy)' % self.__auth)
+
+#...............................................................................  
+
 class StratusLabConfiguration( EndpointConfiguration ):
   """
   Class that parses the <stratusLabEndpoint> section of the configuration and

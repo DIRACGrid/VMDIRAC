@@ -48,7 +48,7 @@ class ContextConfig( object ):
     """
     if cls is ContextConfig:
       if contextName == 'cloudinit':
-        cls = SSHContext
+        cls = CloudInitContext
       elif contextName == 'ssh':
         cls = SSHContext
       elif contextName == 'adhoc':
@@ -111,7 +111,7 @@ class ContextConfig( object ):
   
     missingKeys = set( self.MANDATORY_KEYS ).difference( set( contextConfig.keys() ) ) 
     if missingKeys:
-      return S_ERROR( 'Missing mandatory keys on endpointConfig %s' % str( missingKeys ) )
+      return S_ERROR( 'Missing mandatory keys on ContextConfig %s' % str( missingKeys ) )
 
 #    self.log.info( '*' * 50 )
 #    self.log.info( 'Displaying context info' )
@@ -121,7 +121,20 @@ class ContextConfig( object ):
 #    self.log.info( '*' * 50 )
     
     return S_OK()  
-    
+
+
+#...............................................................................
+# CloudInit Context
+
+class CloudInitContext( ContextConfig):
+  """
+  CloudInit defines the following mandatory keys:
+  * ex_keyname   : the virtualmachine key name earlier uploaded/generated in cloud
+  * ex_userdata  : script path to run automatically on VM
+  """
+  MANDATORY_KEYS = [ 'ex_keyname', 'ex_userdata']
+
+
 #...............................................................................
 # SSH Context
 

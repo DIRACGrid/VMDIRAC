@@ -89,7 +89,7 @@ class AmazonImage:
       self.log.info( "Amazon image for endpoint %s initialized" % endpoint )
 
   def __getAMI( self, imageName):
-    imageAMI = self.__getCSImageOption( imageName, "AMI" )
+    imageAMI = self.__getCSImageOption( imageName, "bootImageName" )
     if not imageAMI:
       self.__errorStatus = "Can't find AMI for image %s" % imageName
       self.log.error( self.__errorStatus )
@@ -138,8 +138,13 @@ class AmazonImage:
     if self.__errorStatus:
       return S_ERROR( self.__errorStatus )
 
+    imageConfig = ImageConfiguration(imageName)
+    imageConfigStatus = imageConfig.validate()
+    if not imageConfigStatus[ 'OK' ]:
+      self.log.error(imageConfigStatus)
+
     if not instanceType:
-      instanceType = self.__getCSImageOption( 'InstanceType' , "m1.large" )
+      instanceType = self.__getCSImageOption( imageName, 'flavorName' , "m1.large" )
 
     if forceNormalInstance or not self.__getMaxAllowedPrice(imageName):
       return self.__startNormalInstances( imageName, numImages, instanceType, waitForConfirmation )
@@ -175,7 +180,18 @@ class AmazonImage:
                                         max_count = numImages,
                                         user_data = userData,
                                         key_name = keyname,
-                                        instance_type = instanceType ) 
+                                        instance_type = instanceType )
+      elif self.imageConfig[ 'contextMethod' ] == 'cloudinit':
+        userDataPath = self.imageConfig[ 'contextConfig' ].get( 'ex_userdata', None )
+        keyname  = self.imageConfig[ 'contextConfig' ].get( 'ex_keyname' , None )
+        userData = ""
+        with open( userDataPath, 'r' ) as userDataFile: 
+          userData = ''.join( userDataFile.readlines() )
+        reservation = self.__vmImage.run( min_count = numImages,
+                                        max_count = numImages,
+                                        user_data = userData,
+                                        key_name = keyname,
+                                        instance_type = instanceType )
       else:
         reservation = self.__vmImage.run( min_count = numImages,
                                         max_count = numImages,

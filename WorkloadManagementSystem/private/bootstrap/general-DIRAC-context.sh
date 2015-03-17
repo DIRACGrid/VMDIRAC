@@ -25,9 +25,13 @@ install_unzip() {
     get_packaging_system
     [ ! -z $PACKAGE_MANAGER ] && $PACKAGE_MANAGER -y update
     [ ! -z $PACKAGE_MANAGER ] && $PACKAGE_MANAGER -y install unzip
-
 }
 
+install_easy_install() {
+    get_packaging_system
+   [ ! -z $PACKAGE_MANAGER ] && $PACKAGE_MANAGER -y install python-setuptools
+   [ ! -z $PACKAGE_MANAGER ] && $PACKAGE_MANAGER -y install python-setuptools-devel
+}
 
         echo "Starting dirac-context-script.sh" > /var/log/dirac-context-script.log 2>&1
 
@@ -119,6 +123,11 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
         platform=`dirac-platform`
         # for the VM Monitor
         echo "Installing easy_install simplejson for the VM Monitor" >> /var/log/dirac-context-script.log 2>&1
+        if [ ! `which easy_install` ]
+        then
+  		echo "easy_install not installed. Installing">> /var/log/dirac-context-script.log 2>&1
+		install_easy_install
+        fi
         `which python` `which easy_install` simplejson >> /var/log/dirac-context-script.log 2>&1
         # getting RunningPodRequirements
         requirements=''

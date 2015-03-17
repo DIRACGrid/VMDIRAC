@@ -23,6 +23,7 @@ get_packaging_system() {
 
 install_unzip() {
     get_packaging_system
+    [ ! -z $PACKAGE_MANAGER ] && $PACKAGE_MANAGER -y update
     [ ! -z $PACKAGE_MANAGER ] && $PACKAGE_MANAGER -y install unzip
 
 }

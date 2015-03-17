@@ -28,15 +28,11 @@ class AmazonClient:
   AmazonClient ( v1.1 )
   """
 
-  def __init__( self, accessKey, secretKey, endpointConfig, imageConfig ):
+  def __init__( self, endpointConfig, imageConfig ):
     """
     Constructor of the AmazonClient
     
     :Parameters:
-      **accessKey** - `string`
-        accessKey that will be used on the authentication
-      **secretKey** - `string`
-        secretKey used on the authentication
       **endpointConfig** - `dict`
         dictionary with the endpoint configuration ( WMS.Utilities.Configuration.AmazonConfiguration )
       **imageConfig** - `dict`
@@ -50,11 +46,11 @@ class AmazonClient:
     self.imageConfig    = imageConfig
  
     # Variables needed to contact the service  
-    # from parameters accessKey and secretkey
-    self.__accessKey         = accessKey;
-    self.__secretKey         = secretKey;
+    self.__accessKey         = endpointConfig.get( 'accessKey', None )
+    self.__secretKey         = endpointConfig.get( 'secretKey', None )
     self.__endpointURL       = endpointConfig.get( 'endpointURL', None )
     self.__regionName        = endpointConfig.get( 'regionName', None )
+    self.__vmImage = None
     
   def check_connection( self ):
     """
@@ -80,9 +76,11 @@ class AmazonClient:
                        debug = _debug)
     except Exception, e:
       self.__errorStatus = "Can't connect to EC2: " + str(e)
-      self.log.error( self.__errorStatus )
+      return S_ERROR( self.__errorStatus )
+
+    return S_OK()
  
-  def create_VMInstance( self, vmdiracInstanceID, runningPodRequirements ):
+  def create_VMInstance( self, runningPodRequirements ):
     """
     This creates a VM instance for the given boot image 
     and creates a cloudinit script, taken the given parameters.
@@ -124,6 +122,7 @@ class AmazonClient:
     instanceType      = self.imageConfig[ 'flavorName' ]
     contextMethod     = self.imageConfig[ 'contextMethod' ]
     maxAllowedPrice   = self.imageConfig[ 'maxAllowedPrice' ]
+    keyName           = self.imageConfig[ 'keyName' ]
     cloudDriver       = self.endpointConfig[ 'cloudDriver' ]
     vmPolicy          = self.endpointConfig[ 'vmPolicy' ]
     vmStopPolicy      = self.endpointConfig[ 'vmStopPolicy' ]
@@ -159,7 +158,10 @@ class AmazonClient:
       with open( composedUserdataPath, 'r' ) as userDataFile: 
         userdata = ''.join( userDataFile.readlines() )
 
-    if not maxAllowedPrice:
+    if maxAllowedPrice is None:
+      maxAllowedPrice = 0
+
+    if maxAllowedPrice == 0:
       self.log.info( "Requesting normal instances" )
       self.log.info( "Starting new instance for AMI %s (type %s)" % ( 
                                                        AMI,
@@ -169,11 +171,13 @@ class AmazonClient:
             reservation = self.__vmImage.run( min_count = 1,
                                       max_count = 1,
                                       user_data = userdata,
+                                      key_name= keyName,
                                       instance_type = instanceType )
           else:
             #adhoc instance
             reservation = self.__vmImage.run( min_count = numImages,
                                       max_count = 1,
+                                      key_name= keyName,
                                       instance_type = instanceType )
       except Exception, e:
         return S_ERROR( "Could not start instance: %s" % str( e ) )
@@ -204,6 +208,7 @@ class AmazonClient:
                                 image_id = AMI,
                                 count = 1,
                                 user_data = userdata,
+                                key_name= keyName,
                                 instance_type = instanceType )
           else:
             #adhoc instance
@@ -211,6 +216,7 @@ class AmazonClient:
 				price = "%f" % maxAllowedPrice,
                                 image_id = AMI,
                                 count = 1,
+                                key_name= keyName,
                                 instance_type = instanceType )
 
           self.log.verbose( "Got spot instance request")

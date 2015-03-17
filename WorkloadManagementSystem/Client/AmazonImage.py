@@ -20,7 +20,7 @@ from DIRAC import gLogger, gConfig, S_OK, S_ERROR
 
 
 # VMDIRAC
-from VMDIRAC.WorkloadManagementSystem.Client.AmazonInstance import AmazonInstance
+from VMDIRAC.WorkloadManagementSystem.Client.AmazonInstance import AmazonClient
 from VMDIRAC.WorkloadManagementSystem.Utilities.Configuration import AmazonConfiguration, ImageConfiguration
 
 __RCSID__ = '$Id: $'
@@ -53,19 +53,18 @@ class AmazonImage:
     # they also provide a validate() method to make sure it is correct 
     self.__imageConfig = ImageConfiguration( imageName )    
     self.__amazonConfig  = AmazonConfiguration( endPoint )
-    
-    # this object will connect to the server. Better keep it private.                 
-    self.__cliamazon   = None
 
+    self.__cliamazon  = None
 
   def connectAmazon( self ):
     """
-    Method that issues the EC2 AWS connection in order 
-    to validates the CS configurations.
-     
+    Method that issues the connection with Amazon. 
+    In order to do it, validates the CS configurations.
+    auth secretaccesskey
+
     :return: S_OK | S_ERROR
     """
-    
+
     # Before doing anything, make sure the configurations make sense
     # ImageConfiguration
     validImage = self.__imageConfig.validate()
@@ -77,14 +76,14 @@ class AmazonImage:
       return validAmazon
 
     # Get authentication configuration
-    auth, accessKey, secretKey = self.__amazonConfig.authConfig()
-    if not auth == 'secretaccesskey':
-      self.__errorStatus = "auth not supported (currently secretaccesskey)"
-      self.log.error( self.__errorStatus )
-      return
+    # not needed jet, only secretaccesskey method
+    #if not auth == 'secretaccesskey':
+    #  self.__errorStatus = "auth not supported (currently secretaccesskey)"
+    #  self.log.error( self.__errorStatus )
+    #  return
    
-    # Create the amazon client objects in AmazonClient
-    self.__cliamazon = AmazonClient( accessKey=secretKey, accessKey=accessKey, endpointConfig=self.__amazonConfig.config(), imageConfig=self.__imageConfig.config() )
+    # this object will connect to the Amazon server. Better keep it private.   
+    self.__cliamazon = AmazonClient( endpointConfig=self.__amazonConfig.config(), imageConfig=self.__imageConfig.config() )
 
     # Check connection to the server
     result = self.__cliamazon.check_connection()
@@ -96,7 +95,7 @@ class AmazonImage:
       
     return result
    
-  def startNewInstance( self, vmdiracInstanceID, runningPodRequirements ):
+  def startNewInstance( self, runningPodRequirements ):
     """
     Once the connection is stablished using the `connectAmazon` method, we can boot
     nodes. To do so, the config in __imageConfig and __amazonConfig applied to
@@ -106,9 +105,9 @@ class AmazonImage:
     """
     
     self.log.info( "Booting %s / %s" % ( self.__imageConfig.config()[ 'bootImageName' ],
-                                         self.__amazonConfig.config()[ 'ex_force_auth_url' ] ) )
+                                         self.__amazonConfig.config()[ 'endpointURL' ] ) )
 
-    result = self.__cliamazon.create_VMInstance( vmdiracInstanceID, runningPodRequirements )
+    result = self.__cliamazon.create_VMInstance( runningPodRequirements )
 
     if not result[ 'OK' ]:
       self.log.error( "startNewInstance" )

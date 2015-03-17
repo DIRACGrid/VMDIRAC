@@ -233,13 +233,13 @@ class VirtualMachineScheduler( AgentModule ):
           runningPodRequirementsDict = runningPodDict['Requirements']
           runningPodRequirementsDict['Site'] = siteToMatch
 
-          #self.log.info( 'Requirements to match: ', runningPodRequirementsDict )
+          self.log.verbose( 'Requirements to match: ', runningPodRequirementsDict )
           result = taskQueueDB.getMatchingTaskQueues( runningPodRequirementsDict )
           if not result['OK']:
             self.log.error( 'Could not retrieve TaskQueues from TaskQueueDB', result['Message'] )
             return result
           taskQueueDict = result['Value']
-          #self.log.info( 'Task Queues Dict: ', taskQueueDict )
+          self.log.verbose( 'Task Queues Dict: ', taskQueueDict )
           jobs = 0
           priority = 0
           cpu = 0
@@ -272,7 +272,7 @@ class VirtualMachineScheduler( AgentModule ):
 
     for directorName, imageOfJobsToSubmitDict in imagesToSubmit.items():
       for imageName, jobsToSubmitDict in imageOfJobsToSubmitDict.items():
-        if self.directors[directorName]['isEnabled'] and numVMs > 0 and self.__isConnectionToEndpoint(endpoint):
+        if self.directors[directorName]['isEnabled'] and numVMs > 0:
           self.log.info( 'Requesting submission of %s to %s' % ( imageName, directorName ) )
 
           director = self.directors[directorName]['director']
@@ -364,14 +364,6 @@ class VirtualMachineScheduler( AgentModule ):
         break
 
     return DIRAC.S_OK( pilotsToSubmit )
-
-  def __isConnectionToEndpoint( self, endpoint):
-    driver = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, "cloudDriver" ) ) 
-    if driver == 'Amazon':
-      from VMDIRAC.WorkloadManagementSystem.Client.AmazonImage  import AmazonImage
-      inst = AmazonImage( endpoint )
-      return inst.isConnected()
-    return True
 
   def __checkSubmitPools( self ):
     # this method is called at initialization and at the beginning of each execution cycle

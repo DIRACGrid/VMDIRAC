@@ -362,14 +362,14 @@ class AmazonConfiguration( EndpointConfiguration ):
 
     # Purely endpoint configuration ............................................              
     # This two are passed as arguments, not keyword arguments
-    self.__accessKey               = amazonOptions.get( 'accessKey'                   , None )
-    self.__secretKey               = amazonOptions.get( 'secretKey'                   , None )
+    self.__accessKey               = amazonOptions.get( 'accessKey'              , None )
+    self.__secretKey               = amazonOptions.get( 'secretKey'              , None )
     self.__cloudDriver             = amazonOptions.get( 'cloudDriver'            , None )
     self.__vmStopPolicy            = amazonOptions.get( 'vmStopPolicy'           , None )
     self.__vmPolicy                = amazonOptions.get( 'vmPolicy'               , None )
     self.__siteName                = amazonOptions.get( 'siteName'               , None )
-    self.__endpointURL             = amazonOptions.get( 'endpointURL'                 , None )
-    self.__regionName              = amazonOptions.get( 'regionName'                 , None )
+    self.__endpointURL             = amazonOptions.get( 'endpointURL'            , None )
+    self.__regionName              = amazonOptions.get( 'regionName'             , None )
     self.__maxEndpointInstances    = amazonOptions.get( 'maxEndpointInstances'   , None )
     self.__maxOportunisticEndpointInstances    = amazonOptions.get( 'maxOportunisticEndpointInstances'   , 0 )
     self.__cvmfs_http_proxy        = amazonOptions.get( 'cvmfs_http_proxy'        , None )
@@ -409,15 +409,19 @@ class AmazonConfiguration( EndpointConfiguration ):
  
     missingKeys = set( self.MANDATORY_KEYS ).difference( set( endpointConfig.keys() ) ) 
     if missingKeys:
+      self.log.error( 'Missing mandatory keys on endpointConfig %s' % str( missingKeys ) )
       return S_ERROR( 'Missing mandatory keys on endpointConfig %s' % str( missingKeys ) )
     
     # on top of the MANDATORY_KEYS, we make sure the corresponding auth parameters are set:
     if self.__auth == 'secretaccesskey':
       if self.__accessKey is None:
+        self.log.error( 'accessKey is None' )
         return S_ERROR( 'accessKey is None' )
       if self.__secretKey is None:
+        self.log.error( 'secretKey is None' )
         return S_ERROR( 'secretKey is None' )
     else:
+      self.log.error( 'endpoint auth: %s not defined (secretaccesskey)' % self.__auth)
       return S_ERROR( 'endpoint auth: %s not defined (secretaccesskey)' % self.__auth)
     
     self.log.info( '*' * 50 )
@@ -438,7 +442,8 @@ class AmazonConfiguration( EndpointConfiguration ):
     if self.__auth == 'secretaccesskey':
       return ( self.__auth, self.__acccessKey, self.__secretKey )
     else:
-      return S_ERROR( 'endpoint auth: %s not defined (userpasswd/proxy)' % self.__auth)
+      self.log.error( 'endpoint auth: %s not defined (secretaccesskey)' % self.__auth)
+      return S_ERROR( 'endpoint auth: %s not defined (secretaccesskey)' % self.__auth)
 
 #...............................................................................  
 
@@ -550,6 +555,9 @@ class ImageConfiguration( object ):
     self.__ic_bootImageName  = imageOptions.get( 'bootImageName'     , None )
     self.__ic_contextMethod  = imageOptions.get( 'contextMethod'     , None )
     self.__ic_flavorName     = imageOptions.get( 'flavorName'        , None )
+    #optional:
+    self.__ic_maxAllowedPrice     = imageOptions.get( 'maxAllowedPrice'        , None )
+    self.__ic_keyName     = imageOptions.get( 'keyName'        , None )
     #self.__ic_contextConfig = ContextConfig( self.__ic_bootImageName, self.__ic_contextMethod )
     self.__ic_contextConfig  = ContextConfig( imageName, self.__ic_contextMethod )
 
@@ -560,6 +568,8 @@ class ImageConfiguration( object ):
               'bootImageName' : self.__ic_bootImageName,
               'contextMethod' : self.__ic_contextMethod,
               'flavorName'    : self.__ic_flavorName,  
+              'maxAllowedPrice'    : self.__ic_maxAllowedPrice,  
+              'keyName'    : self.__ic_keyName,  
               'contextConfig' : self.__ic_contextConfig.config()
               }
       
@@ -571,10 +581,10 @@ class ImageConfiguration( object ):
       return S_ERROR( 'self._ic_DIRACImageName is None' )
     if self.__ic_bootImageName is None:
       return S_ERROR( 'self._ic_bootImageName is None' )
-    if self.__ic_contextMethod is None:
-      return S_ERROR( 'self._ic_contextMethod is None' )
     if self.__ic_flavorName is None:
       return S_ERROR( 'self._ic_flavorName is None' )
+    if self.__ic_contextMethod is None:
+      return S_ERROR( 'self._ic_contextMethod is None' )
    
     validateContext = self.__ic_contextConfig.validate()
     if not validateContext[ 'OK' ]:
@@ -585,6 +595,11 @@ class ImageConfiguration( object ):
     self.log.info( '*' * 50 )
     self.log.info( 'ic_DIRACImageName %s' % self.__ic_DIRACImageName )
     self.log.info( 'ic_bootImageName %s' % self.__ic_bootImageName )
+    self.log.info( 'ic_flavorName %s' % self.__ic_flavorName )
+    if not self.__ic_maxAllowedPrice is None:
+      self.log.info( 'ic_maxAllowedPrice %s' % self.__ic_maxAllowedPrice )
+    if not self.__ic_keyName is None:
+      self.log.info( 'ic_keyName %s' % self.__ic_keyName )
     self.log.info( 'ic_contextMethod %s' % self.__ic_contextMethod )
     for key, value in self.__ic_contextConfig.config().iteritems():
       self.log.info( '%s : %s' % ( key, value ) )

@@ -30,7 +30,6 @@ install_unzip() {
 install_easy_install() {
     get_packaging_system
    [ ! -z $PACKAGE_MANAGER ] && $PACKAGE_MANAGER -y install python-setuptools
-   [ ! -z $PACKAGE_MANAGER ] && $PACKAGE_MANAGER -y install python-setuptools-devel
 }
 
         echo "Starting dirac-context-script.sh" > /var/log/dirac-context-script.log 2>&1

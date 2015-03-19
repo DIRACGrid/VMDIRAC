@@ -256,7 +256,7 @@ class AmazonClient:
 
     return S_ERROR( "Can not get status of instance %s AMI: %s" % (uniqueId,AMI) )
 
-  def terminate_VMinstance( self, uniqueId ):
+  def terminate_VMinstance( self, uniqueID ):
     """
     Simple call to terminate a VM based on its id
 
@@ -266,8 +266,7 @@ class AmazonClient:
     :return: S_OK | S_ERROR
     """
 
-    if type( instancesList ) in ( types.StringType, types.UnicodeType ):
-      instancesList = [ instancesList ]
+    instancesList = [ uniqueID ]
     try:
       self.__conn.terminate_instances( instancesList )
     except Exception, error:

@@ -1,3 +1,14 @@
+[v1r3]
+NEW: Cloudinit contextualization for Amazon EC2 using boto API.
+CHANGE: AmazonImage and AmazonInstance has changed to the same design as openstack and opennebula, using Utilitites/configuration.py and contextualization.py
+
+[v1r1]
+NEW: Cloudinit generic contextualization, a single context method, machinery and scripts, for all your cloud managers.
+VMDIRAC v1r1 provides an enterprise contextualization method, based in a golden image with cloudinit installed, and some automatic scripts for each cloud endpoint and DIRAC image to run a VM. 
+Supported cloudmangers for cloudinit with DIRAC:
+OpenNebula 4.6.1 (client installation in VMDIRAC server: rocci client 4.2.5)
+Openstack Grizzly (API installation in VMDIRAC server: apache-libcloud-0.14.0-beta3)
+
 [v0r9]
 
 NEW: Amiconfig support for metadata

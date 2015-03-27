@@ -360,7 +360,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
       if result[ 'OK' ]:
         self.log.info( "Declared instance halting" )
         break
-      self.log.error( "Could not send halting state", result[ 'Message' ] )
+      self.log.error( "Could not send halting state:", result[ 'Message' ] )
       if i < retries - 1 :
         self.log.info( "Sleeping for %d seconds and retrying" % sleepTime )
         time.sleep( sleepTime )

@@ -283,13 +283,15 @@ class VirtualMachineManagerHandler( RequestHandler ):
       gLogger.info( 'Declare instance halting:  %s, endpoint: %s imageName: %s' % (str(uniqueID),endpoint,imageName) )
       awsima = None
       try:
-        awsima = AmazonImage( endpoint )
+        awsima = AmazonImage( imageName, endpoint )
       except Exception:
         gLogger.error("Failed to connect to AWS")
         pass
       if awsima:
-        result = awsima.stopInstances( uniqueID )
-
+        connAmazon = awsima.connectAmazon()
+        if not connAmazon[ 'OK' ]:
+          return connAmazon
+        result = awsima.stopInstance( uniqueID )
 
     else:
       gLogger.warn( 'Unexpected cloud driver:  %s' % cloudDriver )

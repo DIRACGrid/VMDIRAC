@@ -4,6 +4,34 @@
 # To be run as root on VM
 #
 
+get_packaging_system() {
+    YUM_CMD=$(which yum)
+    APT_GET_CMD=$(which apt-get)
+
+    if [ ! -z $YUM_CMD ]
+    then
+        echo "RedHat based"
+        PACKAGE_MANAGER="yum"
+    elif [ ! -z $APT_GET_CMD ]
+    then
+        echo "Debian based"
+        PACKAGE_MANAGER="apt-get"
+    else
+        echo "Package manager not implemented."
+    fi
+}
+
+install_unzip() {
+    get_packaging_system
+    [ ! -z $PACKAGE_MANAGER ] && $PACKAGE_MANAGER -y update
+    [ ! -z $PACKAGE_MANAGER ] && $PACKAGE_MANAGER -y install unzip
+}
+
+install_easy_install() {
+    get_packaging_system
+   [ ! -z $PACKAGE_MANAGER ] && $PACKAGE_MANAGER -y install python-setuptools
+}
+
         echo "Starting dirac-context-script.sh" > /var/log/dirac-context-script.log 2>&1
 
 if [ $# -ne 9 ]
@@ -71,7 +99,8 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
         # checking if unzip installed
         if [ ! `which unzip` ]
         then
-          yum -y install unzip
+  		echo "unzip not installed. Installing">> /var/log/dirac-context-script.log 2>&1
+		install_unzip
         fi
 	unzip vmdirac.zip >> /var/log/dirac-context-script.log 2>&1
         mv VMDIRAC-master VMDIRAC
@@ -93,6 +122,11 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
         platform=`dirac-platform`
         # for the VM Monitor
         echo "Installing easy_install simplejson for the VM Monitor" >> /var/log/dirac-context-script.log 2>&1
+        if [ ! `which easy_install` ]
+        then
+  		echo "easy_install not installed. Installing">> /var/log/dirac-context-script.log 2>&1
+		install_easy_install
+        fi
         `which python` `which easy_install` simplejson >> /var/log/dirac-context-script.log 2>&1
         # getting RunningPodRequirements
         requirements=''

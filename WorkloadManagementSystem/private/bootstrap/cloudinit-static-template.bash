@@ -58,6 +58,14 @@ echo "vmStopPolicy $vmStopPolicy" >> /var/log/contextualize-script.log 2>&1
 # vmcert and key have been previoslly copy to VM, these paths are local, the rest of files are on some repo... 
 # 1) download the necesary files:
 
+#<<<<<<< HEAD
+#if [ ! `which wget` ]
+#then
+#  rpm --rebuilddb >> /var/log/contextualize-script.log 2>&1
+#  yum clean all >> /var/log/contextualize-script.log 2>&1
+#  yum -y update >> /var/log/contextualize-script.log 2>&1
+#  yum -y install wget >> /var/log/contextualize-script.log 2>&1
+#=======
 get_packaging_system() {
     YUM_CMD=$(which yum)
     APT_GET_CMD=$(which apt-get)
@@ -85,6 +93,7 @@ if [ ! `which wget` ]
 then
   echo "Wget not installed. Installing"
   install_wget
+#>>>>>>> upstream/integration
 fi
 
 if [ ${vmRunJobAgentURL} != 'nouse' ]

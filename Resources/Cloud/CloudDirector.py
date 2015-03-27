@@ -48,15 +48,15 @@ class CloudDirector( VMDirector ):
 
     driver = gConfig.getValue( "%s/%s/%s" % ( endpointsPath, endpoint, 'cloudDriver' ), "" )
 
-    if driver == 'Amazon':
-      try:
-        ami = AmazonImage( endpoint )
-      except Exception:
-        return S_ERROR("Failed to connect to AWS")  
-      result = ami.startNewInstances(imageName)
+    if driver == 'amazon':
+      ami = AmazonImage( imageName, endpoint )
+      connAmazon = ami.connectAmazon()
+      if not connAmazon[ 'OK' ]:
+        return connAmazon
+      result = ami.startNewInstance(runningRequirementsDict)
       if not result[ 'OK' ]:
         return result
-      idInstance = result['Value'][0]
+      idInstance = result['Value']
       return S_OK( idInstance )
 
     if driver == 'CloudStack':

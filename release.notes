@@ -1,4 +1,4 @@
-[v1r2]
+[v1r3]
 NEW: Cloudinit contextualization for Amazon EC2 using boto API.
 CHANGE: AmazonImage and AmazonInstance has changed to the same design as openstack and opennebula, using Utilitites/configuration.py and contextualization.py
 

@@ -91,46 +91,48 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 echo "untargz breakseq-stack.tgz" >> /var/log/dirac-context-script.log 2>&1
 echo "breakseq software stack requires 8GB free in /mnt + input and output data to process" >> /var/log/dirac-context-script.log 2>&1
 cd /
-sudo tar xzvf ~/breakseq-stack.tgz >> /var/log/dirac-context-script.log 2>&1
+su dirac -c'tar xzvf /home/ubuntu/breakseq-stack.tgz' >> /var/log/dirac-context-script.log 2>&1
 # here /opt/dirac and /opt/breakseq are linked to /mnt
-sudo rm ~/breakseq-stack.tgz >> /var/log/dirac-context-script.log 2>&1
+rm ~/breakseq-stack.tgz >> /var/log/dirac-context-script.log 2>&1
 
 
 # servercert/serverkey previouslly to this script copied 
 #
 	cd /opt/dirac
+        echo "pwd should be /opt/dirac" >> /var/log/dirac-context-script.log 2>&1
+	pwd >> /var/log/dirac-context-script.log 2>&1
 	su dirac -c'mkdir -p etc/grid-security' >> /var/log/dirac-context-script.log 2>&1
-	sudo chmod -R 755 etc >> /var/log/dirac-context-script.log 2>&1
-	sudo mv ${putCertPath} etc/grid-security/servercert.pem >> /var/log/dirac-context-script.log 2>&1
-	sudo mv ${putKeyPath} etc/grid-security/serverkey.pem >> /var/log/dirac-context-script.log 2>&1
+	su dirac -c'chmod -R 755 etc' >> /var/log/dirac-context-script.log 2>&1
+	su dirac -c'mv ${putCertPath} etc/grid-security/servercert.pem' >> /var/log/dirac-context-script.log 2>&1
+	su dirac -c'mv ${putKeyPath} etc/grid-security/serverkey.pem' >> /var/log/dirac-context-script.log 2>&1
 
 	sleep 1
 
-	sudo chmod 444 etc/grid-security/servercert.pem >> /var/log/dirac-context-script.log 2>&1
-	sudo chmod 400 etc/grid-security/serverkey.pem >> /var/log/dirac-context-script.log 2>&1
+	su dirac -c'chmod 444 etc/grid-security/servercert.pem' >> /var/log/dirac-context-script.log 2>&1
+	su dirac -c'chmod 400 etc/grid-security/serverkey.pem' >> /var/log/dirac-context-script.log 2>&1
 
-	sudo chown -R dirac:dirac etc >> /var/log/dirac-context-script.log 2>&1
+	su dirac -c'chown -R dirac:dirac etc' >> /var/log/dirac-context-script.log 2>&1
 	
 #
 # Installing DIRAC
 # FOR DEBUGGIN PURPOSES installing debuggin github version instead of cvmfs repository released DIRAC:
 #
 	cd /opt/dirac
-	sudo wget --no-check-certificate -O dirac-install 'https://github.com/DIRACGrid/DIRAC/raw/integration/Core/scripts/dirac-install.py' >> /var/log/dirac-context-script.log 2>&1
+	su dirac -c'wget --no-check-certificate -O dirac-install "https://github.com/DIRACGrid/DIRAC/raw/integration/Core/scripts/dirac-install.py"' >> /var/log/dirac-context-script.log 2>&1
 
 	su dirac -c'python dirac-install -V "VMEGI"' >> /var/log/dirac-context-script.log 2>&1
 
 	# FOR DEBUGGIN PURPOSES overwriting with last released in the local vmendez git folder: 
-        sudo rm -rf VMDIRAC
-        sudo wget --no-check-certificate -O vmdirac.zip 'https://github.com/vmendez/VMDIRAC/archive/master.zip' >> /var/log/dirac-context-script.log 2>&1
+        su dirac -c'rm -rf VMDIRAC'
+        su dirac -c'wget --no-check-certificate -O vmdirac.zip "https://github.com/vmendez/VMDIRAC/archive/master.zip"' >> /var/log/dirac-context-script.log 2>&1
         # checking if unzip installed
         if [ ! `which unzip` ]
         then
           install_unzip
         fi
-	sudo unzip vmdirac.zip >> /var/log/dirac-context-script.log 2>&1
-        sudo mv VMDIRAC-master VMDIRAC
-	sudo chown -R dirac:dirac VMDIRAC
+	su dirac -c'unzip vmdirac.zip' >> /var/log/dirac-context-script.log 2>&1
+        su dirac -c'mv VMDIRAC-master VMDIRAC'
+	su dirac -c'chown -R dirac:dirac VMDIRAC'
 	cd VMDIRAC
 	for i in `find . -name "*pyo"`
 	do 

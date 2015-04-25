@@ -30,7 +30,24 @@ install_unzip() {
 
 install_easy_install() {
     get_packaging_system
-   [ ! -z $PACKAGE_MANAGER ] && $PACKAGE_MANAGER -y install python-setuptools
+    [ ! -z $PACKAGE_MANAGER ] && $PACKAGE_MANAGER -y install python-setuptools
+}
+
+check_python_dev() {
+    get_packaging_system
+    if [ $PACKAGE_MANAGER="yum" ]
+    then
+       pdev=`rpm -qa|grep python-dev|wc -l`
+    elif [ $PACKAGE_MANAGER="apt-get" ]
+    then
+       pdev=`dpkg -l|grep python-dev|wc -l`
+    else
+        echo "Package manager not implemented."
+    fi
+    if [ $pdev -ne 0 ] 
+    then
+       [ ! -z $PACKAGE_MANAGER ] && $PACKAGE_MANAGER -y install python-dev
+    fi
 }
 
 
@@ -130,6 +147,8 @@ sudo rm ~/breakseq-stack.tgz >> /var/log/dirac-context-script.log 2>&1
 	export LD_LIBRARY_PATH
         platform=`dirac-platform`
         # for the VM Monitor
+        # checking if python-dev installed
+        check_python_dev
         # checking if easy_install installed
         if [ ! `which easy_install` ]
         then

@@ -24,13 +24,13 @@ get_packaging_system() {
 
 install_unzip() {
     get_packaging_system
-    [ ! -z $PACKAGE_MANAGER ] && $PACKAGE_MANAGER -y update
-    [ ! -z $PACKAGE_MANAGER ] && $PACKAGE_MANAGER -y install unzip
+    [ ! -z $PACKAGE_MANAGER ] && sudo $PACKAGE_MANAGER -y update
+    [ ! -z $PACKAGE_MANAGER ] && sudo $PACKAGE_MANAGER -y install unzip
 }
 
 install_easy_install() {
     get_packaging_system
-    [ ! -z $PACKAGE_MANAGER ] && $PACKAGE_MANAGER -y install python-setuptools
+    [ ! -z $PACKAGE_MANAGER ] && sudo $PACKAGE_MANAGER -y install python-setuptools
 }
 
 check_python_dev() {
@@ -46,7 +46,7 @@ check_python_dev() {
     fi
     if [ $pdev -ne 0 ] 
     then
-       [ ! -z $PACKAGE_MANAGER ] && $PACKAGE_MANAGER -y install python-dev
+       [ ! -z $PACKAGE_MANAGER ] && sudo $PACKAGE_MANAGER -y install python-dev
     fi
 }
 
@@ -88,8 +88,8 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 #        /usr/sbin/useradd -m -s /bin/bash -d /opt/dirac dirac >> /var/log/dirac-context-script.log 2>&1
 
 # breakseq tgz software stack:
-sudo echo "untargz breakseq-stack.tgz" >> /var/log/dirac-context-script.log 2>&1
-sudo echo "breakseq software stack requires 8GB free in /mnt + input and output data to process" >> /var/log/dirac-context-script.log 2>&1
+echo "untargz breakseq-stack.tgz" >> /var/log/dirac-context-script.log 2>&1
+echo "breakseq software stack requires 8GB free in /mnt + input and output data to process" >> /var/log/dirac-context-script.log 2>&1
 cd /
 sudo tar xzvf ~/breakseq-stack.tgz >> /var/log/dirac-context-script.log 2>&1
 # here /opt/dirac and /opt/breakseq are linked to /mnt
@@ -100,47 +100,47 @@ sudo rm ~/breakseq-stack.tgz >> /var/log/dirac-context-script.log 2>&1
 #
 	cd /opt/dirac
 	su dirac -c'mkdir -p etc/grid-security' >> /var/log/dirac-context-script.log 2>&1
-	chmod -R 755 etc >> /var/log/dirac-context-script.log 2>&1
-	mv ${putCertPath} etc/grid-security/servercert.pem >> /var/log/dirac-context-script.log 2>&1
-	mv ${putKeyPath} etc/grid-security/serverkey.pem >> /var/log/dirac-context-script.log 2>&1
+	sudo chmod -R 755 etc >> /var/log/dirac-context-script.log 2>&1
+	sudo mv ${putCertPath} etc/grid-security/servercert.pem >> /var/log/dirac-context-script.log 2>&1
+	sudo mv ${putKeyPath} etc/grid-security/serverkey.pem >> /var/log/dirac-context-script.log 2>&1
 
 	sleep 1
 
-	chmod 444 etc/grid-security/servercert.pem >> /var/log/dirac-context-script.log 2>&1
-	chmod 400 etc/grid-security/serverkey.pem >> /var/log/dirac-context-script.log 2>&1
+	sudo chmod 444 etc/grid-security/servercert.pem >> /var/log/dirac-context-script.log 2>&1
+	sudo chmod 400 etc/grid-security/serverkey.pem >> /var/log/dirac-context-script.log 2>&1
 
-	chown -R dirac:dirac etc >> /var/log/dirac-context-script.log 2>&1
+	sudo chown -R dirac:dirac etc >> /var/log/dirac-context-script.log 2>&1
 	
 #
 # Installing DIRAC
 # FOR DEBUGGIN PURPOSES installing debuggin github version instead of cvmfs repository released DIRAC:
 #
 	cd /opt/dirac
-	wget --no-check-certificate -O dirac-install 'https://github.com/DIRACGrid/DIRAC/raw/integration/Core/scripts/dirac-install.py' >> /var/log/dirac-context-script.log 2>&1
+	sudo wget --no-check-certificate -O dirac-install 'https://github.com/DIRACGrid/DIRAC/raw/integration/Core/scripts/dirac-install.py' >> /var/log/dirac-context-script.log 2>&1
 
 	su dirac -c'python dirac-install -V "VMEGI"' >> /var/log/dirac-context-script.log 2>&1
 
 	# FOR DEBUGGIN PURPOSES overwriting with last released in the local vmendez git folder: 
-        rm -rf VMDIRAC
-        wget --no-check-certificate -O vmdirac.zip 'https://github.com/vmendez/VMDIRAC/archive/master.zip' >> /var/log/dirac-context-script.log 2>&1
+        sudo rm -rf VMDIRAC
+        sudo wget --no-check-certificate -O vmdirac.zip 'https://github.com/vmendez/VMDIRAC/archive/master.zip' >> /var/log/dirac-context-script.log 2>&1
         # checking if unzip installed
         if [ ! `which unzip` ]
         then
           install_unzip
         fi
-	unzip vmdirac.zip >> /var/log/dirac-context-script.log 2>&1
-        mv VMDIRAC-master VMDIRAC
-	chown -R dirac:dirac VMDIRAC
+	sudo unzip vmdirac.zip >> /var/log/dirac-context-script.log 2>&1
+        sudo mv VMDIRAC-master VMDIRAC
+	sudo chown -R dirac:dirac VMDIRAC
 	cd VMDIRAC
 	for i in `find . -name "*pyo"`
 	do 
-		chown root:root $i
+		sudo chown root:root $i
 	done
 	cd /opt/dirac
 
-        source bashrc >> /var/log/dirac-context-script.log 2>&1
-        env >> /var/log/dirac-context-script.log 2>&1
-        chmod ugo+w /var/log/dirac-context-script.log 
+        sudo source bashrc >> /var/log/dirac-context-script.log 2>&1
+        sudo env >> /var/log/dirac-context-script.log 2>&1
+        sudo chmod ugo+w /var/log/dirac-context-script.log 
 
         # to the runsvdir stuff:
 	export PATH
@@ -182,7 +182,7 @@ sudo rm ~/breakseq-stack.tgz >> /var/log/dirac-context-script.log 2>&1
         su dirac -c'cp etc/dirac.cfg dirac.cfg.postconfigure'
 	su dirac -c'mv dirac.cfg.aux etc/dirac.cfg'
 	echo "etc/dirac.cfg content previous to agents run: "  >> /var/log/dirac-context-script.log 2>&1
-	cat etc/dirac.cfg >> /var/log/dirac-context-script.log 2>&1
+	sudo cat etc/dirac.cfg >> /var/log/dirac-context-script.log 2>&1
 	echo >> /var/log/dirac-context-script.log 2>&1
 
 
@@ -191,19 +191,19 @@ sudo rm ~/breakseq-stack.tgz >> /var/log/dirac-context-script.log 2>&1
 	cd /opt/dirac
         if [ ${localVmRunJobAgent} != 'nouse' ]
         then
-	  mkdir -p startup/WorkloadManagement_JobAgent/log >> /var/log/dirac-context-script.log 2>&1
-	  mv ${localVmRunJobAgent} startup/WorkloadManagement_JobAgent/run >> /var/log/dirac-context-script.log 2>&1
-	  cp ${localVmRunLogAgent} startup/WorkloadManagement_JobAgent/log/run >> /var/log/dirac-context-script.log 2>&1
-	  chmod 755 startup/WorkloadManagement_JobAgent/log/run 
-          chmod 755 startup/WorkloadManagement_JobAgent/run 
+	  sudo mkdir -p startup/WorkloadManagement_JobAgent/log >> /var/log/dirac-context-script.log 2>&1
+	  sudo mv ${localVmRunJobAgent} startup/WorkloadManagement_JobAgent/run >> /var/log/dirac-context-script.log 2>&1
+	  sudo cp ${localVmRunLogAgent} startup/WorkloadManagement_JobAgent/log/run >> /var/log/dirac-context-script.log 2>&1
+	  sudo chmod 755 startup/WorkloadManagement_JobAgent/log/run 
+          sudo chmod 755 startup/WorkloadManagement_JobAgent/run 
 
 	  echo "rights and permissions to control and work JobAgent dirs" >> /var/log/dirac-context-script.log 2>&1
-	  mkdir -p /opt/dirac/control/WorkloadManagement/JobAgent >> /var/log/dirac-context-script.log 2>&1
-	  mkdir -p /opt/dirac/work/WorkloadManagement/JobAgent >> /var/log/dirac-context-script.log 2>&1
-	  chmod 775 /opt/dirac/control/WorkloadManagement/JobAgent >> /var/log/dirac-context-script.log 2>&1
-	  chmod 775 /opt/dirac/work/WorkloadManagement/JobAgent >> /var/log/dirac-context-script.log 2>&1
-	  chown root:dirac /opt/dirac/work/WorkloadManagement/JobAgent >> /var/log/dirac-context-script.log 2>&1
-	  chown root:dirac /opt/dirac/control/WorkloadManagement/JobAgent >> /var/log/dirac-context-script.log 2>&1
+	  sudo mkdir -p /opt/dirac/control/WorkloadManagement/JobAgent >> /var/log/dirac-context-script.log 2>&1
+	  sudo mkdir -p /opt/dirac/work/WorkloadManagement/JobAgent >> /var/log/dirac-context-script.log 2>&1
+	  sudo chmod 775 /opt/dirac/control/WorkloadManagement/JobAgent >> /var/log/dirac-context-script.log 2>&1
+	  sudo chmod 775 /opt/dirac/work/WorkloadManagement/JobAgent >> /var/log/dirac-context-script.log 2>&1
+	  sudo chown root:dirac /opt/dirac/work/WorkloadManagement/JobAgent >> /var/log/dirac-context-script.log 2>&1
+	  sudo chown root:dirac /opt/dirac/control/WorkloadManagement/JobAgent >> /var/log/dirac-context-script.log 2>&1
 	  echo "/opt/dirac/control/WorkloadManagement content" >> /var/log/dirac-context-script.log 2>&1
 	  ls -l /opt/dirac/control/WorkloadManagement >> /var/log/dirac-context-script.log 2>&1
 	  echo "/opt/dirac/work/WorkloadManagement content" >> /var/log/dirac-context-script.log 2>&1
@@ -213,21 +213,21 @@ sudo rm ~/breakseq-stack.tgz >> /var/log/dirac-context-script.log 2>&1
 
         if [ ${localVmRunVmUpdaterAgent} != 'nouse' ]
         then
-	  mkdir -p startup/WorkloadManagement_VirtualMachineConfigUpdater/log >> /var/log/dirac-context-script.log 2>&1
-	  mv ${localVmRunVmUpdaterAgent} startup/WorkloadManagement_VirtualMachineConfigUpdater/run >> /var/log/dirac-context-script.log 2>&1
-	  cp ${localVmRunLogAgent} startup/WorkloadManagement_VirtualMachineConfigUpdater/log/run >> /var/log/dirac-context-script.log 2>&1
-	  chmod 755 startup/WorkloadManagement_VirtualMachineConfigUpdater/log/run 
-	  chmod 755 startup/WorkloadManagement_VirtualMachineConfigUpdater/run 
+	  sudo mkdir -p startup/WorkloadManagement_VirtualMachineConfigUpdater/log >> /var/log/dirac-context-script.log 2>&1
+	  sudo mv ${localVmRunVmUpdaterAgent} startup/WorkloadManagement_VirtualMachineConfigUpdater/run >> /var/log/dirac-context-script.log 2>&1
+	  sudo cp ${localVmRunLogAgent} startup/WorkloadManagement_VirtualMachineConfigUpdater/log/run >> /var/log/dirac-context-script.log 2>&1
+	  sudo chmod 755 startup/WorkloadManagement_VirtualMachineConfigUpdater/log/run 
+	  sudo chmod 755 startup/WorkloadManagement_VirtualMachineConfigUpdater/run 
         fi
 
-	mkdir -p startup/WorkloadManagement_VirtualMachineMonitorAgent/log >> /var/log/dirac-context-script.log 2>&1
-	mv ${localVmRunVmMonitorAgent} startup/WorkloadManagement_VirtualMachineMonitorAgent/run >> /var/log/dirac-context-script.log 2>&1
-	mv ${localVmRunLogAgent} startup/WorkloadManagement_VirtualMachineMonitorAgent/log/run >> /var/log/dirac-context-script.log 2>&1
-	chmod 755 startup/WorkloadManagement_VirtualMachineMonitorAgent/log/run 
-	chmod 755 startup/WorkloadManagement_VirtualMachineMonitorAgent/run 
+	sudo mkdir -p startup/WorkloadManagement_VirtualMachineMonitorAgent/log >> /var/log/dirac-context-script.log 2>&1
+	sudo mv ${localVmRunVmMonitorAgent} startup/WorkloadManagement_VirtualMachineMonitorAgent/run >> /var/log/dirac-context-script.log 2>&1
+	sudo mv ${localVmRunLogAgent} startup/WorkloadManagement_VirtualMachineMonitorAgent/log/run >> /var/log/dirac-context-script.log 2>&1
+	sudo chmod 755 startup/WorkloadManagement_VirtualMachineMonitorAgent/log/run 
+	sudo chmod 755 startup/WorkloadManagement_VirtualMachineMonitorAgent/run 
 
 	echo "runsvdir startup, have a look to DIRAC JobAgent, VirtualMachineMonitorAgent and VirtualMachineConfigUpdater logs" >> /var/log/dirac-context-script.log 2>&1
-	runsvdir -P /opt/dirac/startup 'log:  DIRAC runsv' &
+	sudo runsvdir -P /opt/dirac/startup 'log:  DIRAC runsv' &
 
 #
 # END installing DIRAC

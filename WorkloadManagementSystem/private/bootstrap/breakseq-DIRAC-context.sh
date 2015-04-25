@@ -88,12 +88,13 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 #        /usr/sbin/useradd -m -s /bin/bash -d /opt/dirac dirac >> /var/log/dirac-context-script.log 2>&1
 
 # breakseq tgz software stack:
-echo "untargz breakseq-stack.tgz" >> /var/log/dirac-context-script.log 2>&1
+echo "mount disk and untargz breakseq-stack.tgz" >> /var/log/dirac-context-script.log 2>&1
 echo "breakseq software stack requires 8GB free in /mnt + input and output data to process" >> /var/log/dirac-context-script.log 2>&1
+mount /dev/xvdb /mnt >> /var/log/dirac-context-script.log 2>&1
 cd /
 tar xzvf /home/ubuntu/breakseq-stack.tgz >> /var/log/dirac-context-script.log 2>&1
 # here /opt/dirac and /opt/breakseq are linked to /mnt
-rm ~/breakseq-stack.tgz >> /var/log/dirac-context-script.log 2>&1
+rm -f /home/ubuntu/breakseq-stack.tgz >> /var/log/dirac-context-script.log 2>&1
 
 
 # servercert/serverkey previouslly to this script copied 

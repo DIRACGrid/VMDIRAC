@@ -4,6 +4,7 @@
 # To be run as root on VM
 #
 
+
 get_packaging_system() {
     YUM_CMD=$(which yum)
     APT_GET_CMD=$(which apt-get)
@@ -32,7 +33,9 @@ install_easy_install() {
    [ ! -z $PACKAGE_MANAGER ] && $PACKAGE_MANAGER -y install python-setuptools
 }
 
+
         echo "Starting dirac-context-script.sh" > /var/log/dirac-context-script.log 2>&1
+
 
 if [ $# -ne 9 ]
 then
@@ -64,7 +67,7 @@ echo "8 $localVmRunLogAgent" >> /var/log/dirac-context-script.log 2>&1
 echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 
 # dirac user:
-# Ubuntu14-hg10 image has already a dirac user
+# Ubuntu14-hg19 already has a dirac user
 #        /usr/sbin/useradd -m -s /bin/bash -d /opt/dirac dirac >> /var/log/dirac-context-script.log 2>&1
 
 # breakseq tgz software stack:
@@ -73,6 +76,7 @@ sudo echo "breakseq software stack requires 8GB free in /mnt + input and output 
 cd /
 sudo tar xzvf ~/breakseq-stack.tgz >> /var/log/dirac-context-script.log 2>&1
 # here /opt/dirac and /opt/breakseq are linked to /mnt
+
 
 # servercert/serverkey previouslly to this script copied 
 #
@@ -96,7 +100,7 @@ sudo tar xzvf ~/breakseq-stack.tgz >> /var/log/dirac-context-script.log 2>&1
 	cd /opt/dirac
 	wget --no-check-certificate -O dirac-install 'https://github.com/DIRACGrid/DIRAC/raw/integration/Core/scripts/dirac-install.py' >> /var/log/dirac-context-script.log 2>&1
 
-	su dirac -c'python dirac-install -V "VMDIRAC"' >> /var/log/dirac-context-script.log 2>&1
+	su dirac -c'python dirac-install -V "VMEGI"' >> /var/log/dirac-context-script.log 2>&1
 
 	# FOR DEBUGGIN PURPOSES overwriting with last released in the local vmendez git folder: 
         rm -rf VMDIRAC
@@ -104,8 +108,7 @@ sudo tar xzvf ~/breakseq-stack.tgz >> /var/log/dirac-context-script.log 2>&1
         # checking if unzip installed
         if [ ! `which unzip` ]
         then
-  		echo "unzip not installed. Installing">> /var/log/dirac-context-script.log 2>&1
-		install_unzip
+          install_unzip
         fi
 	unzip vmdirac.zip >> /var/log/dirac-context-script.log 2>&1
         mv VMDIRAC-master VMDIRAC
@@ -126,12 +129,13 @@ sudo tar xzvf ~/breakseq-stack.tgz >> /var/log/dirac-context-script.log 2>&1
 	export LD_LIBRARY_PATH
         platform=`dirac-platform`
         # for the VM Monitor
-        echo "Installing easy_install simplejson for the VM Monitor" >> /var/log/dirac-context-script.log 2>&1
+        # checking if easy_install installed
         if [ ! `which easy_install` ]
         then
-  		echo "easy_install not installed. Installing">> /var/log/dirac-context-script.log 2>&1
-		install_easy_install
+                echo "easy_install not installed. Installing">> /var/log/dirac-context-script.log 2>&1
+                install_easy_install
         fi
+        echo "Installing easy_install simplejson for the VM Monitor" >> /var/log/dirac-context-script.log 2>&1
         `which python` `which easy_install` simplejson >> /var/log/dirac-context-script.log 2>&1
         # getting RunningPodRequirements
         requirements=''
@@ -142,7 +146,7 @@ sudo tar xzvf ~/breakseq-stack.tgz >> /var/log/dirac-context-script.log 2>&1
         # configure, if CAs are not download we retry
         for retry in 0 1 2 3 4 5 6 7 8 9
         do
-		su dirac -c"source bashrc;dirac-configure -UHddd $requirements -o /LocalSite/CloudDriver=$cloudDriver -o /LocalSite/Site=$siteName  -o /LocalSite/VMStopPolicy=$vmStopPolicy  -o /LocalSite/CE=CE-nouse defaults-VMDIRAC.cfg"  >> /var/log/dirac-context-script.log 2>&1
+		su dirac -c"source bashrc;dirac-configure -UHddd $requirements -o /LocalSite/CloudDriver=$cloudDriver -o /LocalSite/Site=$siteName  -o /LocalSite/VMStopPolicy=$vmStopPolicy  -o /LocalSite/CE=CE-nouse defaults-VMEGI.cfg"  >> /var/log/dirac-context-script.log 2>&1
 		# options H: SkipCAChecks, dd: debug level 2, U: UseServerCertificate 
 		# options only for debuging D: SkipCADownload
 		# after UseServerCertificate = yes for the configuration with CS

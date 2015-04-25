@@ -76,6 +76,7 @@ sudo echo "breakseq software stack requires 8GB free in /mnt + input and output 
 cd /
 sudo tar xzvf ~/breakseq-stack.tgz >> /var/log/dirac-context-script.log 2>&1
 # here /opt/dirac and /opt/breakseq are linked to /mnt
+sudo rm ~/breakseq-stack.tgz >> /var/log/dirac-context-script.log 2>&1
 
 
 # servercert/serverkey previouslly to this script copied 

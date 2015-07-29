@@ -122,7 +122,14 @@ class NovaClient:
     except Exception, errmsg:
       return S_ERROR( errmsg )
 
-    return S_OK( [ image for image in images if image.name == imageName ][ 0 ] )
+    # for openstack compatibility Grizlly:    
+    #return S_OK( [ image for image in images if image.name == imageName ][ 0 ] )
+    for image in images:
+        if image.name == imageName:
+                break
+
+    return S_OK( image )
+
  
   def get_flavor( self, flavorName ):
     """

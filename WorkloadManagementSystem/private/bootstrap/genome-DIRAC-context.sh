@@ -85,7 +85,7 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 
 # dirac user:
 # Ubuntu14-genome-stack already has a dirac user and required software installed like package and compiled by opt
-        /usr/sbin/useradd -m -s /bin/bash -d /opt/dirac dirac >> /var/log/dirac-context-script.log 2>&1
+#        /usr/sbin/useradd -m -s /bin/bash -d /opt/dirac dirac >> /var/log/dirac-context-script.log 2>&1
 
 # servercert/serverkey previouslly to this script copied 
 #

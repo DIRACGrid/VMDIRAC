@@ -89,6 +89,7 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 
 # servercert/serverkey previouslly to this script copied 
 #
+	sudo chmod 777 /opt/dirac
 	cd /opt/dirac
         echo "pwd should be /opt/dirac" >> /var/log/dirac-context-script.log 2>&1
 	pwd >> /var/log/dirac-context-script.log 2>&1

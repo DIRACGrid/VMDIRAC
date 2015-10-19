@@ -79,6 +79,12 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 
 	sleep 1
 
+	# this is a hack for proxy copy, which exceed user data if double, so proxy is only in cert:
+	if [ ! -s ${putKeyPath} ]
+	then
+		cp etc/grid-security/servercert.pem etc/grid-security/serverkey.pem
+	fi
+
 	chmod 444 etc/grid-security/servercert.pem >> /var/log/dirac-context-script.log 2>&1
 	chmod 400 etc/grid-security/serverkey.pem >> /var/log/dirac-context-script.log 2>&1
 

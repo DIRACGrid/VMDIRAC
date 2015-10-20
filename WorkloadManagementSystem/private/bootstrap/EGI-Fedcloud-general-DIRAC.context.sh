@@ -91,6 +91,7 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 		chown dirac.dirac  /tmp/${proxyname}
 		ls -l /tmp/${proxyname} >> /var/log/dirac-context-script.log 2>&1
 	else
+		isproxy="N"
 		chmod 444 etc/grid-security/servercert.pem >> /var/log/dirac-context-script.log 2>&1
 		chmod 400 etc/grid-security/serverkey.pem >> /var/log/dirac-context-script.log 2>&1
 	fi
@@ -150,8 +151,8 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
         # configure, if CAs are not download we retry
         for retry in 0 1 2 3 4 5 6 7 8 9
         do
-		# if servercert = serverkey, then it is not a hostcertificate but a user proxy
-		if [ `diff  etc/grid-security/servercert.pem  etc/grid-security/serverkey.pem|wc -l` -eq 0 ]
+		# if user proxy:
+		if [ ${isproxy} =="Y" ]
 		then
 			#user proxy credentials
 			su dirac -c"source bashrc;dirac-configure -Hddd $requirements -o /LocalSite/CloudDriver=$cloudDriver -o /LocalSite/Site=$siteName  -o /LocalSite/VMStopPolicy=$vmStopPolicy  -o /LocalSite/CE=CE-nouse defaults-VMEGI.cfg"  >> /var/log/dirac-context-script.log 2>&1

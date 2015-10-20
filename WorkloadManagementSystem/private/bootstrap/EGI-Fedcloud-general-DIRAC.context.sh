@@ -88,6 +88,7 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 		echo "User proxy: ${proxyname}" >> /var/log/dirac-context-script.log 2>&1
 		mv etc/grid-security/servercert.pem /tmp/${proxyname}
 		chmod 600  /tmp/${proxyname}
+		cp /tmp/${proxyname} /tmp/x509up_u0
 		chown dirac.dirac  /tmp/${proxyname}
 		ls -l /tmp/${proxyname} >> /var/log/dirac-context-script.log 2>&1
 	else

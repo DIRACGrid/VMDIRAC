@@ -152,7 +152,7 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
         for retry in 0 1 2 3 4 5 6 7 8 9
         do
 		# if user proxy:
-		if [ ${isproxy} =="Y" ]
+		if [ ${isproxy} == "Y" ]
 		then
 			#user proxy credentials
 			su dirac -c"source bashrc;dirac-configure -Hddd $requirements -o /LocalSite/CloudDriver=$cloudDriver -o /LocalSite/Site=$siteName  -o /LocalSite/VMStopPolicy=$vmStopPolicy  -o /LocalSite/CE=CE-nouse defaults-VMEGI.cfg"  >> /var/log/dirac-context-script.log 2>&1

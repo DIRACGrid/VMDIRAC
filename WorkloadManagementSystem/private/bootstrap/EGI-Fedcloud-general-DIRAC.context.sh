@@ -79,14 +79,22 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 
 	sleep 1
 
-	# this is a hack for proxy copy, which exceed user data if double, so proxy is only in cert:
+	# If there is no key, is because the cert is a user proxy
 	if [ ! -s ${putKeyPath} ]
 	then
-		cp etc/grid-security/servercert.pem etc/grid-security/serverkey.pem
+		isproxy="Y"
+		diracuid=`id -u dirac`
+		proxyname=`echo "x509up_u${diracuid}"`
+		echo "User proxy: ${proxyname}" >> /var/log/dirac-context-script.log 2>&1
+		mv etc/grid-security/servercert.pem /tmp/${proxyname}
+		chmod 600  /tmp/${proxyname}
+		chown dirac.dirac  /tmp/${proxyname}
+		ls -l /tmp/${proxyname} >> /var/log/dirac-context-script.log 2>&1
+	else
+		chmod 444 etc/grid-security/servercert.pem >> /var/log/dirac-context-script.log 2>&1
+		chmod 400 etc/grid-security/serverkey.pem >> /var/log/dirac-context-script.log 2>&1
 	fi
 
-	chmod 444 etc/grid-security/servercert.pem >> /var/log/dirac-context-script.log 2>&1
-	chmod 400 etc/grid-security/serverkey.pem >> /var/log/dirac-context-script.log 2>&1
 
 	chown -R dirac:dirac etc >> /var/log/dirac-context-script.log 2>&1
 	

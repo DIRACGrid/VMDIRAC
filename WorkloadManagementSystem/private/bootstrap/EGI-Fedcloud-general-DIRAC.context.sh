@@ -92,7 +92,6 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 	
 #
 # Installing DIRAC
-# FOR DEBUGGIN PURPOSES installing debuggin github version instead of cvmfs repository released DIRAC:
 #
 	cd /opt/dirac
 	wget --no-check-certificate -O dirac-install 'https://github.com/DIRACGrid/DIRAC/raw/integration/Core/scripts/dirac-install.py' >> /var/log/dirac-context-script.log 2>&1
@@ -143,10 +142,22 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
         # configure, if CAs are not download we retry
         for retry in 0 1 2 3 4 5 6 7 8 9
         do
-		su dirac -c"source bashrc;dirac-configure -UHddd $requirements -o /LocalSite/CloudDriver=$cloudDriver -o /LocalSite/Site=$siteName  -o /LocalSite/VMStopPolicy=$vmStopPolicy  -o /LocalSite/CE=CE-nouse defaults-VMEGI.cfg"  >> /var/log/dirac-context-script.log 2>&1
-		# options H: SkipCAChecks, dd: debug level 2, U: UseServerCertificate 
-		# options only for debuging D: SkipCADownload
-		# after UseServerCertificate = yes for the configuration with CS
+		# if servercert = serverkey, then it is not a hostcertificate but a user proxy
+		if [ `diff  etc/grid-security/servercert.pem  etc/grid-security/serverkey.pem|wc -l` -eq 0 ]
+		then
+			#user proxy credentials
+			su dirac -c"source bashrc;dirac-configure -Hddd $requirements -o /LocalSite/CloudDriver=$cloudDriver -o /LocalSite/Site=$siteName  -o /LocalSite/VMStopPolicy=$vmStopPolicy  -o /LocalSite/CE=CE-nouse defaults-VMEGI.cfg"  >> /var/log/dirac-context-script.log 2>&1
+			# options H: SkipCAChecks, dd: debug level 2
+			# options only for debuging D: SkipCADownload
+		else
+			#hostcert credentials (compatibility previous v6r14)
+			su dirac -c"source bashrc;dirac-configure -UHddd $requirements -o /LocalSite/CloudDriver=$cloudDriver -o /LocalSite/Site=$siteName  -o /LocalSite/VMStopPolicy=$vmStopPolicy  -o /LocalSite/CE=CE-nouse defaults-VMEGI.cfg"  >> /var/log/dirac-context-script.log 2>&1
+			# options H: SkipCAChecks, dd: debug level 2, U: UseServerCertificateCredentials
+			# options only for debuging D: SkipCADownload
+			# after configuration with UseServerCertificate = yes for the configuration with CS
+			# 	we have to change to allow user proxy delegation for agents:
+        		su dirac -c'sed "s/UseServerCertificate = yes/#UseServerCertificate = yes/" etc/dirac.cfg > dirac.cfg.aux'
+		fi
 		if [ `ls /opt/dirac/etc/grid-security/certificates | wc -l` -ne 0 ]
 		then
 			echo "certificates download in dirac-configure at retry: $retry"  >> /var/log/dirac-context-script.log 2>&1
@@ -154,8 +165,6 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 		fi
 		echo "certificates was not download in dirac-configure at retry: $retry"  >> /var/log/dirac-context-script.log 2>&1
 	done
-	# we have to change to allow user proxy delegation for agents:
-        su dirac -c'sed "s/UseServerCertificate = yes/#UseServerCertificate = yes/" etc/dirac.cfg > dirac.cfg.aux'
         su dirac -c'cp etc/dirac.cfg dirac.cfg.postconfigure'
 	su dirac -c'mv dirac.cfg.aux etc/dirac.cfg'
 	echo "etc/dirac.cfg content previous to agents run: "  >> /var/log/dirac-context-script.log 2>&1

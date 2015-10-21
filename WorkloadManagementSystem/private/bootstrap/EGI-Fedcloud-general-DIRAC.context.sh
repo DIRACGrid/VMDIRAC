@@ -80,7 +80,7 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 	sleep 1
 
 	# If there is no key, is because the cert is a user proxy
-	if [ ! -s ${putKeyPath} ]
+	if [ ! -s etc/grid-security/serverkey.pem ]
 	then
 		isproxy="Y"
 		diracuid=`id -u dirac`

@@ -77,7 +77,7 @@ echo "15 $submitPool" >> /var/log/contextualize-script.log 2>&1
 #recording the uniqueId of the VM to be used by VM agents:
 echo ${uniqueId} > /etc/VMID
 
-# vmcert and key have been previoslly copy to VM, these paths are local, the rest of files are on some repo... 
+# vmcert and key have been previoslly included in the VM, these paths are local, the rest of files are on some repo... 
 # 1) download the necesary files:
 
 if [ ${vmRunJobAgent} != 'nouse' ]

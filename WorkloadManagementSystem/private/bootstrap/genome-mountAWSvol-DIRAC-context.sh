@@ -96,6 +96,8 @@ mount /dev/xvdb /mnt >> /var/log/dirac-context-script.log 2>&1
 #rm -f /home/ubuntu/breakseq-stack.tgz >> /var/log/dirac-context-script.log 2>&1
 cd /mnt
 tar xzvf /home/ubuntu/genome-opt.tgz >> /var/log/dirac-context-script.log 2>&1
+# tar should be of dirac user, just in case:
+chown dirac.dirac /mnt/dirac >> /var/log/dirac-context-script.log 2>&1
 # here /opt/dirac and /opt/breakseq ad others are linked to /mnt
 rm -f /home/ubuntu/genome-opt.tgz >> /var/log/dirac-context-script.log 2>&1
 

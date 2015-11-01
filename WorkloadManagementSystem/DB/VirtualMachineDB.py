@@ -54,7 +54,7 @@ class VirtualMachineDB( DB ):
 
 
   # In seconds !
-  stallingInterval = 30 * 60 
+  stallingInterval = 60 * 60 
 
   # When attempting a transition it will be checked if the current state is allowed 
   allowedTransitions = { 'Image' : {

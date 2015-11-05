@@ -407,10 +407,13 @@ class NovaClient:
     node = nodeDetails[ 'Value' ]
 
     # Delete floating IP if any
-    publicIP = self.__deleteFloatingIP( public_ip, node )
-    if not publicIP[ 'OK' ]:
-      self.log.error( publicIP[ 'Message' ] )
-      return publicIP
+    ipPool = self.endpointConfig.get( 'ipPool' )
+    if ipPool is not None:
+      if ( ipPool != 'nouse' ):
+        publicIP = self.__deleteFloatingIP( public_ip, node )
+        if not publicIP[ 'OK' ]:
+          self.log.error( publicIP[ 'Message' ] )
+          return publicIP
 
     # Destroys the node
     try:

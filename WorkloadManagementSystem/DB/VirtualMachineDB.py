@@ -91,7 +91,7 @@ class VirtualMachineDB( DB ):
                                                 'RunningPod' : 'VARCHAR(255) NOT NULL',
                                                 'Name' : 'VARCHAR(255) NOT NULL',
                                                 'Endpoint' : 'VARCHAR(32) NOT NULL',
-                                                'UniqueID' : 'VARCHAR(64) NOT NULL DEFAULT ""',
+                                                'UniqueID' : 'VARCHAR(255) NOT NULL DEFAULT ""',
                                                 'VMImageID' : 'INTEGER UNSIGNED NOT NULL',
                                                 'Status' : 'VARCHAR(32) NOT NULL',
                                                 'LastUpdate' : 'DATETIME',

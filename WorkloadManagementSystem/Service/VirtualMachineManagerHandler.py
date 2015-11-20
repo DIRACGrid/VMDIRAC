@@ -79,8 +79,6 @@ def haltInstances(vmList):
   """
   for instanceID in vmList:
       instanceID = int( instanceID )
-      print "instanceID"
-      print instanceID
       result = gVirtualMachineDB.getUniqueID( instanceID )
       if not result[ 'OK' ]:
         gLogger.error( 'haltInstances on getUniqueID call: %s' % result )

@@ -78,7 +78,8 @@ def haltInstances(vmList):
    Common haltInstances for Running(from class VirtualMachineManagerHandler) and Stalled(from checkStalledInstances periodic task) to Halt 
   """
   for instanceID in vmList:
-      print "Want to halt instanceID: "
+      instanceID = int( instanceID )
+      print "instanceID"
       print instanceID
       result = gVirtualMachineDB.getUniqueID( instanceID )
       if not result[ 'OK' ]:
@@ -350,6 +351,10 @@ class VirtualMachineManagerHandler( RequestHandler ):
 
     haltingList = []
     instanceID = gVirtualMachineDB.getInstanceID( uniqueID )
+    if not instanceID[ 'OK' ]:
+      self.__logResult( 'declareInstanceHalting', instanceID )
+      return instanceID
+    instanceID = instanceID[ 'Value' ]
     haltingList.append( instanceID )
 
     return haltInstances(haltingList)

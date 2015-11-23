@@ -563,7 +563,7 @@ class ImageConfiguration( object ):
     bootImageName  = bootImageOptions.get( endPointName     , None )
 
     if bootImageName is None:
-      self.log.error( 'Missing mandatory bootImageName to the endPoint %s in BootImages section' % endPointName )
+      self.log.error( 'Missing mandatory boot image of the endPoint %s in BootImages section, image %s' % (endPointName, imageName) )
     self.__ic_bootImageName  = bootImageName
 
     # A DIRAC image can have different flavor names names in the cloud endPoints 
@@ -576,7 +576,7 @@ class ImageConfiguration( object ):
     flavorName  = flavorOptions.get( endPointName     , None )
 
     if flavorName is None:
-      self.log.error( 'Missing mandatory flavorName to the endPoint %s in Flavors section' % endPointName )
+      self.log.error( 'Missing mandatory flavor of the endPoint %s in Flavors section, image %s' % (endPointName, imageName) )
     self.__ic_flavorName     = flavorName
 
     self.__ic_contextMethod  = imageOptions.get( 'contextMethod'     , None )

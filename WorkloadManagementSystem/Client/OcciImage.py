@@ -37,7 +37,7 @@ class OcciImage:
 
     # their config() method returns a dictionary with the parsed configuration
     # they also provide a validate() method to make sure it is correct
-    self.__imageConfig = ImageConfiguration( imageName )
+    self.__imageConfig = ImageConfiguration( imageName, endPoint )
     self.__occiConfig  = OcciConfiguration( endPoint )
 
     # this object will connect to the server. Better keep it private.

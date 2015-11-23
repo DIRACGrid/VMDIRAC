@@ -540,7 +540,7 @@ class StratusLabConfiguration( EndpointConfiguration ):
 
 class ImageConfiguration( object ):
   
-  def __init__( self, imageName ):
+  def __init__( self, imageName, endPointName ):
   
     self.log = gLogger.getSubLogger( 'ImageConfiguration' )
    
@@ -552,9 +552,34 @@ class ImageConfiguration( object ):
       imageOptions = imageOptions[ 'Value' ] 
   
     self.__ic_DIRACImageName  = imageName
-    self.__ic_bootImageName  = imageOptions.get( 'bootImageName'     , None )
+
+    # A DIRAC image can have different boot image names in the cloud endPoints 
+    bootImageOptions = gConfig.getOptionsDict( '/Resources/VirtualMachines/Images/%s/BootImages' % imageName )
+    if not bootImageOptions[ 'OK' ]:
+      self.log.error( bootImageOptions[ 'Message' ] )
+    else:
+      bootImageOptions = bootImageOptions[ 'Value' ] 
+
+    bootImageName  = bootImageOptions.get( endPointName     , None )
+
+    if bootImageName is None:
+      self.log.error( 'Missing mandatory bootImageName to the endPoint %s in BootImages section' % endPointName )
+    self.__ic_bootImageName  = bootImageName
+
+    # A DIRAC image can have different flavor names names in the cloud endPoints 
+    flavorOptions = gConfig.getOptionsDict( '/Resources/VirtualMachines/Images/%s/Flavors' % imageName )
+    if not flavorOptions[ 'OK' ]:
+      self.log.error( flavorOptions[ 'Message' ] )
+    else:
+      flavorOptions = flavorOptions[ 'Value' ] 
+
+    flavorName  = flavorOptions.get( endPointName     , None )
+
+    if flavorName is None:
+      self.log.error( 'Missing mandatory flavorName to the endPoint %s in Flavors section' % endPointName )
+    self.__ic_flavorName     = flavorName
+
     self.__ic_contextMethod  = imageOptions.get( 'contextMethod'     , None )
-    self.__ic_flavorName     = imageOptions.get( 'flavorName'        , None )
     #optional:
     self.__ic_maxAllowedPrice     = imageOptions.get( 'maxAllowedPrice'        , None )
     self.__ic_keyName     = imageOptions.get( 'keyName'        , None )

@@ -51,7 +51,7 @@ class AmazonImage:
     
     # their config() method returns a dictionary with the parsed configuration
     # they also provide a validate() method to make sure it is correct 
-    self.__imageConfig = ImageConfiguration( imageName )    
+    self.__imageConfig = ImageConfiguration( imageName, endPoint )    
     self.__amazonConfig  = AmazonConfiguration( endPoint )
 
     self.__cliamazon  = None

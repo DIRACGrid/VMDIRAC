@@ -184,6 +184,9 @@ class OcciClient:
         request.returncode = 1
         return request
 
+    if contextMethod == 'cloudinit':
+        os.remove( composedUserdataPath )
+
     # FIXME use simplejson, filtering non-json output lines
 
     searchstr = occiURI + '/compute/'
@@ -213,7 +216,6 @@ class OcciClient:
         request.returncode = 1
         return request
 
-    os.remove( composedUserdataPath )
     request.returncode = 0
     request.stdout = iD + ', ' + publicIP 
     return request

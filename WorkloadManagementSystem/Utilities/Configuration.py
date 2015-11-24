@@ -553,15 +553,19 @@ class ImageConfiguration( object ):
   
     self.__ic_DIRACImageName  = imageName
 
+    endPointName = endPointName.strip()
+
     # A DIRAC image can have different boot image names in the cloud endPoints 
     bootImageOptions = gConfig.getOptionsDict( '/Resources/VirtualMachines/Images/%s/BootImages' % imageName )
     if not bootImageOptions[ 'OK' ]:
       self.log.error( bootImageOptions[ 'Message' ] )
-    else:
-      bootImageOptions = bootImageOptions[ 'Value' ] 
-
-    bootImageName  = bootImageOptions.get( endPointName     , None )
-
+      return
+    bootImageOptions = bootImageOptions[ 'Value' ] 
+    bootImageName = None
+    for bootEndpoint, bootImage in bootImageOptions.items():
+      if endPointName == bootEndpoint:
+        bootImageName  =  bootImage
+        break
     if bootImageName is None:
       self.log.error( 'Missing mandatory boot image of the endPoint %s in BootImages section, image %s' % (endPointName, imageName) )
     self.__ic_bootImageName  = bootImageName
@@ -570,13 +574,15 @@ class ImageConfiguration( object ):
     flavorOptions = gConfig.getOptionsDict( '/Resources/VirtualMachines/Images/%s/Flavors' % imageName )
     if not flavorOptions[ 'OK' ]:
       self.log.error( flavorOptions[ 'Message' ] )
-    else:
-      flavorOptions = flavorOptions[ 'Value' ] 
-
-    flavorName  = flavorOptions.get( endPointName     , None )
-
+      return
+    flavorOptions = flavorOptions[ 'Value' ] 
+    flavorName = None
+    for bootEndpoint, flavor in flavorOptions.items():
+      if endPointName == bootEndpoint:
+        flavorName  =  flavor
+        break
     if flavorName is None:
-      self.log.error( 'Missing mandatory flavor of the endPoint %s in Flavors section, image %s' % (endPointName, imageName) )
+      self.log.error( 'Missing mandatory flavor of the endPoint %s in BootImages section, image %s' % (endPointName, imageName) )
     self.__ic_flavorName     = flavorName
 
     self.__ic_contextMethod  = imageOptions.get( 'contextMethod'     , None )

@@ -213,6 +213,7 @@ class OcciClient:
         request.returncode = 1
         return request
 
+    os.remove( composedUserdataPath )
     request.returncode = 0
     request.stdout = iD + ', ' + publicIP 
     return request

@@ -280,6 +280,7 @@ class NovaClient:
         self.log.info( "cloudinitScript : %s" % composedUserdataPath )
         with open( composedUserdataPath, 'r' ) as userDataFile: 
           userdata = ''.join( userDataFile.readlines() )
+        os.remove( composedUserdataPath )
 
         if ( keyname == None or keyname == 'nouse' ):
             vmNode = self.__driver.create_node( name               = vm_name, 

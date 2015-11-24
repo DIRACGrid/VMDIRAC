@@ -1,3 +1,23 @@
+[rel-v1r4]
+NEW: A image can have different bootImageName and Flavor depending in the cloud endpoint
+NEW: Try to halt a VM when declared Stalled, if success then go Halt status
+Several bugfixes, particularly of interest is:
+    FIX: UniqueID up to 255 VARCHAR
+    requires a VirtualMachine_DB update to the field size
+Bug fixes:
+FIX: UniqueID up to 255 VARCHAR  [Víctor Méndez]
+FIX: nova pulic ip could be none in delete VM  [Víctor Méndez]
+FIX: No hurry to declare a VM in Stalled  [Víctor Méndez]
+FIX: lastest breakseq sw stack in opt  [Víctor Méndez]
+FIX: get public key in eth1 only for ssh context method  [Víctor Méndez]
+FIX: enable both user proxy and cert for VM cred  [Víctor Méndez]
+UPGRADE with DIRAC v6r14: user proxy  in a pilot way  [Víctor Méndez]
+FIX: if user proxy then copy to tmp and dirac-configure with proxy  [Víctor Méndez]
+FIX: If proxy credentials dirac-configuration with user  proxy  [Víctor Méndez]
+FIX: Avoiding exceed user data size, when long proxy as cert and key  [Víctor Méndez]
+UPGRADE with DIRAC v6r14 uses DataManager instead of ReplicaManger  [Víctor Méndez]
+
+
 [v1r3]
 NEW: Cloudinit contextualization for Amazon EC2 using boto API.
 CHANGE: AmazonImage and AmazonInstance has changed to the same design as openstack and opennebula, using Utilitites/configuration.py and contextualization.py

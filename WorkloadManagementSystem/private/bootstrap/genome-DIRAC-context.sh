@@ -107,16 +107,14 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 	
 #
 # Installing DIRAC
-# FOR DEBUGGIN PURPOSES installing debuggin github version instead of cvmfs repository released DIRAC:
 #
 	cd /opt/dirac
-	wget --no-check-certificate -O dirac-install 'https://github.com/DIRACGrid/DIRAC/raw/integration/Core/scripts/dirac-install.py' >> /var/log/dirac-context-script.log 2>&1
-
+        wget --no-check-certificate -O dirac-install 'http://dirac1.grid.cyfronet.pl:8088/repo/integration/DIRAC/Core/scripts/dirac-install.py' >> /var/log/dirac-context-script.log 2>&1
 	su dirac -c'python dirac-install -V "VMEGI"' >> /var/log/dirac-context-script.log 2>&1
 
-	# FOR DEBUGGIN PURPOSES overwriting with last released in the local vmendez git folder: 
+	# FOR DEBUGGIN PURPOSES overwriting with last released in the local vmendez folder: 
         rm -rf VMDIRAC
-        wget --no-check-certificate -O vmdirac.zip 'https://github.com/vmendez/VMDIRAC/archive/master.zip' >> /var/log/dirac-context-script.log 2>&1
+        wget --no-check-certificate -O vmdirac.zip 'http://dirac1.grid.cyfronet.pl:8088/repo/vmendez/master.zip' >> /var/log/dirac-context-script.log 2>&1
         # checking if unzip installed
         if [ ! `which unzip` ]
         then

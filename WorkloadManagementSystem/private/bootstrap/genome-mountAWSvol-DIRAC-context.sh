@@ -101,6 +101,9 @@ chown dirac.dirac /mnt/dirac >> /var/log/dirac-context-script.log 2>&1
 # here /opt/dirac and /opt/breakseq ad others are linked to /mnt
 rm -f /home/ubuntu/genome-opt.tgz >> /var/log/dirac-context-script.log 2>&1
 
+mkdir /mnt/tmp >> /var/log/dirac-context-script.log 2>&1
+rm -rf /tmp >> /var/log/dirac-context-script.log 2>&1
+ln -s /mnt/tmp /tmp >> /var/log/dirac-context-script.log 2>&1
 
 # servercert/serverkey previouslly to this script copied 
 #

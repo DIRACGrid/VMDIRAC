@@ -350,7 +350,7 @@ class VirtualMachineDB( DB ):
     uniqueID = uniqueID[ 'Value' ]
 
     if not uniqueID:
-      return S_ERROR( 'Unregistered VM, uniqueID not found' )
+      return S_ERROR( 'Unregistered VM, uniqueID not found for instanceID %s' % (instanceID) )
 
     return S_OK( uniqueID[ 0 ][ 0 ] )
 

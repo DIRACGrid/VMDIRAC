@@ -102,7 +102,7 @@ def haltInstances(vmList):
         continue
       imageName = imageName[ 'Value' ]
 
-      gLogger.info( 'Attemping to halt Stalled instance:  %s, endpoint: %s imageName: %s' % (str(uniqueID),endpoint,imageName) )
+      gLogger.info( 'Attemping to halt instance:  %s, endpoint: %s imageName: %s' % (str(uniqueID),endpoint,imageName) )
 
       if ( cloudDriver == 'occi-0.9' or cloudDriver == 'occi-0.8' or cloudDriver == 'rocci-1.1' ):
         oima   = OcciImage( imageName, endpoint )

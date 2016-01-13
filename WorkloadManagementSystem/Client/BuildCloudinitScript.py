@@ -95,7 +95,7 @@ class BuildCloudinitScript:
                         ):
     # The function return S_OK with the name of the created cloudinit script
     # If the cloudinit context script was previously created, then overwriten
-    cloudinitPath = '/tmp/cloudinit_' + DIRACImageName + '_' + siteName + '.sh'
+    cloudinitPath = '/tmp/cloudinit_' + DIRACImageName + '_' + siteName + '_' + str(instanceID) + '.sh'
     file=open(cloudinitPath, 'w')
 
     #start writing the script

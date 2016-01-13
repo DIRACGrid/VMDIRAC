@@ -30,7 +30,24 @@ install_unzip() {
 
 install_easy_install() {
     get_packaging_system
-   [ ! -z $PACKAGE_MANAGER ] && $PACKAGE_MANAGER -y install python-setuptools
+    [ ! -z $PACKAGE_MANAGER ] && $PACKAGE_MANAGER -y install python-setuptools
+}
+
+check_python_dev() {
+    get_packaging_system
+    if [ $PACKAGE_MANAGER="yum" ]
+    then
+       pdev=`rpm -qa|grep python-dev|wc -l`
+    elif [ $PACKAGE_MANAGER="apt-get" ]
+    then
+       pdev=`dpkg -l|grep python-dev|wc -l`
+    else
+        echo "Package manager not implemented."
+    fi
+    if [ $pdev -ne 0 ] 
+    then
+       [ ! -z $PACKAGE_MANAGER ] && $PACKAGE_MANAGER -y install python-dev
+    fi
 }
 
 
@@ -67,41 +84,44 @@ echo "8 $localVmRunLogAgent" >> /var/log/dirac-context-script.log 2>&1
 echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 
 # dirac user:
-        /usr/sbin/useradd -m -s /bin/bash -d /opt/dirac dirac >> /var/log/dirac-context-script.log 2>&1
+# Ubuntu14-hg19 already has a dirac user
+#        /usr/sbin/useradd -m -s /bin/bash -d /opt/dirac dirac >> /var/log/dirac-context-script.log 2>&1
+
+# breakseq tgz software stack:
+echo "mount disk and untargz breakseq-stack.tgz" >> /var/log/dirac-context-script.log 2>&1
+echo "breakseq software stack requires 8GB free in /mnt + input and output data to process" >> /var/log/dirac-context-script.log 2>&1
+mount /dev/xvdb /mnt >> /var/log/dirac-context-script.log 2>&1
+#cd /
+#tar xzvf /home/ubuntu/breakseq-stack.tgz >> /var/log/dirac-context-script.log 2>&1
+#rm -f /home/ubuntu/breakseq-stack.tgz >> /var/log/dirac-context-script.log 2>&1
+cd /mnt
+tar xzvf /home/ubuntu/genome-opt.tgz >> /var/log/dirac-context-script.log 2>&1
+# tar should be of dirac user, just in case:
+chown dirac.dirac /mnt/dirac >> /var/log/dirac-context-script.log 2>&1
+# here /opt/dirac and /opt/breakseq ad others are linked to /mnt
+rm -f /home/ubuntu/genome-opt.tgz >> /var/log/dirac-context-script.log 2>&1
+
 
 # servercert/serverkey previouslly to this script copied 
 #
 	cd /opt/dirac
-	su dirac -c'mkdir -p etc/grid-security' >> /var/log/dirac-context-script.log 2>&1
+        echo "pwd should be /opt/dirac" >> /var/log/dirac-context-script.log 2>&1
+	pwd >> /var/log/dirac-context-script.log 2>&1
+	mkdir -p etc/grid-security >> /var/log/dirac-context-script.log 2>&1
 	chmod -R 755 etc >> /var/log/dirac-context-script.log 2>&1
 	mv ${putCertPath} etc/grid-security/servercert.pem >> /var/log/dirac-context-script.log 2>&1
 	mv ${putKeyPath} etc/grid-security/serverkey.pem >> /var/log/dirac-context-script.log 2>&1
 
 	sleep 1
 
-	# If there is no key, is because the cert is a user proxy
-	if [ ! -s etc/grid-security/serverkey.pem ]
-	then
-		isproxy="Y"
-		diracuid=`id -u dirac`
-		proxyname=`echo "x509up_u${diracuid}"`
-		echo "User proxy: ${proxyname}" >> /var/log/dirac-context-script.log 2>&1
-		mv etc/grid-security/servercert.pem /tmp/${proxyname}
-		chmod 600  /tmp/${proxyname}
-		cp /tmp/${proxyname} /tmp/x509up_u0
-		chown dirac.dirac  /tmp/${proxyname}
-		ls -l /tmp/${proxyname} >> /var/log/dirac-context-script.log 2>&1
-	else
-		isproxy="N"
-		chmod 444 etc/grid-security/servercert.pem >> /var/log/dirac-context-script.log 2>&1
-		chmod 400 etc/grid-security/serverkey.pem >> /var/log/dirac-context-script.log 2>&1
-	fi
-
+	chmod 444 etc/grid-security/servercert.pem >> /var/log/dirac-context-script.log 2>&1
+	chmod 400 etc/grid-security/serverkey.pem >> /var/log/dirac-context-script.log 2>&1
 
 	chown -R dirac:dirac etc >> /var/log/dirac-context-script.log 2>&1
 	
 #
 # Installing DIRAC
+# FOR DEBUGGIN PURPOSES installing debuggin github version instead of cvmfs repository released DIRAC:
 #
 	cd /opt/dirac
 	wget --no-check-certificate -O dirac-install 'https://github.com/DIRACGrid/DIRAC/raw/integration/Core/scripts/dirac-install.py' >> /var/log/dirac-context-script.log 2>&1
@@ -135,6 +155,8 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 	export LD_LIBRARY_PATH
         platform=`dirac-platform`
         # for the VM Monitor
+        # checking if python-dev installed
+        check_python_dev
         # checking if easy_install installed
         if [ ! `which easy_install` ]
         then
@@ -152,22 +174,10 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
         # configure, if CAs are not download we retry
         for retry in 0 1 2 3 4 5 6 7 8 9
         do
-		# if user proxy:
-		if [ ${isproxy} == "Y" ]
-		then
-			#user proxy credentials
-			su dirac -c"source bashrc;dirac-configure -Hddd $requirements -o /LocalSite/CloudDriver=$cloudDriver -o /LocalSite/Site=$siteName  -o /LocalSite/VMStopPolicy=$vmStopPolicy  -o /LocalSite/CE=CE-nouse defaults-VMEGI.cfg"  >> /var/log/dirac-context-script.log 2>&1
-			# options H: SkipCAChecks, dd: debug level 2
-			# options only for debuging D: SkipCADownload
-		else
-			#hostcert credentials (compatibility previous v6r14)
-			su dirac -c"source bashrc;dirac-configure -UHddd $requirements -o /LocalSite/CloudDriver=$cloudDriver -o /LocalSite/Site=$siteName  -o /LocalSite/VMStopPolicy=$vmStopPolicy  -o /LocalSite/CE=CE-nouse defaults-VMEGI.cfg"  >> /var/log/dirac-context-script.log 2>&1
-			# options H: SkipCAChecks, dd: debug level 2, U: UseServerCertificateCredentials
-			# options only for debuging D: SkipCADownload
-			# after configuration with UseServerCertificate = yes for the configuration with CS
-			# 	we have to change to allow user proxy delegation for agents:
-        		su dirac -c'sed "s/UseServerCertificate = yes/#UseServerCertificate = yes/" etc/dirac.cfg > dirac.cfg.aux'
-		fi
+		su dirac -c"source bashrc;dirac-configure -UHddd $requirements -o /LocalSite/CloudDriver=$cloudDriver -o /LocalSite/Site=$siteName  -o /LocalSite/VMStopPolicy=$vmStopPolicy  -o /LocalSite/CE=CE-nouse defaults-VMEGI.cfg"  >> /var/log/dirac-context-script.log 2>&1
+		# options H: SkipCAChecks, dd: debug level 2, U: UseServerCertificate 
+		# options only for debuging D: SkipCADownload
+		# after UseServerCertificate = yes for the configuration with CS
 		if [ `ls /opt/dirac/etc/grid-security/certificates | wc -l` -ne 0 ]
 		then
 			echo "certificates download in dirac-configure at retry: $retry"  >> /var/log/dirac-context-script.log 2>&1
@@ -175,8 +185,10 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 		fi
 		echo "certificates was not download in dirac-configure at retry: $retry"  >> /var/log/dirac-context-script.log 2>&1
 	done
-        su dirac -c'cp etc/dirac.cfg dirac.cfg.postconfigure'
-	su dirac -c'mv dirac.cfg.aux etc/dirac.cfg'
+	# we have to change to allow user proxy delegation for agents:
+        sed "s/UseServerCertificate = yes/#UseServerCertificate = yes/" etc/dirac.cfg > dirac.cfg.aux
+        cp etc/dirac.cfg dirac.cfg.postconfigure
+	mv dirac.cfg.aux etc/dirac.cfg
 	echo "etc/dirac.cfg content previous to agents run: "  >> /var/log/dirac-context-script.log 2>&1
 	cat etc/dirac.cfg >> /var/log/dirac-context-script.log 2>&1
 	echo >> /var/log/dirac-context-script.log 2>&1

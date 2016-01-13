@@ -157,6 +157,7 @@ class AmazonClient:
       self.log.info( "cloudinitScript : %s" % composedUserdataPath )
       with open( composedUserdataPath, 'r' ) as userDataFile: 
         userdata = ''.join( userDataFile.readlines() )
+      os.remove( composedUserdataPath )
 
     if maxAllowedPrice is None:
       maxAllowedPrice = 0

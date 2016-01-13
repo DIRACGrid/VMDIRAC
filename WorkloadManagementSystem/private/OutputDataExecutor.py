@@ -8,7 +8,7 @@ from DIRAC.Core.Utilities                             import List
 from DIRAC.Core.Utilities.Subprocess                  import pythonCall
 from DIRAC.Core.Utilities.ThreadPool                  import ThreadPool
 from DIRAC.Core.Utilities.ThreadSafe                  import Synchronizer
-from DIRAC.DataManagementSystem.Client.ReplicaManager import ReplicaManager
+from DIRAC.DataManagementSystem.Client.DataManager    import DataManager   
 from DIRAC.Resources.Catalog.FileCatalog              import FileCatalog
 from DIRAC.Resources.Storage.StorageElement           import StorageElement
 
@@ -250,15 +250,15 @@ class OutputDataExecutor:
 
     outputPath = outputDict['OutputPath']
     outputFCName = outputDict['OutputFC']
-    replicaManager = ReplicaManager()
+    dataManager = DataManager()
     outFile = os.path.join( outputPath, os.path.basename( file ) )
     transferOK = False
     for outputSEName in List.fromChar( outputDict['OutputSE'], "," ):
       outputSE = StorageElement( outputSEName )
       self.log.info( 'Trying to upload to %s:' % outputSE.name, outFile )
-      # ret = replicaManager.putAndRegister( outFile, os.path.realpath( file ), outputSE.name, catalog=outputFCName )
+      # ret = dataManager.putAndRegister( outFile, os.path.realpath( file ), outputSE.name, catalog=outputFCName )
       # lcg_util binding prevent multithreading, use subprocess instead
-      result = pythonCall( 2 * 3600, replicaManager.putAndRegister, outFile, os.path.realpath( file ), outputSE.name, catalog = outputFCName )
+      result = pythonCall( 2 * 3600, dataManager.putAndRegister, outFile, os.path.realpath( file ), outputSE.name, catalog = outputFCName )
       if result['OK'] and result['Value']['OK']:
         if outFile in result['Value']['Value']['Successful']:
           transferOK = True

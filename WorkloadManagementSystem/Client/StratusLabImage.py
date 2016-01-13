@@ -50,7 +50,7 @@ class StratusLabImage( object ):
 
     self.log = gLogger.getSubLogger( 'StratusLabImage_%s_%s: ' % ( endpointElementName, imageElementName ) )
 
-    self._imageConfig    = ImageConfiguration( imageElementName )
+    self._imageConfig    = ImageConfiguration( imageElementName, endpointElementName )
     self._endpointConfig = StratusLabConfiguration( endpointElementName )
 
     self._impl = None

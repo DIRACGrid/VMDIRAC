@@ -34,18 +34,125 @@ __RCSID__ = '$Id: $'
 # This is a global instance of the VirtualMachineDB class
 gVirtualMachineDB = False
 
+#def initializeVirtualMachineManagerHandler( _serviceInfo ):
+#
+#  global gVirtualMachineDB
+#  
+#  gVirtualMachineDB = VirtualMachineDB()
+#  gVirtualMachineDB.declareStalledInstances()
+#  
+#  if gVirtualMachineDB._connected:
+#    gThreadScheduler.addPeriodicTask( 60 * 15, gVirtualMachineDB.declareStalledInstances )
+#    return S_OK()
+#  
+#  return S_ERROR()
+
 def initializeVirtualMachineManagerHandler( _serviceInfo ):
 
   global gVirtualMachineDB
-  
+
   gVirtualMachineDB = VirtualMachineDB()
-  gVirtualMachineDB.declareStalledInstances()
-  
+  checkStalledInstances()
+
   if gVirtualMachineDB._connected:
-    gThreadScheduler.addPeriodicTask( 60 * 15, gVirtualMachineDB.declareStalledInstances )
+    gThreadScheduler.addPeriodicTask( 60 * 15, checkStalledInstances )
     return S_OK()
-  
+
   return S_ERROR()
+
+def checkStalledInstances():
+  """
+   To avoid stalling instances consuming resources at cloud endpoint, attempms to halt the stalled list in the cloud endpoint
+  """
+
+  result = gVirtualMachineDB.declareStalledInstances()
+  if not result[ 'OK' ]:
+      return S_ERROR()
+
+  stallingList = result[ 'Value' ]
+  
+  return haltInstances(stallingList)
+
+def haltInstances(vmList):
+  """
+   Common haltInstances for Running(from class VirtualMachineManagerHandler) and Stalled(from checkStalledInstances periodic task) to Halt 
+  """
+  for instanceID in vmList:
+      instanceID = int( instanceID )
+      result = gVirtualMachineDB.getUniqueID( instanceID )
+      if not result[ 'OK' ]:
+        gLogger.error( 'haltInstances on getUniqueID call: %s' % result )
+        continue
+      uniqueID = result [ 'Value' ]
+
+      result = gVirtualMachineDB.getEndpointFromInstance( uniqueID )
+      if not result[ 'OK' ]:
+        gLogger.error( 'haltInstances on getEndpointFrominstance call: %s' % result )
+        continue
+      endpoint = result [ 'Value' ]
+
+      cloudDriver = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, "cloudDriver" ) )
+      if not cloudDriver:
+        gLogger.error( 'haltInstances: Cloud not found driver option in the Endpoint %s value %s' % (endpoint, cloudDriver))
+        continue
+
+      imageName = gVirtualMachineDB.getImageNameFromInstance( uniqueID )
+      if not imageName[ 'OK' ]:
+        gLogger.error( 'haltInstances: can not getImageNameFromInstance %s' % imageName)
+        continue
+      imageName = imageName[ 'Value' ]
+
+      gLogger.info( 'Attemping to halt Stalled instance:  %s, endpoint: %s imageName: %s' % (str(uniqueID),endpoint,imageName) )
+
+      if ( cloudDriver == 'occi-0.9' or cloudDriver == 'occi-0.8' or cloudDriver == 'rocci-1.1' ):
+        oima   = OcciImage( imageName, endpoint )
+        connOcci = oima.connectOcci()
+        if not connOcci[ 'OK' ]:
+          gLogger.error( 'haltInstances: can not connect occi' )
+          continue
+
+        result = oima.stopInstance( uniqueID )
+
+      elif cloudDriver == 'nova-1.1':
+        nima     = NovaImage( imageName, endpoint )
+        connNova = nima.connectNova()
+        if not connNova[ 'OK' ]:
+          gLogger.error( 'haltInstances: can not connect nova' )
+          continue
+      
+        publicIP = gVirtualMachineDB.getPublicIpFromInstance ( uniqueID )
+        if not publicIP[ 'OK' ]:
+          gLogger.error( 'haltInstances: can not get publicIP' )
+          continue
+        publicIP = publicIP[ 'Value' ]
+      
+        result = nima.stopInstance( uniqueID, publicIP )
+
+      elif ( cloudDriver == 'amazon' ):
+        awsima = None
+        try:
+          awsima = AmazonImage( imageName, endpoint )
+        except Exception:
+          gLogger.error("Failed to connect to AWS")
+          pass
+        if awsima:
+          connAmazon = awsima.connectAmazon()
+          if not connAmazon[ 'OK' ]:
+            gLogger.error( 'haltInstances: can not connect aws' )
+            continue
+
+        result = awsima.stopInstance( uniqueID )
+
+      else:
+        gLogger.warn( 'Unexpected cloud driver:  %s' % cloudDriver )
+
+      if not result[ 'OK' ]:
+        gLogger.error( 'haltInstances: attemping to halt instance %s: %s' % (uniqueID, result ))
+      else:
+        gVirtualMachineDB.recordDBHalt( instanceID, 0 )
+
+  return S_OK()
+
 
 class VirtualMachineManagerHandler( RequestHandler ):
 
@@ -68,6 +175,8 @@ class VirtualMachineManagerHandler( RequestHandler ):
     '''
     if not result[ 'OK' ]:
       gLogger.error( '%s%s' % ( methodName, result[ 'Message' ] ) )  
+
+
 
   types_checkVmWebOperation = [ StringType ]
   def export_checkVmWebOperation( self, operation ):
@@ -237,67 +346,17 @@ class VirtualMachineManagerHandler( RequestHandler ):
         return result
       else:
         gLogger.info("Bad transition from Halted to something, will assume Halted")
-   
-    if ( cloudDriver == 'occi-0.9' or cloudDriver == 'occi-0.8' or cloudDriver == 'rocci-1.1' ):
-      imageName = gVirtualMachineDB.getImageNameFromInstance( uniqueID )
-      if not imageName[ 'OK' ]:
-        self.__logResult( 'declareInstanceHalting getImageNameFromInstance: ', imageName )
-        return imageName
-      imageName = imageName[ 'Value' ]
 
-      gLogger.info( 'Declare instance halting:  %s, endpoint: %s imageName: %s' % (str(uniqueID),endpoint,imageName) )
-      oima   = OcciImage( imageName, endpoint )
-      connOcci = oima.connectOcci()
-      if not connOcci[ 'OK' ]:
-        return connOcci
+    haltingList = []
+    instanceID = gVirtualMachineDB.getInstanceID( uniqueID )
+    if not instanceID[ 'OK' ]:
+      self.__logResult( 'declareInstanceHalting', instanceID )
+      return instanceID
+    instanceID = instanceID[ 'Value' ]
+    haltingList.append( instanceID )
 
-      result = oima.stopInstance( uniqueID )
-
-    elif cloudDriver == 'nova-1.1':
-      imageName = gVirtualMachineDB.getImageNameFromInstance( uniqueID )
-      if not imageName[ 'OK' ]:
-        self.__logResult( 'declareInstanceHalting getImageNameFromInstance: ', imageName )
-        return imageName
-      imageName = imageName[ 'Value' ]
-
-      nima     = NovaImage( imageName, endpoint )
-      connNova = nima.connectNova()
-      if not connNova[ 'OK' ]:
-        return connNova
-      
-      publicIP = gVirtualMachineDB.getPublicIpFromInstance ( uniqueID )
-      if not publicIP[ 'OK' ]:
-        self.__logResult( 'declareInstanceHalting getPublicIpFromInstance: ', publicIP )
-        return publicIP
-      publicIP = publicIP[ 'Value' ]
-      
-      result = nima.stopInstance( uniqueID, publicIP )
-
-    elif ( cloudDriver == 'amazon' ):
-      imageName = gVirtualMachineDB.getImageNameFromInstance( uniqueID )
-      if not imageName[ 'OK' ]:
-        self.__logResult( 'declareInstanceHalting getImageNameFromInstance: ', imageName )
-        return imageName
-      imageName = imageName[ 'Value' ]
-
-      gLogger.info( 'Declare instance halting:  %s, endpoint: %s imageName: %s' % (str(uniqueID),endpoint,imageName) )
-      awsima = None
-      try:
-        awsima = AmazonImage( imageName, endpoint )
-      except Exception:
-        gLogger.error("Failed to connect to AWS")
-        pass
-      if awsima:
-        connAmazon = awsima.connectAmazon()
-        if not connAmazon[ 'OK' ]:
-          return connAmazon
-        result = awsima.stopInstance( uniqueID )
-
-    else:
-      gLogger.warn( 'Unexpected cloud driver:  %s' % cloudDriver )
-
-    self.__logResult( 'declareInstanceHalting: ', result )
-    return result
+    return haltInstances(haltingList)
+ 
 
   types_getInstancesByStatus = [ StringType ]
   def export_getInstancesByStatus( self, status ):

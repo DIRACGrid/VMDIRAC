@@ -540,7 +540,7 @@ class StratusLabConfiguration( EndpointConfiguration ):
 
 class ImageConfiguration( object ):
   
-  def __init__( self, imageName ):
+  def __init__( self, imageName, endPointName ):
   
     self.log = gLogger.getSubLogger( 'ImageConfiguration' )
    
@@ -552,9 +552,40 @@ class ImageConfiguration( object ):
       imageOptions = imageOptions[ 'Value' ] 
   
     self.__ic_DIRACImageName  = imageName
-    self.__ic_bootImageName  = imageOptions.get( 'bootImageName'     , None )
+
+    endPointName = endPointName.strip()
+
+    # A DIRAC image can have different boot image names in the cloud endPoints 
+    bootImageOptions = gConfig.getOptionsDict( '/Resources/VirtualMachines/Images/%s/BootImages' % imageName )
+    if not bootImageOptions[ 'OK' ]:
+      self.log.error( bootImageOptions[ 'Message' ] )
+      return
+    bootImageOptions = bootImageOptions[ 'Value' ] 
+    bootImageName = None
+    for bootEndpoint, bootImage in bootImageOptions.items():
+      if endPointName == bootEndpoint:
+        bootImageName  =  bootImage
+        break
+    if bootImageName is None:
+      self.log.error( 'Missing mandatory boot image of the endPoint %s in BootImages section, image %s' % (endPointName, imageName) )
+    self.__ic_bootImageName  = bootImageName
+
+    # A DIRAC image can have different flavor names names in the cloud endPoints 
+    flavorOptions = gConfig.getOptionsDict( '/Resources/VirtualMachines/Images/%s/Flavors' % imageName )
+    if not flavorOptions[ 'OK' ]:
+      self.log.error( flavorOptions[ 'Message' ] )
+      return
+    flavorOptions = flavorOptions[ 'Value' ] 
+    flavorName = None
+    for bootEndpoint, flavor in flavorOptions.items():
+      if endPointName == bootEndpoint:
+        flavorName  =  flavor
+        break
+    if flavorName is None:
+      self.log.error( 'Missing mandatory flavor of the endPoint %s in BootImages section, image %s' % (endPointName, imageName) )
+    self.__ic_flavorName     = flavorName
+
     self.__ic_contextMethod  = imageOptions.get( 'contextMethod'     , None )
-    self.__ic_flavorName     = imageOptions.get( 'flavorName'        , None )
     #optional:
     self.__ic_maxAllowedPrice     = imageOptions.get( 'maxAllowedPrice'        , None )
     self.__ic_keyName     = imageOptions.get( 'keyName'        , None )

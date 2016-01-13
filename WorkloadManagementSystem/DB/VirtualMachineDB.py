@@ -54,7 +54,7 @@ class VirtualMachineDB( DB ):
 
 
   # In seconds !
-  stallingInterval = 30 * 60 
+  stallingInterval = 60 * 40 
 
   # When attempting a transition it will be checked if the current state is allowed 
   allowedTransitions = { 'Image' : {
@@ -91,7 +91,7 @@ class VirtualMachineDB( DB ):
                                                 'RunningPod' : 'VARCHAR(255) NOT NULL',
                                                 'Name' : 'VARCHAR(255) NOT NULL',
                                                 'Endpoint' : 'VARCHAR(32) NOT NULL',
-                                                'UniqueID' : 'VARCHAR(64) NOT NULL DEFAULT ""',
+                                                'UniqueID' : 'VARCHAR(255) NOT NULL DEFAULT ""',
                                                 'VMImageID' : 'INTEGER UNSIGNED NOT NULL',
                                                 'Status' : 'VARCHAR(32) NOT NULL',
                                                 'LastUpdate' : 'DATETIME',
@@ -329,7 +329,7 @@ class VirtualMachineDB( DB ):
     #except Exception, e:
       #FIXME: do we really want to raise an Exception ?
       #raise e
-      return S_ERROR( "uniqueID has to be a number" )
+      return S_ERROR( "instanceID has to be a number" )
     
     tableName, _validStates, idName = self.__getTypeTuple( 'Instance' )
     
@@ -341,16 +341,27 @@ class VirtualMachineDB( DB ):
     For a given dirac instanceID get the corresponding cloud endpoint uniqueID
     """
     tableName, _validStates, idName = self.__getTypeTuple( 'Instance' )
-    
-    uniqueID = self._getFields( tableName, [ 'UniqueID' ], [ 'InstanceID' ], [ instanceID ] )
+
+    print instanceID
+    print "instanceID"
+
+    sqlQuery = "SELECT UniqueID FROM `%s` WHERE %s = %s" % ( tableName, idName, instanceID )
+    uniqueID = self._query( sqlQuery )
+
+    print "uniqueID"
+    print uniqueID
+
     if not uniqueID[ 'OK' ]:
       return uniqueID
-    uniqueID = uniqueID[ 'Value' ][0][0]
+    uniqueID = uniqueID[ 'Value' ]
 
-    if not uniqueID:
-      return S_ERROR( 'Unknown %s = %s' % ( 'InstanceID', instanceID ) )
+    return S_OK( uniqueID[ 0 ][ 0 ] )
 
-    return S_OK( uniqueID )
+  def getInstanceID( self, uniqueID ):
+    """
+    Public interface for  __getInstanceID
+    """
+    return self.__getInstanceID( uniqueID )
 
   def declareInstanceSubmitted( self, uniqueID ):
     """

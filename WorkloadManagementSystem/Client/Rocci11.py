@@ -184,6 +184,9 @@ class OcciClient:
         request.returncode = 1
         return request
 
+    if contextMethod == 'cloudinit':
+        os.remove( composedUserdataPath )
+
     # FIXME use simplejson, filtering non-json output lines
 
     searchstr = occiURI + '/compute/'
@@ -191,24 +194,28 @@ class OcciClient:
     if first < 0:
       request.returncode = 1
       return request
-    first += len(searchstr)
-    last = len(request.stdout)
+    #first += len(searchstr)
+    #last = len(request.stdout)
     iD = request.stdout
- 
-    # giving time sleep to REST API caching the instance to be available:
-    time.sleep( 5 )
+    publicIP = ' '
 
-    command = 'occi --endpoint ' + occiURI + '  --action describe --resource ' + iD + ' ' + self.__authArg + ' --output-format json_extended'
+    if contextMethod == 'ssh':
+      #then need the public IP
+      # giving time sleep to REST API caching the instance to be available:
+      time.sleep( 5 )
 
-    request.exec_and_wait(command)
+      command = 'occi --endpoint ' + occiURI + '  --action describe --resource ' + iD + ' ' + self.__authArg + ' --output-format json_extended'
 
-    infoDict = simplejson.loads(request.stdout)
-    try:
-      publicIP = infoDict[0]['links'][1]['attributes']['occi']['networkinterface']['address']
-    except Exception as e:
-      self.log.error( 'The description of %s does not include the ip address: ' % iD, e )
-      request.returncode = 1
-      return request
+      request.exec_and_wait(command)
+
+      infoDict = simplejson.loads(request.stdout)
+      try:
+        publicIP = infoDict[0]['links'][1]['attributes']['occi']['networkinterface']['address']
+      except Exception as e:
+        self.log.error( 'The description of %s does not include the ip address: ' % iD, e )
+        request.returncode = 1
+        return request
+
     request.returncode = 0
     request.stdout = iD + ', ' + publicIP 
     return request

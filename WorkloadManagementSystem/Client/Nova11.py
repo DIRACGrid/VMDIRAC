@@ -64,6 +64,16 @@ class NovaClient:
     ex_force_ca_cert        = endpointConfig.get( 'ex_force_ca_cert', None )
     if ex_force_ca_cert is not None:
       security.CA_CERTS_PATH = [ ex_force_ca_cert ]
+    # no server ssl verify only for testing
+    # security.VERIFY_SSL_CERT = False
+
+    # log info:
+    os.system("export LIBCLOUD_DEBUG=/tmp/libcloud.log")
+    self.log.info( "ex_force_auth_url %s" % ex_force_auth_url )
+    self.log.info( "ex_force_service_region %s" % ex_force_service_region )
+    self.log.info( "ex_force_auth_version %s" % ex_force_auth_version )
+    self.log.info( "ex_tenant_name %s" % ex_tenant_name )
+    self.log.info( "ex_force_ca_cert %s" % ex_force_ca_cert )
 
     # get openstack driver
     openstack_driver = get_driver( Provider.OPENSTACK )
@@ -84,6 +94,9 @@ class NovaClient:
       # with user password
       username = user
       password = secret
+      # eventually libcloud access to Grizzly force service name:
+                                     #ex_force_service_name = 'image',
+                                     #ex_force_service_name = 'nova',
       self.__driver = openstack_driver( username, password,
                                      ex_force_auth_url = ex_force_auth_url,
                                      ex_force_service_region = ex_force_service_region,
@@ -122,7 +135,19 @@ class NovaClient:
     except Exception, errmsg:
       return S_ERROR( errmsg )
 
-    return S_OK( [ image for image in images if image.name == imageName ][ 0 ] )
+    # for openstack compatibility Grizlly:    
+    #return S_OK( [ image for image in images if image.name == imageName ][ 0 ] )
+
+    found=None
+    for image in images:
+	if image.name == imageName: 
+		found = image
+		break
+
+    if found is None:
+       return S_ERROR( "Image %s not found" % imageName )
+    
+    return S_OK( found )
  
   def get_flavor( self, flavorName ):
     """
@@ -231,23 +256,7 @@ class NovaClient:
     # keypair management is not available in libcloud openstack, jet.
     # https://issues.apache.org/jira/browse/LIBCLOUD-392
     # open pull request(10/09/2013): https://github.com/apache/libcloud/pull/145
-    # this was the equivalent with nova client:
-    #if pubkeyPath:
-    #  try:
-    #    with open(os.path.expanduser(pubkeyPath)) as f:
-    #        pub_key = f.read()
-    #  except Exception, errmsg:
-    #    return S_ERROR( errmsg )
-    #  keypairs = pynovaclient.keypairs.list()
-    #  existkey = False
-    #  for keypair in keypairs:
-    #    if keypair.name == ex_keyname:
-    #      self.log.info( "ex_keyname exist, do nothing for keypairs" )
-    #      existkey = True
-    #
-    #  if existkey == False:
-    #    keypair = self.__pynovaclient.keypairs.create(keyname,pub_key)
-    # from here, keyname has to be previouslly created to be injected in the /root/.ssh/authorized_keys of the VM
+    # if keyname is defined, it means that allready exisits with the key pair
 
     self.log.info( "Creating node" )
     self.log.verbose( "name : %s" % vm_name )
@@ -257,7 +266,7 @@ class NovaClient:
     self.log.verbose( "ex_userdata : %s" % userdata )
     self.log.verbose( "ex_metadata : %s" % metadata )
     # mandatory for ssh, checked at Context.py
-    self.log.verbose( "ex_keyname : %s" % keyname )
+    self.log.info( "ex_keyname : %s" % keyname )
     self.log.verbose( "ex_pubkey_path : %s" % pubkeyPath )
 
     try:
@@ -271,14 +280,31 @@ class NovaClient:
         self.log.info( "cloudinitScript : %s" % composedUserdataPath )
         with open( composedUserdataPath, 'r' ) as userDataFile: 
           userdata = ''.join( userDataFile.readlines() )
+        os.remove( composedUserdataPath )
 
-        vmNode = self.__driver.create_node( name               = vm_name, 
+        if ( keyname == None or keyname == 'nouse' ):
+            vmNode = self.__driver.create_node( name               = vm_name, 
+                                                image              = bootImage, 
+                                                size               = flavor,
+                                                ex_userdata        = userdata,
+                                                ex_security_groups = secGroup)
+	else:
+            vmNode = self.__driver.create_node( name               = vm_name, 
+                                                image              = bootImage, 
+                                                size               = flavor,
+                                                ex_userdata        = userdata,
+                                                ex_keyname         = keyname,
+                                                ex_security_groups = secGroup)
+      elif contextMethod == 'amiconfig':
+        if ( keyname == None or keyname == 'nouse' ):
+            vmNode = self.__driver.create_node( name               = vm_name, 
                                             image              = bootImage, 
                                             size               = flavor,
                                             ex_userdata        = userdata,
-                                            ex_security_groups = secGroup)
-      elif contextMethod == 'amiconfig':
-        vmNode = self.__driver.create_node( name               = vm_name, 
+                                            ex_security_groups = secGroup,
+                                            ex_metadata        = metadata )	
+	else:
+            vmNode = self.__driver.create_node( name               = vm_name, 
                                             image              = bootImage, 
                                             size               = flavor,
                                             ex_keyname         = keyname,
@@ -382,10 +408,13 @@ class NovaClient:
     node = nodeDetails[ 'Value' ]
 
     # Delete floating IP if any
-    publicIP = self.__deleteFloatingIP( public_ip, node )
-    if not publicIP[ 'OK' ]:
-      self.log.error( publicIP[ 'Message' ] )
-      return publicIP
+    ipPool = self.endpointConfig.get( 'ipPool' )
+    if ipPool is not None:
+      if ( ipPool != 'nouse' ):
+        publicIP = self.__deleteFloatingIP( public_ip, node )
+        if not publicIP[ 'OK' ]:
+          self.log.error( publicIP[ 'Message' ] )
+          return publicIP
 
     # Destroys the node
     try:

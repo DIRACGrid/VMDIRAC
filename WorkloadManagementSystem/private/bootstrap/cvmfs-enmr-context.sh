@@ -7,7 +7,7 @@
 
 if [ $# -ne 1 ]
 then
-	echo "cvmfs-LHCb-context.sh <cvmfs_http_proxy>"
+	echo "cvmfs-enmr-context.sh <cvmfs_http_proxy>"
 fi	
 
 
@@ -17,6 +17,7 @@ chown cvmfs:cvmfs /home/cache >> /var/log/cvmfs-context-script.log 2>&1
 	cat<<EOF>/etc/cvmfs/default.local
 CVMFS_CACHE_BASE=/home/cache
 CVMFS_REPOSITORIES=enmr.eu
+CVMFS_QUOTA_LIMIT=4000
 CVMFS_HTTP_PROXY=$1
 EOF
 

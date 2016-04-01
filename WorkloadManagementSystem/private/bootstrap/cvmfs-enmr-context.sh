@@ -52,6 +52,6 @@ cvmfs_config reload >> /var/log/cvmfs-context-script.log 2>&1
 cvmfs_config showconfig >> /var/log/cvmfs-context-script.log 2>&1
 service autofs start >> /var/log/cvmfs-context-script.log 2>&1
 chkconfig autofs on >> /var/log/cvmfs-context-script.log 2>&1
-cvmfs_config showconfig >> /var/log/cvmfs-context-script.log 2>&1
+cvmfs_config chksetup >> /var/log/cvmfs-context-script.log 2>&1
 
 exit 0

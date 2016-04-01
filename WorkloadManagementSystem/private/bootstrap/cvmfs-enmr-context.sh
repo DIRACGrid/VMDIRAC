@@ -20,7 +20,6 @@ yum -y install cvmfs cvmfs-config-default
 	cat<<EOF>/etc/cvmfs/default.local
 CVMFS_SERVER_URL="http://cvmfs-egi.gridpp.rl.ac.uk:8000/cvmfs/@fqrn@;http://klei.nikhef.nl:8000/cvmfs/@fqrn@;http://cvmfsrepo.lcg.triumf.ca:8000/cvmfs/@fqrn@;http://cvmfsrep.grid.sinica.edu.tw:8000/cvmfs/@fqrn@"
 CVMFS_KEYS_DIR=/etc/cvmfs/keys/egi.eu
-CVMFS_USE_GEOAPI=ye
 CVMFS_CACHE_BASE=/home/cache
 CVMFS_REPOSITORIES=enmr.eu
 CVMFS_QUOTA_LIMIT=4000

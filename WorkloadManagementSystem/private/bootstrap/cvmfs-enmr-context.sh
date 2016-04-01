@@ -10,29 +10,47 @@ then
 	echo "cvmfs-enmr-context.sh <cvmfs_http_proxy>"
 fi	
 
+rpm --import https://cvmrepo.web.cern.ch/cvmrepo/yum/RPM-GPG-KEY-CernVM
+yum -y install https://ecsft.cern.ch/dist/cvmfs/cvmfs-release/cvmfs-release-latest.noarch.rpm
+yum -y update
+yum -y install cvmfs cvmfs-config-default
 
-mkdir /home/cache >> /var/log/cvmfs-context-script.log 2>&1
-chown cvmfs:cvmfs /home/cache >> /var/log/cvmfs-context-script.log 2>&1
+
 
 	cat<<EOF>/etc/cvmfs/default.local
+CVMFS_SERVER_URL="http://cvmfs-egi.gridpp.rl.ac.uk:8000/cvmfs/@fqrn@;http://klei.nikhef.nl:8000/cvmfs/@fqrn@;http://cvmfsrepo.lcg.triumf.ca:8000/cvmfs/@fqrn@;http://cvmfsrep.grid.sinica.edu.tw:8000/cvmfs/@fqrn@"
+CVMFS_KEYS_DIR=/etc/cvmfs/keys/egi.eu
+CVMFS_USE_GEOAPI=ye
 CVMFS_CACHE_BASE=/home/cache
 CVMFS_REPOSITORIES=enmr.eu
 CVMFS_QUOTA_LIMIT=4000
-CVMFS_HTTP_PROXY=$1
+CVMFS_HTTP_PROXY="$1"
 EOF
 
-	cat<<EOF>/etc/cvmfs/domain.d/gridpp.ac.uk.conf
-CVMFS_SERVER_URL="http://cvmfs-egi.gridpp.rl.ac.uk:8000/cvmfs/@org@.gridpp.ac.uk;http://cvmfs01.nikhef.nl/cvmfs/@org@.gridpp.ac.uk"
-CVMFS_PUBLIC_KEY=/etc/cvmfs/keys/gridpp.ac.uk.pub
+#alternative setup
+#CVMFS_SERVER_URL="http://cvmfs-egi.gridpp.rl.ac.uk:8000/cvmfs/@org@.gridpp.ac.uk;http://cvmfs01.nikhef.nl/cvmfs/@org@.gridpp.ac.uk"
+#CVMFS_PUBLIC_KEY=/etc/cvmfs/keys/gridpp.ac.uk.pub
+
+	cat<<EOF>/etc/fuse.conf
+user_allow_other
 EOF
 
-#	cat <<EOF>/etc/cvmfs/config.d/lhcb.cern.ch.local 
-#CVMFS_QUOTA_LIMIT=5500
-#CVMFS_QUOTA_THRESHOLD=5000
-#EOF
+	cat<<EOF>/etc/cvmfs/keys/gridpp.ac.uk.pub
+-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAp7C4KDvOIEVJepuAHjxE
+EES1sDdohz0hiU6uvSqxVYjKVR4Y4/0I/D/zLijQI+MHR7859RN0/6fsZ3b3At3l
+UbvNfqq6DN1zVjjd0xagC6SMBhSfj/iQKQSsG8MXSyiNmM8YalVHJSPqoova6CPE
+EgLEjnHKTNEogTNjKBwbP2ELPLkfVoNoxxrXPSox7aln8JdgyZzZlBwm98gnFa1v
+JTVAl0HQnUJ6cjMwO31wIGVMdvZ+P962t+2bPGfOCm6Ly6BusXcLoIIeez5SBerB
+aHz//NSTZDbHVNPEqpoo1AQVVOo4XJmqo64jBa3G4Dr0zSda1bkZMVhsyUtjhfEB
+DwIDAQAB
+-----END PUBLIC KEY-----
+EOF
 
 # reaload configuration to activate new setup:
-/sbin/service cvmfs reload >> /var/log/cvmfs-context-script.log 2>&1
+cvmfs_config reload >> /var/log/cvmfs-context-script.log 2>&1
 cvmfs_config showconfig >> /var/log/cvmfs-context-script.log 2>&1
+service autofs start >> /var/log/cvmfs-context-script.log 2>&1
+chkconfig autofs on >> /var/log/cvmfs-context-script.log 2>&1
 
 exit 0

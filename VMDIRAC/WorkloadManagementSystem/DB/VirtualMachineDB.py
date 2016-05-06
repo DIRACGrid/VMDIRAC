@@ -61,7 +61,7 @@ class VirtualMachineDB( DB ):
                                    },
                         'Instance' : {
                                        'Submitted' : [ 'New' ],
-                                       'Running' : [ 'Submitted', 'Running', 'Stalled' ],
+                                       'Running' : [ 'Submitted', 'Running', 'Stalled', 'New' ],
                                        'Stopping' : [ 'Running', 'Stalled' ],
                                        'Halted' : [ 'New','Running', 'Stopping', 'Stalled' ],
                                        'Stalled': [ 'New', 'Submitted', 'Running' ],

@@ -279,7 +279,7 @@ class VirtualMachineDB( DB ):
 
 
 
-  def checkImageStatus( self, imageName, runningPodName = "" ):
+  def checkImageStatus( self, imageName ):
     """
     Check Status of a given image
     Will insert a new Image in the DB if it does not exits
@@ -287,7 +287,7 @@ class VirtualMachineDB( DB ):
       S_OK(Status) if Status is valid and not Error
       S_ERROR(ErrorMessage) otherwise
     """
-    ret = self.__getImageID( imageName, runningPodName )
+    ret = self.__getImageID( imageName )
     if not ret[ 'OK' ]:
       return ret
     return self.__getStatus( 'Image', ret[ 'Value' ] )
@@ -300,7 +300,7 @@ class VirtualMachineDB( DB ):
       S_OK( InstanceID ) if new Instance is properly inserted
       S_ERROR(ErrorMessage) otherwise
     """
-    imageStatus = self.checkImageStatus( imageName, runningPodName )
+    imageStatus = self.checkImageStatus( imageName )
     if not imageStatus[ 'OK' ]:
       return imageStatus
 
@@ -1111,7 +1111,7 @@ class VirtualMachineDB( DB ):
     """
     Attempts to insert a new Instance for the given Image in a given Endpoint of a runningPodName
     """
-    image = self.__getImageID( imageName, runningPodName )
+    image = self.__getImageID( imageName )
     if not image[ 'OK' ]:
       return image
     imageID = image[ 'Value' ]
@@ -1121,14 +1121,14 @@ class VirtualMachineDB( DB ):
     fields = [ 'UniqueID', 'RunningPod', 'Name', 'Endpoint', 'VMImageID', 'Status', 'LastUpdate' ]
     values = [ uniqueID, runningPodName, instanceName, endpoint, imageID, validStates[ 0 ], Time.toString() ]
 
-    runningPodDict = self.getRunningPodDict( runningPodName )
-    if not runningPodDict[ 'OK' ]:
-      return runningPodDict
-    runningPodDict = runningPodDict[ 'Value' ]
+    #runningPodDict = self.getRunningPodDict( runningPodName )
+    #if not runningPodDict[ 'OK' ]:
+    #  return runningPodDict
+    #runningPodDict = runningPodDict[ 'Value' ]
 
-    if 'MaxAllowedPrice' in runningPodDict:
-      fields.append( 'MaxAllowedPrice' )
-      values.append( runningPodDict[ 'MaxAllowedPrice' ] )
+    #if 'MaxAllowedPrice' in runningPodDict:
+    #  fields.append( 'MaxAllowedPrice' )
+    #  values.append( runningPodDict[ 'MaxAllowedPrice' ] )
 
     instance = self._insert( tableName , fields, values )
     if not instance[ 'OK' ]:
@@ -1311,7 +1311,7 @@ class VirtualMachineDB( DB ):
 
     return S_OK( instanceID[ 0 ][ 0 ] )
 
-  def __getImageID( self, imageName, runningPodName ):
+  def __getImageID( self, imageName ):
     """
     For a given imageName return corresponding ID
     Will insert the image in New Status if it does not exits,

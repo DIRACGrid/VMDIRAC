@@ -113,6 +113,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
     self.log.info( "vmStopPolicy is %s" % self.vmStopPolicy )
 
     #Declare instance running
+    self.uniqueID = ''
     result = virtualMachineDB.getUniqueIDByName( self.vmID )
     if result['OK']:
       self.uniqueID = result['Value']

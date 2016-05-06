@@ -7,6 +7,7 @@
 from DIRAC import S_OK, S_ERROR, gLogger, gConfig
 from DIRAC.ConfigurationSystem.Client.Helpers import Registry, Operations
 from DIRAC.FrameworkSystem.Client.ProxyManagerClient import gProxyManager
+from DIRAC.Core.Utilities.List import fromChar
 
 __RCSID__ = "$Id$"
 
@@ -87,4 +88,29 @@ def getImages( siteList = None, vo = None ):
           imageOptionsDict = result['Value']
           resultDict[site][ce]['Images'][image] = imageOptionsDict
 
+  return S_OK( resultDict )
+
+def getImage( site, ce, image ):
+  """ Get parameters of the specified queue
+  """
+  Tags = []
+  grid = site.split( '.' )[0]
+  result = gConfig.getOptionsDict( '/Resources/Sites/%s/%s/Cloud/%s' % ( grid, site, ce ) )
+  if not result['OK']:
+    return result
+  resultDict = result['Value']
+  ceTags = resultDict.get( 'Tag' )
+  if ceTags:
+    Tags = fromChar( ceTags )
+  result = gConfig.getOptionsDict( '/Resources/Sites/%s/%s/Cloud/%s/Images/%s' % ( grid, site, ce, image ) )
+  if not result['OK']:
+    return result
+  resultDict.update( result['Value'] )
+  imageTags = resultDict.get( 'Tag' )
+  if imageTags:
+    imageTags = fromChar( imageTags )
+    Tags = list( set( Tags + imageTags ) )
+  if Tags:
+    resultDict['Tag'] = Tags
+  resultDict['Queue'] = image
   return S_OK( resultDict )

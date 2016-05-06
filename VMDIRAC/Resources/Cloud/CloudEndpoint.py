@@ -25,8 +25,9 @@ from libcloud.compute.types     import Provider
 from libcloud.compute.providers import get_driver
 
 # DIRAC
-from DIRAC import gLogger, S_OK, S_ERROR
+from DIRAC import gLogger, gConfig, S_OK, S_ERROR
 from DIRAC.Core.Utilities.File import makeGuid
+from DIRAC.ConfigurationSystem.Client.Helpers.Operations import Operations
 
 def createMimeData( userDataTuple ):
 
@@ -192,6 +193,14 @@ class CloudEndpoint( object ):
 
   def __createUserDataScript( self, userDataDict = {} ):
 
+    vo = self.parameters['VO']
+    opsHelper = Operations( vo = vo )
+    version = opsHelper.getValue( 'Pilot/Version', [] )
+    if version:
+      version = version[0]
+    project = opsHelper.getValue( 'Pilot/Project', 'DIRAC' )
+    setup = gConfig.getValue( '/DIRAC/Setup' )
+
     # Arguments to the vm-bootstrap command
     bootstrapArgs = { 'dirac-site': self.parameters['Site'],
                       'submit-pool': self.parameters['SubmitPool'],
@@ -202,11 +211,14 @@ class CloudEndpoint( object ):
                       'vo': self.parameters['VO'],
                       'running-pod': self.parameters['RunningPod'],
                       'cvmfs-proxy': self.parameters.get( 'CVMFSProxy', 'None' ),
-                      'cs-servers': ','.join( self.parameters.get( 'CSServers', [] ) ) }
+                      'cs-servers': ','.join( self.parameters.get( 'CSServers', [] ) ),
+                      'release-version': version ,
+                      'release-project': project ,
+                      'setup': setup }
 
     bootstrapString = ''
     for key, value in bootstrapArgs.items():
-      bootstrapString += " --%s=%s\n" % ( key, value )
+      bootstrapString += " --%s=%s \\\n" % ( key, value )
     userDataDict['bootstrapArgs'] = bootstrapString
 
     userDataDict['user_data_commands_base_url'] = self.parameters.get( 'user_data_commands_base_url' )
@@ -281,7 +293,6 @@ cloud_final_modules:
                              ( cloud_config, 'text/cloud-config', 'cloud-config') ) )
 
   def createInstances( self, vmsToSubmit ):
-
     outputDict = {}
 
     for nvm in xrange( vmsToSubmit ):

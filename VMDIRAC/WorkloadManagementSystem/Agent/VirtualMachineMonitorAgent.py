@@ -106,7 +106,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
     self.log.info( "IP Address is %s" % self.ipAddress )
 
     #getting the stop policy
-    self.op = Operations()
+    self.op = Operations.Operations()
     self.vmStopPolicy = self.op.getValue( "Cloud/%s/VMStopPolicy", 'elastic' )
     self.log.info( "vmStopPolicy is %s" % self.vmStopPolicy )
 

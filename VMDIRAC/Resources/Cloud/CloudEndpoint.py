@@ -205,7 +205,7 @@ class CloudEndpoint( object ):
     bootstrapArgs = { 'dirac-site': self.parameters['Site'],
                       'submit-pool': self.parameters['SubmitPool'],
                       'ce-name': self.parameters['CEName'],
-                      'image-name': self.parameters['ImageName'],
+                      'image-name': self.parameters['Image'],
                       'vm-uuid': self.parameters['VMUUID'],
                       'vmtype': self.parameters['VMType'],
                       'vo': self.parameters['VO'],

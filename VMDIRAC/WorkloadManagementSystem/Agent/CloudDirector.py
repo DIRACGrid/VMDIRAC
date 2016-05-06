@@ -231,7 +231,7 @@ class CloudDirector( AgentModule ):
           ceImageDict = dict( ceDict )
           ceImageDict['CEName'] = ce
           ceImageDict['VO'] = self.vo
-          ceImageDict['ImageName'] = imageName
+          ceImageDict['Image'] = image
           ceImageDict['RunningPod'] = self.runningPod
           ceImageDict['CSServers'] = gConfig.getValue( "/DIRAC/Configuration/Servers", [] )
           ceImageDict.update( self.imageDict[imageName]['ParametersDict'] )

@@ -11,8 +11,8 @@ case $i in
     --dirac-site=*)
     DIRAC_SITE="${i#*=}"
     ;;
-    --submit_pool=*)
-    submit_pool=`echo "${i#*=}" | sed 's/#.*$//'`
+    --submit-pool=*)
+    SUBMIT_POOL="${i#*=}"
     ;;
     --ce-name=*)
     CE_NAME="${i#*=}"
@@ -54,7 +54,7 @@ esac
 done
 
 # Default if not given explicitly
-submit_pool=${submit_pool:-diracPool}
+SUBMIT_POOL=${SUBMIT_POOL:-diracPool}
 
 # JOB_ID is used by when reporting LocalJobID by DIRAC watchdog
 export JOB_ID="$VM_UUID:$PILOT_NUMBER"
@@ -84,6 +84,7 @@ python dirac-pilot.py \
  --setup Dirac-Production \
  -r $VERSION \
  -l $PROJECT \
+ -e VMDIRAC \
  --MaxCycles 10 \
  --configurationServer $CS_SERVERS \
  --Name "$CE_NAME" \
@@ -91,7 +92,7 @@ python dirac-pilot.py \
  -Q $IMAGE_NAME \
  --cert \
  --certLocation=/scratch/$USER/etc/grid-security \
- -o /Resources/Computing/CEDefaults/SubmitPool=$submit_pool \
+ -o /Resources/Computing/CEDefaults/SubmitPool=$SUBMIT_POOL \
  -o /Resources/Computing/CEDefaults/VirtualOrganization=$VO \
  -o '/Systems/WorkloadManagement/Production/Agents/JobAgent/StopAfterFailedMatches=0' \
  -o '/Systems/WorkloadManagement/Production/Agents/JobAgent/CEType=InProcess'

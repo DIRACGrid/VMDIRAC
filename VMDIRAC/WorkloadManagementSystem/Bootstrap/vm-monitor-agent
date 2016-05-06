@@ -14,7 +14,7 @@ exec 2>&1
 exec python $DIRAC/DIRAC/Core/scripts/dirac-agent.py WorkloadManagement/VirtualMachineMonitorAgent < /dev/null
 EOF
 
-cat /opt/dirac/runit/VirtualMachineMonitorAgent/log/run << EOF
+cat > /opt/dirac/runit/VirtualMachineMonitorAgent/log/run << EOF
 #!/bin/bash
 #
 rcfile=/vo/dirac/bashrc
@@ -23,7 +23,7 @@ rcfile=/vo/dirac/bashrc
 exec svlogd .
 EOF
 
-cat /opt/dirac/runit/VirtualMachineMonitorAgent/log/config << EOF
+cat > /opt/dirac/runit/VirtualMachineMonitorAgent/log/config << EOF
 s10000000
 n20
 EOF

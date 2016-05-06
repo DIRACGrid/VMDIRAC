@@ -1,4 +1,4 @@
-#!/bin/sh -x
+#!/bin/sh
 #
 # This is run as root at the end of /var/lib/hepix/context/epilog.sh
 # or on the late stage of the init process
@@ -48,6 +48,9 @@ case $i in
     ;;
     --setup=*)
     SETUP="${i#*=}"
+    ;;
+    --cs-servers=*)
+    CS_SERVERS="${i#*=}"
     ;;
     *)
     # unknown option
@@ -163,7 +166,7 @@ fi
 ##############################################################################
 # Make a common DIRAC installation for all the pilots
 date --utc +"%Y-%m-%d %H:%M:%S %Z vm-bootstrap install DIRAC in /opt/dirac"
-vm_dirac_install
+vm_dirac_install $PROJECT $VERSION $SETUP $DIRAC_SITE $CE_NAME $CS_SERVERS $VO
 
 ##############################################################################
 # Start the VM Monitoring Agent

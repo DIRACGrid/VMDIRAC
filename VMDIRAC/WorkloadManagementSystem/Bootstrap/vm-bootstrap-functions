@@ -76,7 +76,7 @@ vm_cvmfs_install() {
 vm_cvmfs_bootstrap() {
 
   if [ ! -d /etc/cvmfs ]; then
-    cvmfs_install
+    vm_cvmfs_install
   fi
 
   # Bigger cvmfs cache, on the logical partition
@@ -117,7 +117,7 @@ vm_dirac_install() {
 
   chmod +x dirac-install
   ./dirac-install -l $release_project -r $release_version -e VMDIRAC -ddd
-  . bashrc
+  . ./bashrc
 
   mkdir -p /opt/dirac/etc/grid-security
   cp -f /root/hostkey.pem /opt/dirac/etc/grid-security/hostkey.pem

@@ -1118,8 +1118,13 @@ class VirtualMachineDB( DB ):
 
     tableName, validStates, _idName = self.__getTypeTuple( 'Instance' )
 
+    if uniqueID:
+      status = 'Submitted'
+    else:
+      status = validStates[ 0 ]
+
     fields = [ 'UniqueID', 'RunningPod', 'Name', 'Endpoint', 'VMImageID', 'Status', 'LastUpdate' ]
-    values = [ uniqueID, runningPodName, instanceName, endpoint, imageID, validStates[ 0 ], Time.toString() ]
+    values = [ uniqueID, runningPodName, instanceName, endpoint, imageID, status, Time.toString() ]
 
     #runningPodDict = self.getRunningPodDict( runningPodName )
     #if not runningPodDict[ 'OK' ]:

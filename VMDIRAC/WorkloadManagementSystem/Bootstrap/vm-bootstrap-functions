@@ -54,7 +54,7 @@ vm_mount_scratch_disk() {
 }
 
 vm_disable_mail() {
-  date date --utc +"%Y-%m-%d %H:%M:%S %Z disabling e-mail sending functionality"
+  date --utc +"%Y-%m-%d %H:%M:%S %Z disabling e-mail sending functionality"
   # Suppress annoying mails if 'mail' exists in local DNS
   if [ -f /etc/ssmtp/ssmtp.conf ]; then
     sed -i 's/^mailhub=mail/mailhub=127.0.0.1/' /etc/ssmtp/ssmtp.conf

@@ -59,7 +59,9 @@ class VirtualMachineMonitorAgent( AgentModule ):
     self.log.info( "Halt Before Margin    : %d" % self.haltBeforeMargin )
     self.log.info( "HeartBeat Period      : %d" % self.heartBeatPeriod )
     if self.vmID:
-      self.log.info( "ID                    : %s" % self.vmID )
+      self.log.info( "DIRAC ID              : %s" % self.vmID )
+    if self.uniqueID:
+      self.log.info( "Unique ID             : %s" % self.uniqueID )
     self.log.info( "*************" )
     return S_OK()
 
@@ -68,7 +70,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
     retries = 3
     sleepTime = 30
     for i in range( retries ):
-      result = virtualMachineDB.declareInstanceRunning( self.vmID, self.ipAddress )
+      result = virtualMachineDB.declareInstanceRunning( self.uniqueID, self.ipAddress )
       if result[ 'OK' ]:
         self.log.info( "Declared instance running" )
         return result
@@ -111,6 +113,9 @@ class VirtualMachineMonitorAgent( AgentModule ):
     self.log.info( "vmStopPolicy is %s" % self.vmStopPolicy )
 
     #Declare instance running
+    result = virtualMachineDB.getUniqueIDByName( self.vmID )
+    if result['OK']:
+      self.uniqueID = result['Value']
     result = self.__declareInstanceRunning()
     if not result[ 'OK' ]:
       self.log.error( "Could not declare instance running", result[ 'Message' ] )
@@ -172,7 +177,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
     if uptime % self.heartBeatPeriod <= self.am_getPollingTime():
       #Heartbeat time!
       self.log.info( "Sending hearbeat..." )
-      result = virtualMachineDB.instanceIDHeartBeat( self.vmID, avgLoad, numJobs, 0, 0, )
+      result = virtualMachineDB.instanceIDHeartBeat( self.uniqueID, avgLoad, numJobs, 0, 0, )
       status = None
       if result[ 'OK' ]:
         self.log.info( " heartbeat sent!" )
@@ -224,7 +229,7 @@ class VirtualMachineMonitorAgent( AgentModule ):
     retries = 3
     sleepTime = 10
     for i in range( retries ):
-      result = virtualMachineDB.declareInstanceHalting( self.vmID, avgLoad )
+      result = virtualMachineDB.declareInstanceHalting( self.uniqueID, avgLoad )
       if result[ 'OK' ]:
         self.log.info( "Declared instance halting" )
         break

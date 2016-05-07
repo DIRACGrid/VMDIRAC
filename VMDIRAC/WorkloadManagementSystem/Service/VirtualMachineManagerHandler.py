@@ -69,7 +69,7 @@ def createCloudEndpoint( uniqueID ):
 
   ceParams = result['Value']
   ceFactory = CloudEndpointFactory()
-  result = ceFactory.getCE( parameters = ceParams )
+  result = ceFactory.getCEObject( parameters = ceParams )
   return result
 
 

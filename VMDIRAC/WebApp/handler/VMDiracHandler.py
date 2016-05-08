@@ -27,7 +27,7 @@ class VMDiracHandler(WebHandler):
           limit = 0
 
 
-        sortField = "inst_LastUpdate"
+        sortField = "inst_InstanceID"
         sortDir = "DESC"
         if "sort" in self.request.arguments:
             sortValue = self.request.arguments["sort"][0]
@@ -43,7 +43,7 @@ class VMDiracHandler(WebHandler):
             dec = json.loads(self.request.arguments[ 'cond' ][0])
             for k in dec:
               v = dec[ k ]
-              if type(v) in (types.StringType, types.UnicodeType):
+              if isinstance( v, basestring ):
                 v = [ str(v) ]
               else:
                 v = [ str(f) for f in v ]

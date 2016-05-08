@@ -212,7 +212,7 @@ Ext.define('VMDIRAC.VMDirac.classes.VMDirac', {
 					for (var i = 0; i < me.gridPanel.columns.length; i++) {
 						var col = me.gridPanel.columns[i];
 
-						if (col.dataIndex == "inst_LastUpdate") {
+						if (col.dataIndex == "inst_InstanceID") {
 							col.setSortState("DESC");
 							break;
 						}
@@ -367,6 +367,11 @@ Ext.define('VMDIRAC.VMDirac.classes.VMDirac', {
 				menuDisabled : true,
 				align : "center"
 			}, {
+                                header : "InstanceID",
+                                width : 80,
+                                sortable : true,
+                                dataIndex : 'inst_InstanceID'
+                        }, {
 				header : "Image",
 				width : 120,
 				sortable : true,
@@ -386,6 +391,11 @@ Ext.define('VMDIRAC.VMDirac.classes.VMDirac', {
 				width : 100,
 				sortable : true,
 				dataIndex : 'inst_Status'
+                        }, {
+                                header : "DIRAC VM ID",
+                                width : 100,
+                                sortable : true,
+                                dataIndex : 'inst_Name'
 			}, {
 				header : "Endpoint VM ID",
 				width : 220,

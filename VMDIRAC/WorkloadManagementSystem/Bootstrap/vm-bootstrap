@@ -180,6 +180,8 @@ fi
 chmod +x $CONTEXTDIR/vm-pilot
 chmod +x $CONTEXTDIR/parse-jobagent-log
 
+date --utc +"%Y-%m-%d %H:%M:%S %Z Starting $NUM_JOB_SLOTS pilots"
+
 n=0
 while [ $n -lt $NUM_JOB_SLOTS ]
 do

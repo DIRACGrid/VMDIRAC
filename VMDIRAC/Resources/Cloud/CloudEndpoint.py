@@ -191,15 +191,9 @@ class CloudEndpoint( object ):
 
     return S_OK( [ secGroup for secGroup in secGroups if secGroup.name in securityGroupNames ] )
 
-  def __createUserDataScript( self, userDataDict = {} ):
+  def __createUserDataScript( self ):
 
-    vo = self.parameters['VO']
-    opsHelper = Operations( vo = vo )
-    version = opsHelper.getValue( 'Pilot/Version', [] )
-    if version:
-      version = version[0]
-    project = opsHelper.getValue( 'Pilot/Project', 'DIRAC' )
-    setup = gConfig.getValue( '/DIRAC/Setup' )
+    userDataDict = {}
 
     # Arguments to the vm-bootstrap command
     bootstrapArgs = { 'dirac-site': self.parameters['Site'],
@@ -212,9 +206,9 @@ class CloudEndpoint( object ):
                       'running-pod': self.parameters['RunningPod'],
                       'cvmfs-proxy': self.parameters.get( 'CVMFSProxy', 'None' ),
                       'cs-servers': ','.join( self.parameters.get( 'CSServers', [] ) ),
-                      'release-version': version ,
-                      'release-project': project ,
-                      'setup': setup }
+                      'release-version': self.parameters['Version'] ,
+                      'release-project': self.parameters['Project'] ,
+                      'setup': self.parameters['Setup'] }
 
     bootstrapString = ''
     for key, value in bootstrapArgs.items():
@@ -299,7 +293,7 @@ cloud_final_modules:
       instanceID = makeGuid()[:8]
       result = self.createInstance( instanceID )
       if result['OK']:
-        node = result['Value']
+        node, _publicIP = result['Value']
         outputDict[node.id] = instanceID
       else:
         break
@@ -403,7 +397,19 @@ cloud_final_modules:
     except Exception as errmsg:
       return S_ERROR( errmsg )
 
-    return S_OK( vmNode )
+    publicIP = None
+    if "CreatePublicIP" in self.parameters:
+
+      # Wait until the node is running, otherwise getting public IP fails
+      try:
+        self.__driver.wait_until_running( [vmNode], timeout = 60 )
+        result = self.assignFloatingIP( vmNode )
+        if result['OK']:
+          publicIP = result['Value']
+      except Exception as exc:
+        return S_ERROR( 'Failed to wait until the node is Running' )
+
+    return S_OK( ( vmNode, publicIP ) )
 
   def getVMNode( self, nodeID ):
     """
@@ -522,11 +528,12 @@ cloud_final_modules:
             self.__driver.ex_attach_floating_ip_to_node( node, floatingIP )
             publicIP = floatingIP.ip_address
             return S_OK( publicIP )
-
         return S_ERROR( 'ipPool=%s is not defined in the openstack endpoint' % ipPool )
 
       except Exception as errmsg:
         return S_ERROR( errmsg )
+
+      return S_ERROR( errmsg )
 
     # for the case of not using floating ip assignment
     return S_OK( '' )

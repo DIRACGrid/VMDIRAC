@@ -344,7 +344,8 @@ class CloudDirector( AgentModule ):
     totalVMs = 0
     if result['OK']:
       for status in result['Value']:
-        totalVMs += result['Value'][status]
+        if status in [ 'New', 'Submitted', 'Running' ]:
+          totalVMs += result['Value'][status]
     self.log.info( 'Total %d jobs in %d task queues with %d VMs' % (totalWaitingJobs, len( tqIDList ), totalVMs ) )
 
     # Check if the site is allowed in the mask

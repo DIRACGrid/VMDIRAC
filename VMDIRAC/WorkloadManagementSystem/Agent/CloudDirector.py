@@ -105,7 +105,7 @@ class CloudDirector( AgentModule ):
       return result
     self.cloudDN, self.cloudGroup = result[ 'Value' ]
     self.maxVMsToSubmit = self.am_getOption( 'MaxVMsToSubmit', 1 )
-    self.runningPod = self.am_getOption( 'RunningPod', 'Default')
+    self.runningPod = self.am_getOption( 'RunningPod', self.vo)
 
     self.defaultSubmitPools = getSubmitPools( self.group, self.vo )
 
@@ -259,7 +259,7 @@ class CloudDirector( AgentModule ):
           self.imageDict[imageName]['Platform'] = platform
           self.imageDict[imageName]['MaxInstances'] = ceDict['MaxInstances']
           if not self.imageDict[imageName]['CE'].isValid():
-            self.log.fatal( result['Message'] )
+            self.log.fatal( 'Failed to instantiate CloudEndpoint for %s' % imageName )
             return result
 
           if site not in self.sites:

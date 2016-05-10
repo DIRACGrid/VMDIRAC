@@ -106,9 +106,6 @@ class CloudEndpoint( object ):
     try:
       _result = self.__driver.list_images()
       # the libcloud library, throws Exception. Nothing to do.
-
-      print "AT >>> list_images", _result
-
     except Exception, errmsg:
       return S_ERROR( errmsg )
 
@@ -400,7 +397,7 @@ cloud_final_modules:
       vmNode = self.__driver.create_node( **createNodeDict )
 
     except Exception as errmsg:
-      print "AT >>> create_node", errmsg
+      gLogger.debug( "Exception in driver.create_node", errmsg )
       return S_ERROR( errmsg )
 
     publicIP = None
@@ -487,9 +484,6 @@ cloud_final_modules:
 
     result = self.__driver.ex_list_networks()
     for oNetwork in result:
-
-      print "AT >>> oNetwork.name", oNetwork.name
-
       if oNetwork.name in nameList:
         resultList.append( oNetwork )
 
@@ -532,6 +526,18 @@ cloud_final_modules:
       return S_ERROR( errmsg )
 
     return S_OK()
+
+  def getVMPool( self, poolName ):
+
+    try:
+      poolList = self.__driver.ex_list_floating_ip_pools()
+      for pool in poolList:
+        if pool.name == poolName:
+          return S_OK( pool )
+    except Exception as errmsg:
+      return S_ERROR( errmsg )
+
+    return S_ERROR( 'IP Pool with the name %s not found' % poolName )
 
   #.............................................................................
   # Private methods

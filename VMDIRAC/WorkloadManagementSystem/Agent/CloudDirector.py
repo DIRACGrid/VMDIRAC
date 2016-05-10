@@ -26,7 +26,7 @@ from VMDIRAC.Resources.Cloud.CloudEndpointFactory          import CloudEndpointF
 from VMDIRAC.WorkloadManagementSystem.Agent.ConfigHelper   import findGenericCloudCredentials, getImages
 from VMDIRAC.WorkloadManagementSystem.Client.ServerUtils   import virtualMachineDB
 
-__RCSID__ = "$Id$"
+__RCSID__ = "318e087 (2016-05-08 04:26:25 +0200) Andrei Tsaregorodtsev <atsareg@in2p3.fr>"
 
 def getSubmitPools( group = None, vo = None ):
   if group:

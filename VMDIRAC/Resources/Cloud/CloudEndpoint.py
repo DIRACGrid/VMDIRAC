@@ -106,6 +106,9 @@ class CloudEndpoint( object ):
     try:
       _result = self.__driver.list_images()
       # the libcloud library, throws Exception. Nothing to do.
+
+      print "AT >>> list_images", _result
+
     except Exception, errmsg:
       return S_ERROR( errmsg )
 
@@ -376,7 +379,7 @@ cloud_final_modules:
       if param in self.parameters:
         createNodeDict[param] = self.parameters[param]
 
-    createNodeDict['name'] = 'DIRAC_' + str( time.time() )[0:10]
+    createNodeDict['name'] = 'DIRAC_%s' % instanceID
 
     createNodeDict['ex_config_drive'] = True
 
@@ -384,17 +387,20 @@ cloud_final_modules:
     for key, value in createNodeDict.items():
       self.log.verbose( "%s: %s" % ( key, value ) )
 
+    if 'networks' in self.parameters:
+      result = self.getVMNetwork()
+      if not result['OK']:
+        return result
+      createNodeDict['networks'] = result['Value']
+    if 'keyname' in self.parameters:
+      createNodeDict['ex_keyname'] = self.parameters['keyname']
+
     # Create the VM instance now
     try:
-      #vmNode = self.__driver.create_node( **createNodeDict )
-      vmNode = self.__driver.create_node( name = 'DIRAC_%s' % instanceID,
-                                          ex_userdata = createNodeDict['ex_userdata'],
-                                          image = createNodeDict['image'],
-                                          ex_keyname = 'DIRAC_test',
-                                          size = createNodeDict['size'],
-                                          ex_config_drive = True )
+      vmNode = self.__driver.create_node( **createNodeDict )
 
     except Exception as errmsg:
+      print "AT >>> create_node", errmsg
       return S_ERROR( errmsg )
 
     publicIP = None
@@ -463,6 +469,31 @@ cloud_final_modules:
       return S_ERROR( 'State %s not in STATEMAP' % state )
 
     return S_OK( stateMapDict[ state ] )
+
+  def getVMNetwork( self, networkNames = [] ):
+    """ Get a network object corresponding to the networkName
+
+    :param str networkName: network name
+    :return: S_OK|S_ERROR network object in case of S_OK
+    """
+    resultList = []
+    nameList = list( networkNames )
+    if not nameList:
+      nameList = self.parameters.get( 'networks' )
+      if not nameList:
+        return S_ERROR( 'Network names are not specified' )
+      else:
+        nameList = nameList.split( ',' )
+
+    result = self.__driver.ex_list_networks()
+    for oNetwork in result:
+
+      print "AT >>> oNetwork.name", oNetwork.name
+
+      if oNetwork.name in nameList:
+        resultList.append( oNetwork )
+
+    return S_OK( resultList )
 
   def stopVM( self, nodeID, publicIP = '' ):
     """

@@ -1,4 +1,5 @@
 [rel-v1r4]
+
 NEW: A image can have different bootImageName and Flavor depending in the cloud endpoint
 NEW: Try to halt a VM when declared Stalled, if success then go Halt status
 Several bugfixes, particularly of interest is:

@@ -57,7 +57,7 @@ chkconfig autofs on >> /var/log/cvmfs-context-script.log 2>&1
 # just for testing:
 #cvmfs_config chksetup >> /var/log/cvmfs-context-script.log 2>&1
 mkdir -p /cvmfs/wenmr.egi.eu
-mount -t cvmfs wenmr.egi.eu /cvmfs/wenmr.egi.eu
+mount -t cvmfs wenmr.egi.eu /cvmfs/wenmr.egi.eu >> /var/log/cvmfs-context-script.log 2>&1
 
 
 exit 0

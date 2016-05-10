@@ -10,6 +10,7 @@ then
 	echo "cvmfs-enmr-context.sh <cvmfs_http_proxy>"
 fi	
 
+echo "received cvmfs_http_proxy parameter $1" >> /var/log/cvmfs-context-script.log 2>&1
 rpm --import https://cvmrepo.web.cern.ch/cvmrepo/yum/RPM-GPG-KEY-CernVM >> /var/log/cvmfs-context-script.log 2>&1
 yum -y install https://ecsft.cern.ch/dist/cvmfs/cvmfs-release/cvmfs-release-latest.noarch.rpm >> /var/log/cvmfs-context-script.log 2>&1
 yum -y update >> /var/log/cvmfs-context-script.log 2>&1

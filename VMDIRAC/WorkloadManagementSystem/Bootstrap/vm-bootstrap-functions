@@ -14,7 +14,7 @@ vm_mount_scratch_disk() {
     # vda1 is boot image, vdb1 is root partition, vdb2 is unformatted
     mkfs -q -t ext4 /dev/vdb2
     mount /dev/vdb2 /scratch
-  elif [ -b /dev/vdb1 ] ; then
+  elif [ -b /dev/vda1 -a -b /dev/vdb1 ] ; then
     # Openstack at CERN with hep* flavor?
     # vda1 is boot image, vdb1 is root partition, and no vdb2
     # Since boot image is small, can use rest of vda for /scratch
@@ -29,6 +29,12 @@ vm_mount_scratch_disk() {
     # We just have a big vda with unused space in vda2
     mkfs -q -t ext4 /dev/vda2
     mount /dev/vda2 /scratch
+  elif [ -b /dev/vda1 ] ; then
+    # We just have a big vda but vda2 is not created
+    echo -e 'n\np\n2\n\n\nw\n'| fdisk /dev/vda
+    # Have to reboot now, otherwise the new partition is not synced
+    echo "Rebooting in order the vda partitioning is effective"
+    /sbin/shutdown -r now
   elif [ -b /dev/sdb ] ; then
     # Virtual SCSI
     mkfs -q -t ext4 /dev/sdb
@@ -42,7 +48,7 @@ vm_mount_scratch_disk() {
     mkfs -q -t ext4 /dev/xvdb
     mount /dev/xvdb /scratch
   else
-    date --utc +'%Y-%m-%d %H:%M:%S %Z vm-bootstrap Missing vdb/hdb/sdb/xvdb block device for /scratch'
+    date --utc +'%Y-%m-%d %H:%M:%S %Z vm-bootstrap Missing vda/vdb/hdb/sdb/xvdb block device for /scratch'
     echo "500 Missing vdb/hdb/sdb block device for /scratch" > /etc/joboutputs/shutdown_message
     /sbin/shutdown -h now
     sleep 1234567890
@@ -50,7 +56,9 @@ vm_mount_scratch_disk() {
 
   # We rely on the hypervisor's disk I/O scheduling
   echo 'noop' > /sys/block/vda/queue/scheduler
-  echo 'noop' > /sys/block/vdb/queue/scheduler
+  if [ -b /dev/vdb ] ; then
+    echo 'noop' > /sys/block/vdb/queue/scheduler
+  fi
 }
 
 vm_disable_mail() {

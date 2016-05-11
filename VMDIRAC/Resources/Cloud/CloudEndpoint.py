@@ -27,7 +27,6 @@ from libcloud.compute.providers import get_driver
 # DIRAC
 from DIRAC import gLogger, gConfig, S_OK, S_ERROR
 from DIRAC.Core.Utilities.File import makeGuid
-from DIRAC.ConfigurationSystem.Client.Helpers.Operations import Operations
 
 def createMimeData( userDataTuple ):
 
@@ -55,6 +54,7 @@ class CloudEndpoint( object ):
     self.valid = False
     result = self.initialize()
     if result['OK']:
+      gLogger.debug( 'CloudEndpoint created and validated' )
       self.valid = True
 
   def isValid( self ):
@@ -280,7 +280,7 @@ exit 0
 output: {all: '| tee -a /var/log/cloud-init-output.log'}
 
 cloud_final_modules:
-  - scripts-user
+  - [scripts-user, always]
     """
 
     return createMimeData( ( ( user_data, 'text/x-shellscript', 'dirac_boot.sh' ),
@@ -293,7 +293,8 @@ cloud_final_modules:
       instanceID = makeGuid()[:8]
       result = self.createInstance( instanceID )
       if result['OK']:
-        node, _publicIP = result['Value']
+        node, publicIP = result['Value']
+        gLogger.debug( 'Created VM instance %s/%s with publicIP %s' % ( node.id, instanceID, publicIP ) )
         outputDict[node.id] = instanceID
       else:
         break

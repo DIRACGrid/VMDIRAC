@@ -63,7 +63,7 @@ class VirtualMachineDB( DB ):
                                        'Submitted' : [ 'New' ],
                                        'Running' : [ 'Submitted', 'Running', 'Stalled', 'New' ],
                                        'Stopping' : [ 'Running', 'Stalled' ],
-                                       'Halted' : [ 'New','Running', 'Stopping', 'Stalled' ],
+                                       'Halted' : [ 'New','Running', 'Stopping', 'Stalled', 'Halted' ],
                                        'Stalled': [ 'New', 'Submitted', 'Running' ],
                                       },
                         'RunningPod' : {
@@ -156,7 +156,7 @@ class VirtualMachineDB( DB ):
     """
     tableName, validStates, idName = self.__getTypeTuple( 'RunningPod' )
 
-    runningPodID = self._getFields( tableName, [ idName ], [ 'RunningPod' ], [ runningPodName ] )
+    runningPodID = self.getFields( tableName, [ idName ], {'RunningPod': runningPodName} )
     if not runningPodID[ 'OK' ]:
       return runningPodID
     runningPodID = runningPodID[ 'Value' ][0][0]
@@ -192,7 +192,7 @@ class VirtualMachineDB( DB ):
     """
     tableName, validStates, idName = self.__getTypeTuple( 'RunningPod' )
 
-    runningPodID = self._getFields( tableName, [ idName ], [ 'RunningPod' ], [ runningPodName ] )
+    runningPodID = self.getFields( tableName, [ idName ], {'RunningPod': runningPodName} )
     if not runningPodID[ 'OK' ]:
       return runningPodID
     runningPodID = runningPodID[ 'Value' ][0][0]
@@ -257,7 +257,7 @@ class VirtualMachineDB( DB ):
       return runningPodDict
     runningPodDict = runningPodDict[ 'Value' ]
 
-    runningPodID = self._getFields( tableName, [ idName ], [ 'RunningPod' ], [ runningPodName ] )
+    runningPodID = self.getFields( tableName, [ idName ], {'RunningPod': runningPodName} )
     if not runningPodID[ 'OK' ]:
       return runningPodID
     #runningPodID = runningPodID[ 'Value' ][0][0]
@@ -275,7 +275,7 @@ class VirtualMachineDB( DB ):
     fields = [ 'RunningPod', 'CampaignStartDate', 'CampaignEndDate', 'Status']
     values = [ runningPodName, runningPodDict['CampaignStartDate'], runningPodDict['CampaignEndDate'], 'New']
 
-    return self._insert( tableName , fields, values )
+    return self.insertFields( tableName , fields, values )
 
 
 
@@ -395,40 +395,11 @@ class VirtualMachineDB( DB ):
 
     return status
 
-  def declareInstanceWait_ssh_context ( self, uniqueID ):
-    """
-    After new instance the Director should declare the waiting for ssh contextualization Status
-    """
-    instanceID = self.__getInstanceID( uniqueID )
-    if not instanceID[ 'OK' ]:
-      return instanceID
-    instanceID = instanceID[ 'Value' ]
-
-    status = self.__setState( 'Instance', instanceID, 'Wait_ssh_context' )
-    if status[ 'OK' ]:
-      self.__addInstanceHistory( instanceID, 'Wait_ssh_context' )
-
-    return status
-
-  def declareInstanceContextualizing ( self, uniqueID ):
-    """
-    After new instance the Director should declare the waiting for ssh contextualization Status
-    """
-    instanceID = self.__getInstanceID( uniqueID )
-    if not instanceID[ 'OK' ]:
-      return instanceID
-    instanceID = instanceID['Value']
-
-    status = self.__setState( 'Instance', instanceID, 'Contextualizing' )
-    if status[ 'OK' ]:
-      self.__addInstanceHistory( instanceID, 'Contextualizing' )
-
-    return status
-
   def setPublicIP( self, instanceID, publicIP ):
     """
     Update publicIP when used for contextualization previus to declareInstanceRunning
     """
+    publicIP = publicIP.replace( '::ffff:', '' )
     result = self._escapeString( publicIP )
     if not result[ 'OK' ]:
       return result
@@ -455,6 +426,9 @@ class VirtualMachineDB( DB ):
     if not instanceID[ 'OK' ]:
       return instanceID
     instanceID = instanceID[ 'Value' ]
+
+    # No IPv6 prefix
+    publicIP = publicIP.replace( '::ffff:', '' )
 
     self.__setInstanceIPs( instanceID, publicIP, privateIP )
 
@@ -583,11 +557,10 @@ class VirtualMachineDB( DB ):
     """
     For a given instance uniqueId it returns the asociated PublicIP in the instance table,
     thus the ImageName of such instance
-    Using _getFields( self, tableName, outFields = None, inFields = None, inValues = None, limit = 0, conn = None )
     """
     tableName, _validStates, _idName = self.__getTypeTuple( 'Instance' )
 
-    publicIP = self._getFields( tableName, [ 'PublicIP' ], [ 'UniqueID' ], [ uniqueId ] )
+    publicIP = self.getFields( tableName, [ 'PublicIP' ], {'UniqueID': uniqueId} )
     if not publicIP[ 'OK' ]:
       return publicIP
     publicIP = publicIP[ 'Value' ]
@@ -601,11 +574,10 @@ class VirtualMachineDB( DB ):
     """
     For a given instance uniqueId it returns the asociated Endpoint in the instance
     table, thus the ImageName of such instance
-    Using _getFields( self, tableName, outFields = None, inFields = None, inValues = None, limit = 0, conn = None )
     """
     tableName, _validStates, _idName = self.__getTypeTuple( 'Instance' )
 
-    endpoint = self._getFields( tableName, [ 'Endpoint' ], [ 'UniqueID' ], [ uniqueId ] )
+    endpoint = self.getFields( tableName, [ 'Endpoint' ], {'UniqueID': uniqueId} )
     if not endpoint[ 'OK' ]:
       return endpoint
     endpoint = endpoint[ 'Value' ]
@@ -618,11 +590,10 @@ class VirtualMachineDB( DB ):
   def getImageNameFromInstance( self, uniqueId ):
     """
     For a given uniqueId it returns the asociated Name in the instance table, thus the ImageName of such instance
-    Using _getFields( self, tableName, outFields = None, inFields = None, inValues = None, limit = 0, conn = None )
     """
     tableName, _validStates, _idName = self.__getTypeTuple( 'Instance' )
 
-    imageName = self._getFields( tableName, [ 'Name' ], [ 'UniqueID' ], [ uniqueId ] )
+    imageName = self.getFields( tableName, [ 'Name' ], {'UniqueID': uniqueId} )
     if not imageName[ 'OK' ]:
       return imageName
     imageName = imageName[ 'Value' ]
@@ -642,7 +613,7 @@ class VirtualMachineDB( DB ):
     # InstanceTuple
     tableName, _validStates, _idName = self.__getTypeTuple( 'Instance' )
 
-    runningInstances = self._getFields( tableName, [ 'VMImageID', 'UniqueID' ], ['Status'], [status] )
+    runningInstances = self.getFields( tableName, [ 'VMImageID', 'UniqueID' ], {'Status': status} )
     if not runningInstances[ 'OK' ]:
       return runningInstances
     runningInstances = runningInstances[ 'Value' ]
@@ -657,7 +628,7 @@ class VirtualMachineDB( DB ):
 
       if not imageID in imagesDict:
 
-        imageName = self._getFields( tableName, [ 'Name' ], [ idName ], [ imageID ] )
+        imageName = self.getFields( tableName, [ 'Name' ], {idName: imageID} )
         if not imageName[ 'OK' ]:
           continue
         imagesDict[ imageID ] = imageName[ 'Value' ][ 0 ][ 0 ]
@@ -677,8 +648,8 @@ class VirtualMachineDB( DB ):
 
     tableName, _validStates, _idName = self.__getTypeTuple( 'Instance' )
 
-    runningInstances = self._getFields( tableName, [ 'UniqueID', 'Endpoint', 'PublicIP', 'RunningPod' ],
-                                        [ 'Status' ], [ status ] )
+    runningInstances = self.getFields( tableName, [ 'UniqueID', 'Endpoint', 'PublicIP', 'RunningPod' ],
+                                       {'Status': status} )
     if not runningInstances[ 'OK' ]:
       return runningInstances
     runningInstances = runningInstances[ 'Value' ]
@@ -695,8 +666,8 @@ class VirtualMachineDB( DB ):
     # InstanceTuple
     tableName, _validStates, _idName = self.__getTypeTuple( 'Instance' )
 
-    runningInstances = self._getFields( tableName, [ 'VMImageID', 'UniqueID' ],
-                                        [ 'Status', 'Endpoint' ], [ status, endpoint ] )
+    runningInstances = self.getFields( tableName, [ 'VMImageID', 'UniqueID' ],
+                                       {'Status': status, 'Endpoint': endpoint} )
     if not runningInstances[ 'OK' ]:
       return runningInstances
     runningInstances = runningInstances[ 'Value' ]
@@ -710,7 +681,7 @@ class VirtualMachineDB( DB ):
     for imageID, uniqueID in runningInstances:
       if not imageID in imagesDict:
 
-        imageName = self._getFields( tableName, [ 'Name' ], [ idName ], [ imageID ] )
+        imageName = self.getFields( tableName, [ 'Name' ], {idName: imageID} )
         if not imageName[ 'OK' ]:
           continue
         imagesDict[ imageID ] = imageName[ 'Value' ][ 0 ][ 0 ]
@@ -1135,7 +1106,7 @@ class VirtualMachineDB( DB ):
     #  fields.append( 'MaxAllowedPrice' )
     #  values.append( runningPodDict[ 'MaxAllowedPrice' ] )
 
-    instance = self._insert( tableName , fields, values )
+    instance = self.insertFields( tableName , fields, values )
     if not instance[ 'OK' ]:
       return instance
 
@@ -1215,7 +1186,7 @@ class VirtualMachineDB( DB ):
     """
     tableName, _validStates, idName = self.__getTypeTuple( 'Image' )
 
-    imageID = self._getFields( tableName, [ idName ], ['Name'], [imageName] )
+    imageID = self.getFields( tableName, [ idName ], {'Name': imageName} )
     if not imageID[ 'OK' ]:
       return imageID
     imageID = imageID[ 'Value' ]
@@ -1232,8 +1203,7 @@ class VirtualMachineDB( DB ):
 
     tableName, _validStates, idName = self.__getTypeTuple( 'Instance' )
 
-    instanceID = self._getFields( tableName, [ idName ], [ imageIDName, 'Status' ],
-                                  [ imageID, 'Submitted' ] )
+    instanceID = self.getFields( tableName, [ idName ], [ imageIDName, 'Status' ], {imageID: 'Submitted'} )
     if not instanceID[ 'OK' ]:
       return instanceID
     instanceID = instanceID[ 'Value' ]
@@ -1306,7 +1276,14 @@ class VirtualMachineDB( DB ):
     """
     tableName, _validStates, idName = self.__getTypeTuple( 'Instance' )
 
-    instanceID = self._getFields( tableName, [ idName ], [ 'UniqueID' ], [ uniqueID ] )
+    result = self.getFields( tableName, [ idName ], {'UniqueID': uniqueID } )
+    if not result['OK']:
+      return result
+    if not result['Value']:
+      return S_ERROR( 'Unknown %s = %s' % ( 'UniqueID', uniqueID ) )
+    return S_OK( result['Value'][0][0] )
+
+    instanceID = self.getFields( tableName, [ idName ], {'UniqueID': uniqueID} )
     if not instanceID[ 'OK' ]:
       return instanceID
     instanceID = instanceID[ 'Value' ]
@@ -1322,7 +1299,7 @@ class VirtualMachineDB( DB ):
     Will insert the image in New Status if it does not exits,
     """
     tableName, validStates, idName = self.__getTypeTuple( 'Image' )
-    imageID = self._getFields( tableName, [ idName ], [ 'Name' ], [ imageName ] )
+    imageID = self.getFields( tableName, [ idName ], {'Name': imageName} )
     if not imageID[ 'OK' ]:
       return imageID
     imageID = imageID[ 'Value' ]
@@ -1337,8 +1314,7 @@ class VirtualMachineDB( DB ):
       imageID = imageID[ 0 ][ 0 ]
 
     if imageID:
-      ret = self._getFields( tableName, [ idName ], [ 'Name' ],
-                                                  [ imageName ] )
+      ret = self.getFields( tableName, [ idName ], {'Name': imageName} )
       if not ret[ 'OK' ]:
         return ret
       if not ret[ 'Value' ]:
@@ -1346,14 +1322,14 @@ class VirtualMachineDB( DB ):
       else:
         return S_OK( imageID )
 
-    ret = self._insert( tableName, [ 'Name', 'Status', 'LastUpdate' ],
+    ret = self.insertFields( tableName, [ 'Name', 'Status', 'LastUpdate' ],
                                    [ imageName, validStates[ 0 ], Time.toString() ] )
 
     if ret[ 'OK' ] and 'lastRowId' in ret:
 
       rowID = ret[ 'lastRowId' ]
 
-      ret = self._getFields( tableName, [idName], ['Name'], [imageName] )
+      ret = self.getFields( tableName, [idName], {'Name': imageName} )
       if not ret[ 'OK' ]:
         return ret
 
@@ -1386,7 +1362,7 @@ class VirtualMachineDB( DB ):
     except ValueError:
       return S_ERROR( "Transferred files has to be an integer value" )
 
-    self._insert( 'vm_History' , [ 'InstanceID', 'Status', 'Load',
+    self.insertFields( 'vm_History' , [ 'InstanceID', 'Status', 'Load',
                                    'Update', 'Jobs', 'TransferredFiles',
                                    'TransferredBytes' ],
                                  [ instanceID, status, load,
@@ -1416,7 +1392,7 @@ class VirtualMachineDB( DB ):
       return S_ERROR( 'Unknown DB object: %s' % element )
 
     fields = self.tablesDesc[ tableName ][ 'Fields' ]
-    ret    = self._getFields( tableName , fields, [ idName ], [ iD ] )
+    ret    = self.getFields( tableName , fields, {idName: iD} )
     if not ret[ 'OK' ]:
       return ret
     if not ret[ 'Value' ]:
@@ -1442,7 +1418,7 @@ class VirtualMachineDB( DB ):
     if not tableName:
       return S_ERROR( 'Unknown DB object: %s' % element )
 
-    ret = self._getFields( tableName, [ 'Status', 'ErrorMessage' ], [ idName ], [ iD ] )
+    ret = self.getFields( tableName, [ 'Status', 'ErrorMessage' ], {idName: iD} )
     if not ret[ 'OK' ]:
       return ret
 

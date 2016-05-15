@@ -28,6 +28,8 @@ from libcloud.compute.providers import get_driver
 from DIRAC import gLogger, gConfig, S_OK, S_ERROR
 from DIRAC.Core.Utilities.File import makeGuid
 
+DEBUG = False
+
 def createMimeData( userDataTuple ):
 
   userData = MIMEMultipart()
@@ -54,7 +56,7 @@ class CloudEndpoint( object ):
     self.valid = False
     result = self.initialize()
     if result['OK']:
-      gLogger.debug( 'CloudEndpoint created and validated' )
+      self.log.debug( 'CloudEndpoint created and validated' )
       self.valid = True
 
   def isValid( self ):
@@ -83,11 +85,12 @@ class CloudEndpoint( object ):
     password = self.parameters.get( 'Password' )
 
     # log info:
-    os.system("export LIBCLOUD_DEBUG=/tmp/libcloud.log")
+    if DEBUG:
+      os.system("export LIBCLOUD_DEBUG=/tmp/libcloud.log")
     for key in connDict:
       self.log.info( "%s: %s" % ( key, connDict[key] ) )
 
-    # get openstack driver
+    # get cloud driver
     providerName = self.parameters.get( 'CEType', 'OPENSTACK' ).upper()
     providerCode = getattr( Provider, providerName )
     self.driverClass = get_driver( providerCode )
@@ -294,14 +297,21 @@ cloud_final_modules:
       result = self.createInstance( instanceID )
       if result['OK']:
         node, publicIP = result['Value']
-        gLogger.debug( 'Created VM instance %s/%s with publicIP %s' % ( node.id, instanceID, publicIP ) )
-        outputDict[node.id] = instanceID
+        self.log.debug( 'Created VM instance %s/%s with publicIP %s' % ( node.id, instanceID, publicIP ) )
+        nodeDict = {}
+        nodeDict['PublicIP'] = publicIP
+        nodeDict['InstanceID'] = instanceID
+        nodeDict['NumberOfCPUs'] = self.flavor.vcpus
+        nodeDict['RAM'] = self.flavor.ram
+        nodeDict['DiskSize'] = self.flavor.disk
+        nodeDict['Price'] = self.flavor.price
+        outputDict[node.id] = nodeDict
       else:
         break
 
     return S_OK( outputDict )
 
-  def createInstance( self, instanceID = '' ):
+  def createInstance( self, instanceID = '', createPublicIP = True  ):
     """
     This creates a VM instance for the given boot image
     and creates a context script, taken the given parameters.
@@ -356,6 +366,8 @@ cloud_final_modules:
       flavor = self.__driver.ex_get_size( self.parameters['FlavorID'] )
     else:
       return S_ERROR( 'No flavor specified' )
+    self.flavor = flavor
+
     createNodeDict['size'] = flavor
 
     # Get security groups
@@ -398,11 +410,11 @@ cloud_final_modules:
       vmNode = self.__driver.create_node( **createNodeDict )
 
     except Exception as errmsg:
-      gLogger.debug( "Exception in driver.create_node", errmsg )
+      self.log.debug( "Exception in driver.create_node", errmsg )
       return S_ERROR( errmsg )
 
     publicIP = None
-    if "CreatePublicIP" in self.parameters:
+    if createPublicIP:
 
       # Wait until the node is running, otherwise getting public IP fails
       try:
@@ -410,10 +422,27 @@ cloud_final_modules:
         result = self.assignFloatingIP( vmNode )
         if result['OK']:
           publicIP = result['Value']
+        else:
+          return result
       except Exception as exc:
+        self.log.debug( 'Failed to wait node running %s' % str(exc) )
+        vmNode.destroy()
         return S_ERROR( 'Failed to wait until the node is Running' )
 
     return S_OK( ( vmNode, publicIP ) )
+
+  def getVMNodes( self ):
+    """ Get all the nodes on the endpoint
+
+    :return:
+    """
+
+    try:
+      nodes = self.__driver.list_nodes()
+    except Exception, errmsg:
+      return S_ERROR( errmsg )
+
+    return S_OK( nodes )
 
   def getVMNode( self, nodeID ):
     """
@@ -430,7 +459,20 @@ cloud_final_modules:
     try:
       node = self.__driver.ex_get_node_details( nodeID )
     except Exception, errmsg:
-      return S_ERROR( errmsg )
+      # Let's if the node is in the list of available nodes
+      result = self.getVMNodes()
+      if not result['OK']:
+        return S_ERROR( 'Failed to get nodes' )
+      nodeList = result['Value']
+      for nd in nodeList:
+        if nd.id == nodeID:
+          # Let's try again
+          try:
+            node = self.__driver.ex_get_node_details( nodeID )
+            break
+          except Exception as exc:
+            return S_ERROR( 'Failed to get node details %s' % str( exc )  )
+      node = None
 
     return S_OK( node )
 
@@ -510,6 +552,13 @@ cloud_final_modules:
     if not result[ 'OK' ]:
       return result
     node = result[ 'Value' ]
+    if node is None:
+      # Node does not exist
+      return S_OK()
+
+    nodeIP = node.public_ips[0] if node.public_ips else None
+    if not publicIP and nodeIP is not None:
+      publicIP = nodeIP
 
     # Delete floating IP if any
     if publicIP:
@@ -519,12 +568,13 @@ cloud_final_modules:
         return result
 
     # Destroy the VM instance
-    try:
-      result = self.__driver.destroy_node( node )
-      if not result:
-        return S_ERROR( "Failed to destroy node: %s" % node.id )
-    except Exception as errmsg:
-      return S_ERROR( errmsg )
+    if node is not None:
+      try:
+        result = self.__driver.destroy_node( node )
+        if not result:
+          return S_ERROR( "Failed to destroy node: %s" % node.id )
+      except Exception as errmsg:
+        return S_ERROR( errmsg )
 
     return S_OK()
 
@@ -558,34 +608,23 @@ cloud_final_modules:
     ipPool = self.parameters.get( 'ipPool' )
 
     if ipPool:
+      result = self.getVMPool( ipPool )
+      if not result['OK']:
+        return result
+
+      pool = result['Value']
       try:
-        poolList = self.__driver.ex_list_floating_ip_pools()
-        for pool in poolList:
-          if pool.name == ipPool:
-            floatingIP = pool.create_floating_ip()
-            self.__driver.ex_attach_floating_ip_to_node( node, floatingIP )
-            publicIP = floatingIP.ip_address
-            return S_OK( publicIP )
-        return S_ERROR( 'ipPool=%s is not defined in the openstack endpoint' % ipPool )
+        floatingIP = pool.create_floating_ip()
+        self.__driver.ex_attach_floating_ip_to_node( node, floatingIP )
+        publicIP = floatingIP.ip_address
+        return S_OK( publicIP )
 
       except Exception as errmsg:
         return S_ERROR( errmsg )
+    else:
+      return S_ERROR( 'No IP pool specified' )
 
-      return S_ERROR( errmsg )
-
-    # for the case of not using floating ip assignment
-    return S_OK( '' )
-
-  def deleteFloatingIP( self, publicIP, node ):
-    """
-    Deletes a floating IP <public_ip> from the server.
-
-    :Parameters:
-      **public_ip** - `string`
-        public IP to be deleted
-
-    :return: S_OK | S_ERROR
-    """
+  def getVMFloatingIP( self, publicIP ):
 
     # We are still with IPv4
     publicIP = publicIP.replace( '::ffff:', '' )
@@ -594,18 +633,48 @@ cloud_final_modules:
 
     if ipPool:
       try:
+        floatingIP = None
         poolList = self.__driver.ex_list_floating_ip_pools()
         for pool in poolList:
           if pool.name == ipPool:
-            floatingIP = pool.get_floating_ip( publicIP )
-            self.__driver.ex_detach_floating_ip_from_node( node, floatingIP )
-            floatingIP.delete()
-            return S_OK()
-
-        return S_ERROR( 'ipPool=%s is not defined in the openstack endpoint' % ipPool )
-
+            ipList = pool.list_floating_ips()
+            for ip in ipList:
+              if ip.ip_address == publicIP:
+                floatingIP = ip
+                break
+            break
+        return S_OK( floatingIP )
       except Exception as errmsg:
         return S_ERROR( errmsg )
+    else:
+      return S_ERROR( 'No IP pool specified' )
 
-    return S_OK()
+  def deleteFloatingIP( self, publicIP, node ):
+    """
+    Deletes a floating IP <public_ip> from the server.
+
+    :param str publicIP: public IP to be deleted
+    :param object node: node to which IP is attached
+    :return: S_OK | S_ERROR
+    """
+
+    # We are still with IPv4
+    publicIP = publicIP.replace( '::ffff:', '' )
+
+    result = self.getVMFloatingIP( publicIP )
+    if not result['OK']:
+      return result
+
+    floatingIP = result['Value']
+    if floatingIP is None:
+      return S_OK()
+
+    try:
+      if node is not None:
+        self.__driver.ex_detach_floating_ip_from_node( node, floatingIP )
+      floatingIP.delete()
+      return S_OK()
+    except Exception as errmsg:
+      return S_ERROR( errmsg )
+
 

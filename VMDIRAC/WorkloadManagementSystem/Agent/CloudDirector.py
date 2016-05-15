@@ -25,6 +25,7 @@ from DIRAC.Core.Utilities.List                             import fromChar
 from VMDIRAC.Resources.Cloud.CloudEndpointFactory          import CloudEndpointFactory
 from VMDIRAC.WorkloadManagementSystem.Agent.ConfigHelper   import findGenericCloudCredentials, getImages
 from VMDIRAC.WorkloadManagementSystem.Client.ServerUtils   import virtualMachineDB
+from DIRAC.WorkloadManagementSystem.Client.ServerUtils     import pilotAgentsDB
 
 __RCSID__ = "318e087 (2016-05-08 04:26:25 +0200) Andrei Tsaregorodtsev <atsareg@in2p3.fr>"
 
@@ -480,10 +481,45 @@ class CloudDirector( AgentModule ):
       totalSubmittedPilots += len( vmDict )
       self.log.info( 'Submitted %d VMs to %s@%s' % ( len( vmDict ), imageName, ceName ) )
 
+      pilotList = []
       for uuID in vmDict:
-        diracUUID = vmDict[uuID]
+        diracUUID = vmDict[uuID]['InstanceID']
         endpoint = '%s::%s' % ( self.imageDict[image]['Site'], ceName )
         result = virtualMachineDB.insertInstance( uuID, imageName, diracUUID, endpoint, self.vo )
+        if not result['OK']:
+          continue
+        for ncpu in range( vmDict[uuID]['NumberOfCPUs'] ):
+          pRef = 'vm://' + ceName + '/' + diracUUID + ':' + str( ncpu ).zfill( 2 )
+          pilotList.append( pRef )
+
+      stampDict = {}
+      tqPriorityList = []
+      sumPriority = 0.
+      for tq in taskQueueDict:
+        sumPriority += taskQueueDict[tq]['Priority']
+        tqPriorityList.append( ( tq, sumPriority ) )
+      tqDict = {}
+      for pilotID in pilotList:
+        rndm = random.random() * sumPriority
+        for tq, prio in tqPriorityList:
+          if rndm < prio:
+            tqID = tq
+            break
+        if not tqDict.has_key( tqID ):
+          tqDict[tqID] = []
+        tqDict[tqID].append( pilotID )
+
+      for tqID, pilotList in tqDict.items():
+        result = pilotAgentsDB.addPilotTQReference( pilotList,
+                                                    tqID,
+                                                    '',
+                                                    '',
+                                                    self.localhost,
+                                                    'Cloud',
+                                                    '',
+                                                    stampDict )
+        if not result['OK']:
+          self.log.error( 'Failed to insert pilots into the PilotAgentsDB' )
 
     self.log.info( "%d VMs submitted in total in this cycle, %d matched queues" % ( totalSubmittedPilots, matchedQueues ) )
     return S_OK()

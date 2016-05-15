@@ -13,6 +13,8 @@
 
 """
 
+from types import NoneType
+
 # DIRAC
 from DIRAC                                import gConfig, gLogger, S_ERROR, S_OK
 from DIRAC.Core.DISET.RequestHandler      import RequestHandler
@@ -23,6 +25,7 @@ from VMDIRAC.WorkloadManagementSystem.DB.VirtualMachineDB import VirtualMachineD
 from VMDIRAC.Security import VmProperties
 from VMDIRAC.Resources.Cloud.Utilities import getVMImageConfig
 from VMDIRAC.Resources.Cloud.CloudEndpointFactory import CloudEndpointFactory
+from VMDIRAC.WorkloadManagementSystem.Agent.ConfigHelper import getImages
 
 __RCSID__ = '$Id$'
 
@@ -34,13 +37,63 @@ def initializeVirtualMachineManagerHandler( _serviceInfo ):
   global gVirtualMachineDB
 
   gVirtualMachineDB = VirtualMachineDB()
+  haltStalledInstances()
   checkStalledInstances()
+
 
   if gVirtualMachineDB._connected:
     gThreadScheduler.addPeriodicTask( 60 * 15, checkStalledInstances )
     return S_OK()
 
   return S_ERROR()
+
+def haltStalledInstances():
+
+  result = gVirtualMachineDB.getInstancesByStatus( 'Stalled' )
+  if not result[ 'OK' ]:
+    return result
+
+  uList = []
+  for image in result[ 'Value' ]:
+    uList += result[ 'Value' ][image]
+
+  stallingList = []
+  for uID in uList:
+    result = gVirtualMachineDB.getInstanceID( uID )
+    if not result['OK']:
+      continue
+    stallingList.append( result['Value'] )
+  return haltInstances( stallingList )
+
+def getCEInstances( siteList = None, ceList = None, vo = None ):
+
+  result = getImages( siteList = siteList, ceList = ceList, vo = vo )
+  if not result['OK']:
+    return S_ERROR( 'Failed to get images from the CS' )
+  imageDict = result['Value']
+  ceList = []
+  for site in imageDict:
+    for ce in imageDict[site]:
+      result = CloudEndpointFactory().getCE( site, ce )
+      if not result['OK']:
+        continue
+      ceList.append( ( site, ce, result['Value'] ) )
+
+  nodeDict = {}
+  for site, ceName, ce in ceList:
+    result = ce.getVMNodes()
+    if not result['OK']:
+      continue
+    for node in result['Value']:
+      if not node.name.startswith( 'DIRAC' ):
+        continue
+      ip = ( node.public_ips[0] if node.public_ips else 'None' )
+      nodeDict[node.id] = { "Site": site,
+                            "CEName": ceName,
+                            "NodeName": node.name,
+                            "PublicIP": ip,
+                            "State": node.state }
+  return S_OK( nodeDict )
 
 def checkStalledInstances():
   """
@@ -50,11 +103,27 @@ def checkStalledInstances():
 
   result = gVirtualMachineDB.declareStalledInstances()
   if not result[ 'OK' ]:
-      return S_ERROR()
+    return result
 
   stallingList = result[ 'Value' ]
 
   return haltInstances( stallingList )
+
+def stopInstance( site, endpoint, nodeID ):
+
+  result = getVMImageConfig( site, endpoint )
+  if not result[ 'OK' ]:
+    return result
+  ceParams = result['Value']
+  ceFactory = CloudEndpointFactory()
+  result = ceFactory.getCEObject( parameters = ceParams )
+  if not result['OK']:
+    return result
+
+  ce = result['Value']
+  result = ce.stopVM( nodeID )
+  return result
+
 
 def createCloudEndpoint( uniqueID ):
 
@@ -66,7 +135,6 @@ def createCloudEndpoint( uniqueID ):
   result = getVMImageConfig( site, endpoint )
   if not result[ 'OK' ]:
     return result
-
   ceParams = result['Value']
   ceFactory = CloudEndpointFactory()
   result = ceFactory.getCEObject( parameters = ceParams )
@@ -126,6 +194,19 @@ class VirtualMachineManagerHandler( RequestHandler ):
     '''
     if not result[ 'OK' ]:
       gLogger.error( '%s: %s' % ( methodName, result[ 'Message' ] ) )
+
+
+  types_getCEInstances = [ ( list, NoneType ), ( list, NoneType ),  basestring ]
+  def export_getCEInstances( self, siteList, ceList, vo ):
+
+    if not siteList:
+      siteList = None
+    return getCEInstances( siteList = siteList, ceList = ceList, vo = vo )
+
+  types_stopInstance = [ basestring, basestring,  basestring ]
+  def export_stopInstance( self, site, endpoint, nodeID ):
+
+    return stopInstance( site, endpoint, nodeID )
 
   types_checkVmWebOperation = [ basestring ]
   def export_checkVmWebOperation( self, operation ):

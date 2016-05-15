@@ -34,7 +34,7 @@ def findGenericCloudCredentials( vo = False, group = False ):
       return S_ERROR( "%s@%s has no proxy in ProxyManager" )
     return S_OK( ( cloudDN, cloudGroup ) )
 
-def getImages( siteList = None, vo = None ):
+def getImages( siteList = None, ceList = None, imageList = None, vo = None ):
   """ Get CE/image options according to the specified selection
   """
 
@@ -62,6 +62,8 @@ def getImages( siteList = None, vo = None ):
         continue
       ces = result['Value']
       for ce in ces:
+        if ceList is not None and not ce in ceList:
+          continue
         if vo:
           voList = gConfig.getValue( '/Resources/Sites/%s/%s/Cloud/%s/VO' % ( grid, site, ce ), [] )
           if voList and not vo in voList:
@@ -75,6 +77,8 @@ def getImages( siteList = None, vo = None ):
           continue
         images = result['Value']
         for image in images:
+          if imageList is not None and not image in imageList:
+            continue
           if vo:
             voList = gConfig.getValue( '/Resources/Sites/%s/%s/Cloud/%s/Images/%s/VO' % ( grid, site, ce, image ), [] )
             if voList and not vo in voList:

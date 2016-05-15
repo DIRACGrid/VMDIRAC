@@ -58,6 +58,7 @@ SUBMIT_POOL=${SUBMIT_POOL:-diracPool}
 
 # JOB_ID is used by when reporting LocalJobID by DIRAC watchdog
 export JOB_ID="$VM_UUID:$PILOT_NUMBER"
+export VMDIRAC_VERSION="2.0"
 
 # We might be running from cvmfs or from /var/spool/checkout
 export CONTEXTDIR=`readlink -f \`dirname $0\``

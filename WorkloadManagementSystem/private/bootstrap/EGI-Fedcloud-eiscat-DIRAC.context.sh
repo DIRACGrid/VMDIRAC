@@ -41,7 +41,7 @@ install_eiscat_software_stack() {
    cd /usr/local/bin
    wget http://www.eiscat.se/raw/rtg/remtg.tgz
    tar xzvf remtg.tgz
-   chmod -R root:root remtg
+   chmod -R dirac:dirac remtg
    export  export PATH=/usr/local/bin/remtg:$PATH
    cd $OLDPWD
 }

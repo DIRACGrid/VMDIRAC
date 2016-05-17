@@ -1,6 +1,16 @@
 from DIRAC import gConfig, S_OK
 from DIRAC.Core.Utilities.List import fromChar
 
+STATE_MAP = { 0: 'RUNNING',
+              1: 'REBOOTING',
+              2: 'TERMINATED',
+              3: 'PENDING',
+              4: 'UNKNOWN',
+              5: 'STOPPED',
+              6: 'SUSPENDED',
+              7: 'ERROR',
+              8: 'PAUSED' }
+
 def getVMImageConfig( site, ce, image = '' ):
   """ Get parameters of the specified queue
   """

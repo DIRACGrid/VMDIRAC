@@ -14,16 +14,19 @@
 """
 
 from types import NoneType
+import os
+import commands
 
 # DIRAC
-from DIRAC                                import gConfig, gLogger, S_ERROR, S_OK
-from DIRAC.Core.DISET.RequestHandler      import RequestHandler
-from DIRAC.Core.Utilities.ThreadScheduler import gThreadScheduler
+from DIRAC                                               import gConfig, gLogger, S_ERROR, S_OK
+from DIRAC.Core.DISET.RequestHandler                     import RequestHandler
+from DIRAC.Core.Utilities.ThreadScheduler                import gThreadScheduler
+from DIRAC.ConfigurationSystem.Client.Helpers.Operations import Operations
 
 # VMDIRAC
 from VMDIRAC.WorkloadManagementSystem.DB.VirtualMachineDB import VirtualMachineDB
 from VMDIRAC.Security import VmProperties
-from VMDIRAC.Resources.Cloud.Utilities import getVMImageConfig
+from VMDIRAC.Resources.Cloud.Utilities import getVMImageConfig, STATE_MAP
 from VMDIRAC.Resources.Cloud.CloudEndpointFactory import CloudEndpointFactory
 from VMDIRAC.WorkloadManagementSystem.Agent.ConfigHelper import getImages
 
@@ -88,11 +91,12 @@ def getCEInstances( siteList = None, ceList = None, vo = None ):
       if not node.name.startswith( 'DIRAC' ):
         continue
       ip = ( node.public_ips[0] if node.public_ips else 'None' )
+      nodeState = node.state.upper() if not isinstance( node.state, ( int, long ) ) else STATE_MAP[node.state]
       nodeDict[node.id] = { "Site": site,
                             "CEName": ceName,
                             "NodeName": node.name,
                             "PublicIP": ip,
-                            "State": node.state }
+                            "State": nodeState }
   return S_OK( nodeDict )
 
 def checkStalledInstances():
@@ -179,6 +183,39 @@ def haltInstances( vmList ):
 
   return S_OK( { "Successful": successful, "Failed": failed } )
 
+def getPilotOutput( pilotRef ):
+
+  if not pilotRef.startswith( 'vm://' ):
+    return S_ERROR( 'Invalid pilot reference %s' % pilotRef )
+
+  # Get the VM public IP
+  diracID, nPilot = os.path.basename( pilotRef ).split(':')
+  result = gVirtualMachineDB.getUniqueIDByName( diracID )
+  if not result['OK']:
+    return result
+  uniqueID = result['Value']
+  result = gVirtualMachineDB.getInstanceID( uniqueID )
+  if not result['OK']:
+    return result
+  instanceID = result['Value']
+  result = gVirtualMachineDB.getInstanceParameter( "PublicIP", instanceID )
+  if not result['OK']:
+    return result
+  publicIP = result['Value']
+
+  op = Operations()
+  privateKeyFile = op.getValue( '/Cloud/PrivateKey', '' )
+  diracUser = op.getValue( '/Cloud/VMUser', '' )
+
+  cmd = 'ssh -i %s %s@%s "cat /etc/joboutputs/vm-pilot.%s.log"' % ( privateKeyFile,
+                                                                    diracUser,
+                                                                    publicIP,
+                                                                    nPilot )
+  status, output = commands.getstatusoutput( cmd )
+  if status:
+    return S_ERROR( 'Failed to get pilot output: %s' % output )
+  else:
+    return S_OK( output )
 
 class VirtualMachineManagerHandler( RequestHandler ):
 
@@ -207,6 +244,11 @@ class VirtualMachineManagerHandler( RequestHandler ):
   def export_stopInstance( self, site, endpoint, nodeID ):
 
     return stopInstance( site, endpoint, nodeID )
+
+  types_getPilotOutput = [ basestring ]
+  def export_getPilotOutput( self, pilotReference ):
+
+    return getPilotOutput( pilotReference )
 
   types_checkVmWebOperation = [ basestring ]
   def export_checkVmWebOperation( self, operation ):

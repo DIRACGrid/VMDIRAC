@@ -39,7 +39,9 @@ install_eiscat_software_stack() {
    sudo apt-get -y update
    sudo apt-get -y install octave
    cd /usr/local/bin
-   wget http://www.eiscat.se/raw/rtg/remtg.tgz
+   wget http://dirac1.grid.cyfronet.pl:8088/repo/remtg.tgz
+   #eiscat CVS
+   #wget http://www.eiscat.se/raw/rtg/remtg.tgz
    tar xzvf remtg.tgz
    chown -R dirac:dirac remtg
    export  export PATH=/usr/local/bin/remtg:$PATH

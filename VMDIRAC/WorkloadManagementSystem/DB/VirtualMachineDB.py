@@ -86,7 +86,7 @@ class VirtualMachineDB( DB ):
   tablesDesc[ 'vm_Instances' ] = { 'Fields' : { 'InstanceID' : 'BIGINT UNSIGNED AUTO_INCREMENT NOT NULL',
                                                 'RunningPod' : 'VARCHAR(255) NOT NULL',
                                                 'Name' : 'VARCHAR(255) NOT NULL',
-                                                'Endpoint' : 'VARCHAR(32) NOT NULL',
+                                                'Endpoint' : 'VARCHAR(255) NOT NULL',
                                                 'UniqueID' : 'VARCHAR(255) NOT NULL DEFAULT ""',
                                                 'VMImageID' : 'INTEGER UNSIGNED NOT NULL',
                                                 'Status' : 'VARCHAR(32) NOT NULL',

@@ -423,6 +423,7 @@ cloud_final_modules:
         if result['OK']:
           publicIP = result['Value']
         else:
+          vmNode.destroy()
           return result
       except Exception as exc:
         self.log.debug( 'Failed to wait node running %s' % str(exc) )

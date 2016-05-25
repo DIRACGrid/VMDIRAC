@@ -1111,7 +1111,7 @@ class VirtualMachineDB( DB ):
       return instance
 
     if 'lastRowId' in instance:
-      self.__addInstanceHistory( instance[ 'lastRowId' ], validStates[ 0 ] )
+      self.__addInstanceHistory( instance[ 'lastRowId' ], status )
       return S_OK( instance[ 'lastRowId' ] )
 
     return S_ERROR( 'Failed to insert new Instance' )

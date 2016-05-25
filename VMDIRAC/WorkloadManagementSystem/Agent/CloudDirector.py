@@ -260,8 +260,8 @@ class CloudDirector( AgentModule ):
           self.imageDict[imageName]['Platform'] = platform
           self.imageDict[imageName]['MaxInstances'] = ceDict['MaxInstances']
           if not self.imageDict[imageName]['CE'].isValid():
-            self.log.fatal( 'Failed to instantiate CloudEndpoint for %s' % imageName )
-            return result
+            self.log.error( 'Failed to instantiate CloudEndpoint for %s' % imageName )
+            continue
 
           if site not in self.sites:
             self.sites.append( site )

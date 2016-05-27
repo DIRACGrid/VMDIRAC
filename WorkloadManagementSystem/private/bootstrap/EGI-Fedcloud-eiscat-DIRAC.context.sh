@@ -197,6 +197,17 @@ install_eiscat_software_stack >> /var/log/dirac-context-script.log 2>&1
 	done
         su dirac -c'cp etc/dirac.cfg dirac.cfg.postconfigure'
 	su dirac -c'mv dirac.cfg.aux etc/dirac.cfg'
+        # Allways job whole node (grid multi core Tag compatibility
+        su dirac -c'echo "Resources" >> etc/dirac.cfg'
+        su dirac -c'echo "{" >> etc/dirac.cfg'
+        su dirac -c'echo "  Computing" >> etc/dirac.cfg'
+        su dirac -c'echo "  {" >> etc/dirac.cfg'
+        su dirac -c'echo "    CEDefaults" >> etc/dirac.cfg'
+        su dirac -c'echo "    {" >> etc/dirac.cfg'
+        su dirac -c'echo "      Tag = WholeNode" >> etc/dirac.cfg'
+        su dirac -c'echo "    }" >> etc/dirac.cfg'
+        su dirac -c'echo "  }" >> etc/dirac.cfg'
+        su dirac -c'echo "}" >> etc/dirac.cfg'
 	echo "etc/dirac.cfg content previous to agents run: "  >> /var/log/dirac-context-script.log 2>&1
 	cat etc/dirac.cfg >> /var/log/dirac-context-script.log 2>&1
 	echo >> /var/log/dirac-context-script.log 2>&1

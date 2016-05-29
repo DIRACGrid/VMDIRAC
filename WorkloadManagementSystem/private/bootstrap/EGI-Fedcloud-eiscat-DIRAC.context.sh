@@ -165,12 +165,12 @@ install_eiscat_software_stack >> /var/log/dirac-context-script.log 2>&1
         `which python` `which easy_install` simplejson >> /var/log/dirac-context-script.log 2>&1
         # getting RunningPodRequirements
         requirements=''
-        tagval=''
+        export TAGVAL=''
         while read keyval           
-        do           
+        do
                 if [ `echo $keyval | grep '^Tag' ` ]
                 then
-			tagval=$keyval
+                        export TAGVAL=$keyval
 		else
 			requirements=`echo "$requirements -o /LocalSite/$keyval"`
                 fi
@@ -203,7 +203,7 @@ install_eiscat_software_stack >> /var/log/dirac-context-script.log 2>&1
 	done
         su dirac -c'cp etc/dirac.cfg dirac.cfg.postconfigure'
 	su dirac -c'mv dirac.cfg.aux etc/dirac.cfg'
-        if [ -n "$tagval" ]
+        if [ -n "$TAGVAL" ]
         then
                 # Tag is going to Resource Computing CE section
                 su dirac -c'echo "Resources" >> etc/dirac.cfg'
@@ -213,7 +213,7 @@ install_eiscat_software_stack >> /var/log/dirac-context-script.log 2>&1
                 su dirac -c'echo "    CEDefaults" >> etc/dirac.cfg'
                 su dirac -c'echo "    {" >> etc/dirac.cfg'
                 su dirac -c'echo -n "      " >> etc/dirac.cfg'
-                su dirac -c'echo "$tagval" >> etc/dirac.cfg'
+                su dirac -c'echo "$TAGVAL" >> etc/dirac.cfg'
                 su dirac -c'echo "    }" >> etc/dirac.cfg'
                 su dirac -c'echo "  }" >> etc/dirac.cfg'
                 su dirac -c'echo "}" >> etc/dirac.cfg'

@@ -147,8 +147,13 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
         # getting RunningPodRequirements
         requirements=''
         while read keyval           
-        do           
-            requirements=`echo "$requirements -o /LocalSite/$keyval"`
+        do  
+		if [ `echo $keyval | grep '^Tag' ` ] 
+		then         
+        		# Tag is going to another section
+			continue
+		fi
+		requirements=`echo "$requirements -o /LocalSite/$keyval"`
         done </root/LocalSiteRequirements
         # configure, if CAs are not download we retry
         for retry in 0 1 2 3 4 5 6 7 8 9
@@ -178,17 +183,20 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 	done
         su dirac -c'cp etc/dirac.cfg dirac.cfg.postconfigure'
 	su dirac -c'mv dirac.cfg.aux etc/dirac.cfg'
-        # Allways job whole node (grid multi core Tag compatibility
-        su dirac -c'echo "Resources" >> etc/dirac.cfg'
-        su dirac -c'echo "{" >> etc/dirac.cfg'
-        su dirac -c'echo "  Computing" >> etc/dirac.cfg'
-        su dirac -c'echo "  {" >> etc/dirac.cfg'
-        su dirac -c'echo "    CEDefaults" >> etc/dirac.cfg'
-        su dirac -c'echo "    {" >> etc/dirac.cfg'
-        su dirac -c'echo "      Tag = WholeNode" >> etc/dirac.cfg'
-        su dirac -c'echo "    }" >> etc/dirac.cfg'
-        su dirac -c'echo "  }" >> etc/dirac.cfg'
-        su dirac -c'echo "}" >> etc/dirac.cfg'
+	if [ `cat /root/LocalSiteRequirements | grep '^Tag' ` ] 
+	then         
+        	# Tag is going to Resource Computing CE section
+	        su dirac -c'echo "Resources" >> etc/dirac.cfg'
+	        su dirac -c'echo "{" >> etc/dirac.cfg'
+	        su dirac -c'echo "  Computing" >> etc/dirac.cfg'
+	        su dirac -c'echo "  {" >> etc/dirac.cfg'
+	        su dirac -c'echo "    CEDefaults" >> etc/dirac.cfg'
+	        su dirac -c'echo "    {" >> etc/dirac.cfg'
+	        su dirac -c'echo "      Tag = WholeNode" >> etc/dirac.cfg'
+	        su dirac -c'echo "    }" >> etc/dirac.cfg'
+	        su dirac -c'echo "  }" >> etc/dirac.cfg'
+	        su dirac -c'echo "}" >> etc/dirac.cfg'
+	fi
 	echo "etc/dirac.cfg content previous to agents run: "  >> /var/log/dirac-context-script.log 2>&1
 	cat etc/dirac.cfg >> /var/log/dirac-context-script.log 2>&1
 	echo >> /var/log/dirac-context-script.log 2>&1

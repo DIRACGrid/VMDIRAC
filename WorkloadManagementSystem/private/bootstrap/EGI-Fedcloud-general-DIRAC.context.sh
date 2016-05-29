@@ -184,7 +184,7 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 	done
         su dirac -c'cp etc/dirac.cfg dirac.cfg.postconfigure'
 	su dirac -c'mv dirac.cfg.aux etc/dirac.cfg'
-        if [ -n "$tagval" ]; then
+        if [ -n "$tagval" ]
 	then         
         	# Tag is going to Resource Computing CE section
 	        su dirac -c'echo "Resources" >> etc/dirac.cfg'

@@ -183,20 +183,23 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 	done
         su dirac -c'cp etc/dirac.cfg dirac.cfg.postconfigure'
 	su dirac -c'mv dirac.cfg.aux etc/dirac.cfg'
-	if [ `cat /root/LocalSiteRequirements | grep '^Tag' ` ] 
-	then         
-        	# Tag is going to Resource Computing CE section
-	        su dirac -c'echo "Resources" >> etc/dirac.cfg'
-	        su dirac -c'echo "{" >> etc/dirac.cfg'
-	        su dirac -c'echo "  Computing" >> etc/dirac.cfg'
-	        su dirac -c'echo "  {" >> etc/dirac.cfg'
-	        su dirac -c'echo "    CEDefaults" >> etc/dirac.cfg'
-	        su dirac -c'echo "    {" >> etc/dirac.cfg'
-	        su dirac -c'echo "      Tag = WholeNode" >> etc/dirac.cfg'
-	        su dirac -c'echo "    }" >> etc/dirac.cfg'
-	        su dirac -c'echo "  }" >> etc/dirac.cfg'
-	        su dirac -c'echo "}" >> etc/dirac.cfg'
-	fi
+        while read keyval           
+        do  
+		if [ `echo $keyval | grep '^Tag' ` ] 
+		then         
+        		# Tag is going to Resource Computing CE section
+		        su dirac -c'echo "Resources" >> etc/dirac.cfg'
+		        su dirac -c'echo "{" >> etc/dirac.cfg'
+		        su dirac -c'echo "  Computing" >> etc/dirac.cfg'
+		        su dirac -c'echo "  {" >> etc/dirac.cfg'
+		        su dirac -c'echo "    CEDefaults" >> etc/dirac.cfg'
+		        su dirac -c'echo "    {" >> etc/dirac.cfg'
+		        su dirac -c'echo "      ${keyval}" >> etc/dirac.cfg'
+		        su dirac -c'echo "    }" >> etc/dirac.cfg'
+		        su dirac -c'echo "  }" >> etc/dirac.cfg'
+		        su dirac -c'echo "}" >> etc/dirac.cfg'
+		fi
+        done </root/LocalSiteRequirements
 	echo "etc/dirac.cfg content previous to agents run: "  >> /var/log/dirac-context-script.log 2>&1
 	cat etc/dirac.cfg >> /var/log/dirac-context-script.log 2>&1
 	echo >> /var/log/dirac-context-script.log 2>&1

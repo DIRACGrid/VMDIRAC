@@ -82,7 +82,7 @@ cp $CONTEXTDIR/*.py .
 # Run the Pilot 2.0 script
 python dirac-pilot.py \
  --debug \
- --setup Dirac-Production \
+ --setup $SETUP \
  -r $VERSION \
  -l $PROJECT \
  -e VMDIRAC \

@@ -294,7 +294,8 @@ cloud_final_modules:
 
     for nvm in xrange( vmsToSubmit ):
       instanceID = makeGuid()[:8]
-      result = self.createInstance( instanceID )
+      createPublicIP = 'ipPool' in self.parameters
+      result = self.createInstance( instanceID, createPublicIP )
       if result['OK']:
         node, publicIP = result['Value']
         self.log.debug( 'Created VM instance %s/%s with publicIP %s' % ( node.id, instanceID, publicIP ) )
@@ -423,6 +424,7 @@ cloud_final_modules:
         if result['OK']:
           publicIP = result['Value']
         else:
+          vmNode.destroy()
           return result
       except Exception as exc:
         self.log.debug( 'Failed to wait node running %s' % str(exc) )
@@ -565,7 +567,6 @@ cloud_final_modules:
       result = self.deleteFloatingIP( publicIP, node )
       if not result['OK']:
         self.log.error( 'Failed in deleteFloatingIP:', result[ 'Message' ] )
-        return result
 
     # Destroy the VM instance
     if node is not None:

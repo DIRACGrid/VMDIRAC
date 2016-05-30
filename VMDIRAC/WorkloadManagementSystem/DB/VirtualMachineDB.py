@@ -86,7 +86,7 @@ class VirtualMachineDB( DB ):
   tablesDesc[ 'vm_Instances' ] = { 'Fields' : { 'InstanceID' : 'BIGINT UNSIGNED AUTO_INCREMENT NOT NULL',
                                                 'RunningPod' : 'VARCHAR(255) NOT NULL',
                                                 'Name' : 'VARCHAR(255) NOT NULL',
-                                                'Endpoint' : 'VARCHAR(32) NOT NULL',
+                                                'Endpoint' : 'VARCHAR(255) NOT NULL',
                                                 'UniqueID' : 'VARCHAR(255) NOT NULL DEFAULT ""',
                                                 'VMImageID' : 'INTEGER UNSIGNED NOT NULL',
                                                 'Status' : 'VARCHAR(32) NOT NULL',
@@ -1111,7 +1111,7 @@ class VirtualMachineDB( DB ):
       return instance
 
     if 'lastRowId' in instance:
-      self.__addInstanceHistory( instance[ 'lastRowId' ], validStates[ 0 ] )
+      self.__addInstanceHistory( instance[ 'lastRowId' ], status )
       return S_OK( instance[ 'lastRowId' ] )
 
     return S_ERROR( 'Failed to insert new Instance' )

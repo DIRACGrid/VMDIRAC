@@ -133,7 +133,7 @@ vm_dirac_install() {
 
   dirac-configure -ddd -S $setup -C $config_server \
                   -o /DIRAC/Extensions=VMDIRAC \
-                  -o /DIRAC/VirtualOrganization=vo \
+                  -o /DIRAC/VirtualOrganization=$vo \
                   -o /LocalSite/ReleaseProject=$release_project \
                   -o /LocalSite/ReleaseVersion=$release_version \
                   -o /LocalSite/VMID=$VM_UUID \

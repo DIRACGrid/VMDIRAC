@@ -13,60 +13,36 @@
 __RCSID__ = '$Id$'
 
 import os
-import time
 import ssl
-import sys
-
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 
 from libcloud                   import security
 from libcloud.compute.types     import Provider
 from libcloud.compute.providers import get_driver
 
 # DIRAC
-from DIRAC import gLogger, gConfig, S_OK, S_ERROR
+from DIRAC import gLogger, S_OK, S_ERROR
 from DIRAC.Core.Utilities.File import makeGuid
+
+from VMDIRAC.Resources.Cloud.Endpoint import Endpoint
+from VMDIRAC.Resources.Cloud.Utilities import createMimeData
 
 DEBUG = False
 
-def createMimeData( userDataTuple ):
-
-  userData = MIMEMultipart()
-  for contents, mtype, fname in userDataTuple:
-    try:
-      mimeText = MIMEText(contents, mtype, sys.getdefaultencoding())
-      mimeText.add_header('Content-Disposition', 'attachment; filename="%s"' % fname )
-      userData.attach( mimeText )
-    except Exception as e:
-      return S_ERROR( str( e ) )
-
-  return S_OK( userData )
-
-class CloudEndpoint( object ):
+class CloudEndpoint( Endpoint ):
   """ CloudEndpoint base class
   """
 
   def __init__( self, parameters = {} ):
     """
     """
+    super( CloudEndpoint, self ).__init__( parameters = parameters )
     # logger
     self.log = gLogger.getSubLogger( 'CloudEndpoint' )
-    self.parameters = parameters
     self.valid = False
     result = self.initialize()
     if result['OK']:
       self.log.debug( 'CloudEndpoint created and validated' )
       self.valid = True
-
-  def isValid( self ):
-    return self.valid
-
-  def setParameters( self, parameters ):
-    self.parameters = parameters
-
-  def getParameterDict( self ):
-    return self.parameters
 
   def initialize( self ):
 
@@ -91,7 +67,7 @@ class CloudEndpoint( object ):
       self.log.info( "%s: %s" % ( key, connDict[key] ) )
 
     # get cloud driver
-    providerName = self.parameters.get( 'CEType', 'OPENSTACK' ).upper()
+    providerName = self.parameters.get( 'Provider', 'OPENSTACK' ).upper()
     providerCode = getattr( Provider, providerName )
     self.driverClass = get_driver( providerCode )
 

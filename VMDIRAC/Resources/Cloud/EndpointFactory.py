@@ -34,9 +34,6 @@ class EndpointFactory( object ):
     """This method returns the CloudEndpoint instance corresponding to the supplied
        CEUniqueID.  If no corresponding CE is available, this is indicated.
     """
-
-    print "AT >>> getCEObject", parameters
-
     ceType = parameters.get( 'CEType', 'Cloud' )
     self.log.verbose('Creating Endpoint of %s type' % ceType )
     subClassName = "%sEndpoint" % (ceType)
@@ -49,9 +46,6 @@ class EndpointFactory( object ):
 
     ceClass = result['Value']
     try:
-
-      print "AT >>> getCEObject", parameters, ceClass
-
       endpoint = ceClass( parameters )
     except Exception as x:
       msg = 'EndpointFactory could not instantiate %s object: %s' % ( subClassName, str( x ) )

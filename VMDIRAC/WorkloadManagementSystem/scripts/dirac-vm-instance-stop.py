@@ -10,7 +10,7 @@ from DIRAC import gLogger, exit as DIRACExit
 
 Script.setUsageMessage( '\n'.join( ['Get VM nodes information',
                                     'Usage:',
-                                    '%s [option]... [cfgfile]' % Script.scriptName,
+                                    '%s site ce node [option]... [cfgfile]' % Script.scriptName,
                                     'Arguments:',
                                     ' cfgfile: DIRAC Cfg with description of the configuration (optional)'] ) )
 

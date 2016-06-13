@@ -165,16 +165,18 @@ install_eiscat_software_stack >> /var/log/dirac-context-script.log 2>&1
         `which python` `which easy_install` simplejson >> /var/log/dirac-context-script.log 2>&1
         # getting RunningPodRequirements
         requirements=''
-        export TAGVAL=''
         while read keyval           
         do
                 if [ `echo $keyval | grep '^Tag' ` ]
                 then
-                        export TAGVAL=$keyval
-		else
-			requirements=`echo "$requirements -o /LocalSite/$keyval"`
+                        tagval=`echo $keyval|cut -f2 -d"="`
+                        requirements=`echo "$requirements -o /Resources/Computing/CEDefaults/Tag=$tagval"`
+                        requirements=`echo "$requirements -o /AgentJobRequirements/RequiredTag=$tagval"`
+                else
+                        requirements=`echo "$requirements -o /LocalSite/$keyval"`
                 fi
         done </root/LocalSiteRequirements
+
         # configure, if CAs are not download we retry
         for retry in 0 1 2 3 4 5 6 7 8 9
         do

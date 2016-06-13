@@ -112,7 +112,7 @@ class BuildCloudinitScript:
     file.write('vmRunLogAgentURL=%s\n' % (vmRunLogAgentURL))
     file.write('vmCvmfsContextURL=%s\n' % (vmCvmfsContextURL))
     file.write('vmDiracContextURL=%s\n' % (vmDiracContextURL))
-    file.write('cvmfs_http_proxy=%s\n' % (cvmfs_http_proxy))
+    file.write('cvmfs_http_proxy=\"%s\"\n' % (cvmfs_http_proxy))
     file.write('siteName=%s\n' % (siteName))
     file.write('cloudDriver=%s\n' % (cloudDriver))
     file.write('vmStopPolicy=%s\n' % (vmStopPolicy))

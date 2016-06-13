@@ -169,14 +169,25 @@ class AmazonClient:
                                                        instanceType ) )
       try:
           if contextMethod == 'cloudinit':
-            reservation = self.__vmImage.run( min_count = 1,
+            if ( keyName == None or keyName == 'nouse' ):
+              reservation = self.__vmImage.run( min_count = 1,
+                                      max_count = 1,
+                                      user_data = userdata,
+                                      instance_type = instanceType )
+            else:
+              reservation = self.__vmImage.run( min_count = 1,
                                       max_count = 1,
                                       user_data = userdata,
                                       key_name= keyName,
                                       instance_type = instanceType )
           else:
             #adhoc instance
-            reservation = self.__vmImage.run( min_count = numImages,
+            if ( keyName == None or keyName == 'nouse' ):
+              reservation = self.__vmImage.run( min_count = numImages,
+                                      max_count = 1,
+                                      instance_type = instanceType )
+            else:
+              reservation = self.__vmImage.run( min_count = numImages,
                                       max_count = 1,
                                       key_name= keyName,
                                       instance_type = instanceType )

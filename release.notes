@@ -1,3 +1,8 @@
+[rel-v1r5]
+NEW: New Tag logic, tested with v6r15p2
+NEW: cvmfs for enrmr VO (non CERN LHC repos)
+Minor bugfixes
+
 [rel-v1r4]
 
 NEW: A image can have different bootImageName and Flavor depending in the cloud endpoint

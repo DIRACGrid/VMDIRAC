@@ -342,18 +342,15 @@ class VirtualMachineDB( DB ):
     """
     tableName, _validStates, idName = self.__getTypeTuple( 'Instance' )
 
-    print instanceID
-    print "instanceID"
-
     sqlQuery = "SELECT UniqueID FROM `%s` WHERE %s = %s" % ( tableName, idName, instanceID )
     uniqueID = self._query( sqlQuery )
-
-    print "uniqueID"
-    print uniqueID
 
     if not uniqueID[ 'OK' ]:
       return uniqueID
     uniqueID = uniqueID[ 'Value' ]
+
+    if not uniqueID:
+      return S_ERROR( ' Unregistered VM, uniqueID not found for instanceID %s' % (instanceID) )
 
     return S_OK( uniqueID[ 0 ][ 0 ] )
 

@@ -68,6 +68,7 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 
 # dirac user:
         /usr/sbin/useradd -m -s /bin/bash -d /opt/dirac dirac >> /var/log/dirac-context-script.log 2>&1
+	chown -R dirac.dirac /opt/dirac
 
 # servercert/serverkey previouslly to this script copied 
 #
@@ -104,13 +105,13 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 # Installing DIRAC
 #
 	cd /opt/dirac
-	wget --no-check-certificate -O dirac-install 'https://github.com/DIRACGrid/DIRAC/raw/integration/Core/scripts/dirac-install.py' >> /var/log/dirac-context-script.log 2>&1
+	wget --no-check-certificate -O dirac-install 'http://dirac1.grid.cyfronet.pl:8088/repo/integration/DIRAC/Core/scripts/dirac-install.py' >> /var/log/dirac-context-script.log 2>&1
 
 	su dirac -c'python dirac-install -V "VMEGI"' >> /var/log/dirac-context-script.log 2>&1
 
-	# FOR DEBUGGIN PURPOSES overwriting with last released in the local vmendez git folder: 
+	# FOR DEBUGGIN PURPOSES overwriting with last released in the local vmendez folder: 
         rm -rf VMDIRAC
-        wget --no-check-certificate -O vmdirac.zip 'https://github.com/vmendez/VMDIRAC/archive/master.zip' >> /var/log/dirac-context-script.log 2>&1
+        wget --no-check-certificate -O vmdirac.zip 'http://dirac1.grid.cyfronet.pl:8088/repo/vmendez/master.zip' >> /var/log/dirac-context-script.log 2>&1
         # checking if unzip installed
         if [ ! `which unzip` ]
         then
@@ -146,8 +147,15 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
         # getting RunningPodRequirements
         requirements=''
         while read keyval           
-        do           
-            requirements=`echo "$requirements -o /LocalSite/$keyval"`
+        do
+                if [ `echo $keyval | grep '^Tag' ` ]
+                then
+			tagval=`echo $keyval|cut -f2 -d"="`
+                        requirements=`echo "$requirements -o /Resources/Computing/CEDefaults/Tag=$tagval"`
+                        requirements=`echo "$requirements -o /AgentJobRequirements/RequiredTag=$tagval"`
+                else
+                        requirements=`echo "$requirements -o /LocalSite/$keyval"`
+                fi
         done </root/LocalSiteRequirements
         # configure, if CAs are not download we retry
         for retry in 0 1 2 3 4 5 6 7 8 9

@@ -16,7 +16,6 @@ class Endpoint( object ):
     """
     """
     # logger
-    self.valid = False
     self.parameters = parameters
     self.valid = False
 
@@ -30,6 +29,4 @@ class Endpoint( object ):
     return self.parameters
 
   def initialize( self ):
-
     pass
-

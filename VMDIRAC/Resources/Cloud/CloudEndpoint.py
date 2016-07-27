@@ -176,7 +176,6 @@ class CloudEndpoint( Endpoint ):
 
     # Arguments to the vm-bootstrap command
     bootstrapArgs = { 'dirac-site': self.parameters['Site'],
-                      'submit-pool': self.parameters['SubmitPool'],
                       'ce-name': self.parameters['CEName'],
                       'image-name': self.parameters['Image'],
                       'vm-uuid': self.parameters['VMUUID'],

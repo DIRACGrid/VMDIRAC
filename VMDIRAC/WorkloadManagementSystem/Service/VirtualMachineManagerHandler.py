@@ -18,17 +18,17 @@ import os
 import commands
 
 # DIRAC
-from DIRAC                                               import gConfig, gLogger, S_ERROR, S_OK
-from DIRAC.Core.DISET.RequestHandler                     import RequestHandler
-from DIRAC.Core.Utilities.ThreadScheduler                import gThreadScheduler
-from DIRAC.ConfigurationSystem.Client.Helpers.Operations import Operations
+from DIRAC                                                import gConfig, gLogger, S_ERROR, S_OK
+from DIRAC.Core.DISET.RequestHandler                      import RequestHandler
+from DIRAC.Core.Utilities.ThreadScheduler                 import gThreadScheduler
+from DIRAC.ConfigurationSystem.Client.Helpers.Operations  import Operations
 
 # VMDIRAC
 from VMDIRAC.WorkloadManagementSystem.DB.VirtualMachineDB import VirtualMachineDB
-from VMDIRAC.Security import VmProperties
-from VMDIRAC.Resources.Cloud.Utilities import getVMImageConfig, STATE_MAP
-from VMDIRAC.Resources.Cloud.CloudEndpointFactory import CloudEndpointFactory
-from VMDIRAC.WorkloadManagementSystem.Agent.ConfigHelper import getImages
+from VMDIRAC.Security                                     import VmProperties
+from VMDIRAC.Resources.Cloud.Utilities                    import STATE_MAP
+from VMDIRAC.Resources.Cloud.ConfigHelper                 import getVMImageConfig, getImages
+from VMDIRAC.Resources.Cloud.EndpointFactory              import EndpointFactory
 
 __RCSID__ = '$Id$'
 
@@ -77,7 +77,7 @@ def getCEInstances( siteList = None, ceList = None, vo = None ):
   ceList = []
   for site in imageDict:
     for ce in imageDict[site]:
-      result = CloudEndpointFactory().getCE( site, ce )
+      result = EndpointFactory().getCE( site, ce )
       if not result['OK']:
         continue
       ceList.append( ( site, ce, result['Value'] ) )
@@ -119,7 +119,7 @@ def stopInstance( site, endpoint, nodeID ):
   if not result[ 'OK' ]:
     return result
   ceParams = result['Value']
-  ceFactory = CloudEndpointFactory()
+  ceFactory = EndpointFactory()
   result = ceFactory.getCEObject( parameters = ceParams )
   if not result['OK']:
     return result
@@ -129,7 +129,7 @@ def stopInstance( site, endpoint, nodeID ):
   return result
 
 
-def createCloudEndpoint( uniqueID ):
+def createEndpoint( uniqueID ):
 
   result = gVirtualMachineDB.getEndpointFromInstance( uniqueID )
   if not result[ 'OK' ]:
@@ -140,7 +140,7 @@ def createCloudEndpoint( uniqueID ):
   if not result[ 'OK' ]:
     return result
   ceParams = result['Value']
-  ceFactory = CloudEndpointFactory()
+  ceFactory = EndpointFactory()
   result = ceFactory.getCEObject( parameters = ceParams )
   return result
 
@@ -161,9 +161,9 @@ def haltInstances( vmList ):
       continue
     uniqueID = result [ 'Value' ]
 
-    result = createCloudEndpoint( uniqueID )
+    result = createEndpoint( uniqueID )
     if not result['OK']:
-      gLogger.error( 'haltInstances: on createCloudEndpoint call: %s' % result['Message'] )
+      gLogger.error( 'haltInstances: on createEndpoint call: %s' % result['Message'] )
       continue
 
     endpoint = result [ 'Value' ]

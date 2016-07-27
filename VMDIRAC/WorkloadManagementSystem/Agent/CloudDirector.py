@@ -22,8 +22,8 @@ from DIRAC.Core.DISET.RPCClient                            import RPCClient
 from DIRAC.Core.Utilities.List                             import fromChar
 
 # VMDIRAC
-from VMDIRAC.Resources.Cloud.CloudEndpointFactory          import CloudEndpointFactory
-from VMDIRAC.WorkloadManagementSystem.Agent.ConfigHelper   import findGenericCloudCredentials, \
+from VMDIRAC.Resources.Cloud.EndpointFactory               import EndpointFactory
+from VMDIRAC.Resources.Cloud.ConfigHelper                  import findGenericCloudCredentials, \
                                                                   getImages, \
                                                                   getPilotBootstrapParameters
 from VMDIRAC.WorkloadManagementSystem.Client.ServerUtils   import virtualMachineDB
@@ -162,9 +162,9 @@ class CloudDirector( AgentModule ):
     """
 
     self.imageDict = {}
-    ceFactory = CloudEndpointFactory()
+    ceFactory = EndpointFactory()
 
-    result = getPilotBootstrapParameters( vo = self.vo )
+    result = getPilotBootstrapParameters( vo = self.vo, runningPod = self.runningPod )
     if not result['OK']:
       return result
     opParameters = result['Value']

@@ -123,7 +123,7 @@ def getVMImageConfig( site, ce, image = '' ):
   resultDict['Site'] = site
   return S_OK( resultDict )
 
-def getPilotBootstrapParameters( vo = '' ):
+def getPilotBootstrapParameters( vo = '', runningPod = '' ):
 
   op = Operations.Operations( vo = vo )
   result = op.getOptionsDict( 'Cloud' )
@@ -133,5 +133,7 @@ def getPilotBootstrapParameters( vo = '' ):
   opParameters['Project'] = op.getValue( 'Cloud/Project', 'DIRAC' )
   opParameters['Version'] = op.getValue( 'Cloud/Version' )
   opParameters['Setup'] = gConfig.getValue( '/DIRAC/Setup', 'unknown' )
-  result = op.getOptionsDict( 'Cloud/%s' % self.runningPod )
-  return result
+  result = op.getOptionsDict( 'Cloud/%s' % runningPod )
+  if result['OK']:
+    opParameters.update( result['Value'] )
+  return S_OK( opParameters )

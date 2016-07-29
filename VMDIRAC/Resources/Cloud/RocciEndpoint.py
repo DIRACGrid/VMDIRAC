@@ -1,10 +1,11 @@
-""" EC2Endpoint class is the implementation of the EC2 interface to
-    a cloud endpoint
+""" RocciEndpoint class is the implementation of the rocci interface to
+    a cloud endpoint via rOCCI-cli
 """
 
 import os
 import json
-import boto3
+import subprocess
+import tempfile
 
 from DIRAC import gLogger, S_OK, S_ERROR
 from DIRAC.Core.Utilities.File import makeGuid
@@ -14,18 +15,18 @@ from VMDIRAC.Resources.Cloud.Utilities import createMimeData
 
 __RCSID__ = '$Id$'
 
-class EC2Endpoint( Endpoint ):
+class RocciEndpoint( Endpoint ):
 
   def __init__( self, parameters = {} ):
     """
     """
     Endpoint.__init__( self, parameters = parameters )
     # logger
-    self.log = gLogger.getSubLogger( 'EC2Endpoint' )
+    self.log = gLogger.getSubLogger( 'RocciEndpoint' )
     self.valid = False
     result = self.initialize()
     if result['OK']:
-      self.log.debug( 'EC2Endpoint created and validated' )
+      self.log.debug( 'RocciEndpoint created and validated' )
       self.valid = True
     else:
       self.log.error( result['Message'] )
@@ -33,42 +34,49 @@ class EC2Endpoint( Endpoint ):
   def initialize( self ):
 
     availableParams = {
-      'RegionName': 'region_name',
-      'AccessKey': 'aws_access_key_id',
-      'SecretKey': 'aws_secret_access_key',
-      'EndpointUrl': 'endpoint_url',          # EndpointUrl is optional
+      'EndpointUrl': 'endpoint',
+      'Timeout':     'timeout',
+      'Auth':        'auth',
+      'User':        'username',
+      'Password':    'password',
+      'UserCred':    'user-cred',
+      'VOMS':        'voms',
     }
 
-    connDict = {}
+    self.__occiBaseCmd = ['occi', '--skip-ca-check', '--output-format', 'json_extended']
     for var in availableParams:
       if var in self.parameters:
-        connDict[ availableParams[ var ] ] = self.parameters[ var ]
-
-    try:
-      self.__ec2 = boto3.resource( 'ec2', **connDict )
-    except Exception, e:
-      errorStatus = "Can't connect to EC2: " + str(e)
-      return S_ERROR( errorStatus )
-
-    result = self.__loadInstanceType()
-    if not result['OK']:
-      return result
+        self.__occiBaseCmd += ['--%s' % availableParams[var], '%s' % self.parameters[var]]
 
     result = self.__checkConnection()
     return result
 
-  def __loadInstanceType( self ):
-    currentDir = os.path.dirname( os.path.abspath( __file__ ) )
-    instanceTypeFile = os.path.join( currentDir, 'ec2_instance_type.json' )
-    try:
-      with open( instanceTypeFile, 'r' ) as f:
-        self.__instanceTypeInfo = json.load( f )
-    except Exception, e:
-      errmsg = "Exception loading EC2 instance type info: %s" % e
-      self.log.error(  errmsg )
-      return S_ERROR( errmsg )
+  def __filterCommand( self, cmd ):
+    filteredCmd = []
+    mask = False
+    for arg in cmd:
+      if mask:
+        filteredCmd.append( 'xxxxxx' )
+        mask = False
+      else:
+        filteredCmd.append( arg )
 
-    return S_OK()
+      if arg in ['--username', '--password']:
+        mask = True
+    return ' '.join( filteredCmd )
+
+  def __occiCommand( self, actionArgs ):
+    try:
+      finalCmd = self.__occiBaseCmd + actionArgs
+      self.log.debug( 'Running command:', self.__filterCommand( finalCmd ) )
+      p = subprocess.Popen( finalCmd, stdout = subprocess.PIPE, stderr = subprocess.PIPE )
+      stdout, stderr = p.communicate()
+      if p.returncode != 0:
+        return S_ERROR( 'occi command exit with error %s: %s' % (p.returncode, stderr) )
+    except Exception as e:
+      return S_ERROR( 'Can not run occi command' )
+
+    return S_OK( stdout )
 
   def __checkConnection( self ):
     """
@@ -76,12 +84,40 @@ class EC2Endpoint( Endpoint ):
 
     :return: S_OK | S_ERROR
     """
-    try:
-      self.__ec2.images.filter( Owners = ['self'] )
-    except Exception, e:
-      return S_ERROR( e )
+    actionArgs = ['--action', 'list', '--resource', 'os_tpl']
+    result = self.__occiCommand( actionArgs )
+    if not result['OK']:
+      return result
 
     return S_OK()
+
+  def __getImageByName( self, imageName ):
+    """
+    Given the imageName, returns the current image object from the server.
+
+    :Parameters:
+      **imageName** - `string`
+
+    :return: S_OK( image ) | S_ERROR
+    """
+    # the libcloud library, throws Exception. Nothing to do.
+    actionArgs = ['--action', 'describe', '--resource', 'os_tpl']
+    result = self.__occiCommand( actionArgs )
+    if not result['OK']:
+      return result
+
+    imageIds = []
+    for image in json.loads( result['Value'] ):
+      if image['title'] == imageName:
+        imageIds.append( image['term'] )
+
+    if not imageIds:
+      return S_ERROR( "Image %s not found" % imageName )
+
+    if len( imageIds ) > 1:
+      self.log.warn( 'More than one image found', '%s images with name "%s"' % ( len( imageIds ), imageName ) )
+
+    return S_OK( imageIds[-1] )
 
   def __createUserDataScript( self ):
 
@@ -185,9 +221,9 @@ cloud_final_modules:
       instanceID = makeGuid()[:8]
       result = self.createInstance( instanceID )
       if result['OK']:
-        ec2Id, nodeDict = result['Value']
-        self.log.debug( 'Created VM instance %s/%s' % ( ec2Id, instanceID ) )
-        outputDict[ec2Id] = nodeDict
+        occiId, nodeDict = result['Value']
+        self.log.debug( 'Created VM instance %s/%s' % ( occiId, instanceID ) )
+        outputDict[occiId] = nodeDict
       else:
         break
 
@@ -200,103 +236,83 @@ cloud_final_modules:
     self.parameters['VMUUID'] = instanceID
     self.parameters['VMType'] = self.parameters.get( 'CEType', 'EC2' )
 
-    createNodeDict = {}
+    actionArgs = ['--action', 'create']
+    actionArgs += ['--resource', 'compute']
 
     # Image
     if not "ImageID" in self.parameters and 'ImageName' in self.parameters:
-      try:
-        images = self.__ec2.images.filter( Filters = [{'Name': 'name', 'Values': [self.parameters['ImageName']]}] )
-        imageId = None
-        for image in images:
-          imageId = image.id
-          break
-      except Exception as e:
-        return S_ERROR( "Failed to get image for Name %s" % self.parameters['ImageName'] )
-      if imageId is None:
-        return S_ERROR( "Image name %s not found" % self.parameters['ImageName'] )
+      result = self.__getImageByName( self.parameters['ImageName'] )
+      if not result['OK']:
+        return result
+      imageId = result['Value']
     elif "ImageID" in self.parameters:
-      try:
-        self.__ec2.images.filter( ImageIds = [self.parameters['ImageID']] )
-      except Exception as e:
-        return S_ERROR( "Failed to get image for ID %s" % self.parameters['ImageID'] )
+      result = self.__occiCommand( ['--action', 'describe', '--resource', 'os_tpl#%s' % self.parameters['ImageID']] )
+      if not result['OK']:
+        return S_ERROR( "Failed to get image for ID %s" % self.parameters['ImageID'], result['Message'] )
       imageId = self.parameters['ImageID']
     else:
       return S_ERROR( 'No image specified' )
-    createNodeDict['ImageId'] = imageId
+    actionArgs += ['--mixin', 'os_tpl#%s' % imageId]
 
-    # Instance type
-    if 'FlavorName' not in self.parameters:
-      return S_ERROR( 'No flavor specified' )
-    instanceType = self.parameters['FlavorName']
-    createNodeDict['InstanceType'] = instanceType
+    # Optional flavor name
+    if 'FlavorName' in self.parameters:
+      result = self.__occiCommand( ['--action', 'describe', '--resource', 'resource_tpl#%s' % self.parameters['FlavorName']] )
+      if not result['OK']:
+        return S_ERROR( "Failed to get flavor %s" % self.parameters['FlavorName'], result['Message'] )
+      actionArgs += ['--mixin', 'resource_tpl#%s' % self.parameters['FlavorName']]
+
+    # Instance name
+    actionArgs += ['--attribute', 'occi.core.title=DIRAC_%s' % instanceID]
+
+    # Other params
+    for param in []:
+      if param in self.parameters:
+        actionArgs += ['--%s' % param, '%s' % self.parameters[param]]
+
+    self.log.info( "Creating node:" )
+    self.log.verbose( ' '.join( actionArgs ) )
 
     # User data
     result = self.__createUserDataScript()
     if not result['OK']:
       return result
-    createNodeDict['UserData'] = str( result['Value'] )
-
-    # Other params
-    for param in [ 'KeyName', 'SubnetId', 'EbsOptimized' ]:
-      if param in self.parameters:
-        createNodeDict[param] = self.parameters[param]
-
-    self.log.info( "Creating node:" )
-    for key, value in createNodeDict.items():
-      self.log.verbose( "%s: %s" % ( key, value ) )
+#    actionArgs += ['--context', 'user_data=%s' % str( result['Value'] )]
+    f = tempfile.NamedTemporaryFile( delete = False )
+    f.write( str( result['Value'] ) )
+    f.close()
+    self.log.debug( 'Write user_data to temp file:', f.name )
+    actionArgs += ['--context', 'user_data=file://%s' % f.name ]
 
     # Create the VM instance now
-    try:
-      instances = self.__ec2.create_instances( MinCount = 1, MaxCount = 1, **createNodeDict )
-    except Exception as e:
-      errmsg = 'Exception in ec2 create_instances: %s' % e
+    result = self.__occiCommand( actionArgs )
+    os.unlink( f.name )
+    if not result['OK']:
+      errmsg = 'Error in rOCCI create instances: %s' % result['Message']
       self.log.error( errmsg )
       return S_ERROR( errmsg )
 
-    if len(instances) < 1:
-      errmsg = 'ec2 create_instances failed to create any VM'
-      self.log.error( errmsg )
-      return S_ERROR( errmsg )
-
-    # Create the name in tags
-    ec2Id = instances[0].id
-    tags = [{ 'Key': 'Name', 'Value': 'DIRAC_%s' % instanceID }]
-    try:
-      self.__ec2.create_tags( Resources = [ec2Id], Tags = tags )
-    except Exception as e:
-      errmsg = 'Exception setup name for %s: %s' % ( ec2Id, e )
-      self.log.error( errmsg )
-      return S_ERROR( errmsg )
+    occiId = result['Value'].strip()
 
     # Properties of the instance
     nodeDict = {}
-#    nodeDict['PublicIP'] = publicIP
     nodeDict['InstanceID'] = instanceID
-    if instanceType in self.__instanceTypeInfo:
-      nodeDict['NumberOfCPUs'] = self.__instanceTypeInfo[instanceType]['vCPU']
-      nodeDict['RAM'] = self.__instanceTypeInfo[instanceType]['Memory']
+    result = self.__occiCommand( ['--action', 'describe', '--resource', occiId] )
+    if result['OK']:
+      nodeInfo = json.loads( result['Value'] )
+      try:
+        nodeDict['NumberOfCPUs'] = nodeInfo[0]['attributes']['occi']['compute']['cores']
+        nodeDict['RAM']          = nodeInfo[0]['attributes']['occi']['compute']['memory']
+      except Exception as e:
+        nodeDict['NumberOfCPUs'] = 1
     else:
       nodeDict['NumberOfCPUs'] = 1
 
-    return S_OK( ( ec2Id, nodeDict ) )
+    return S_OK( ( occiId, nodeDict ) )
 
   def stopVM( self, nodeID, publicIP = '' ):
-    """
-    Given the node ID it gets the node details, which are used to destroy the
-    node making use of the libcloud.openstack driver. If three is any public IP
-    ( floating IP ) assigned, frees it as well.
-
-    :Parameters:
-      **uniqueId** - `string`
-        openstack node id ( not uuid ! )
-      **public_ip** - `string`
-        public IP assigned to the node if any
-
-    :return: S_OK | S_ERROR
-    """
-    try:
-      self.__ec2.Instance( nodeID ).terminate()
-    except Exception as e:
+    actionArgs = ['--action', 'delete', '--resource', nodeID]
+    result = self.__occiCommand( actionArgs )
+    if not result['OK']:
       errmsg = 'Exception terminate instance %s: %s' % ( nodeID, e )
       self.log.error( errmsg )
       return S_ERROR( errmsg )

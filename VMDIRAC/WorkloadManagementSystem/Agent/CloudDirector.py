@@ -419,7 +419,12 @@ class CloudDirector( AgentModule ):
       self.log.verbose( '%d job(s) from %d task queue(s) are eligible for %s queue' % (totalTQJobs, len( tqIDList ), image) )
 
       # Get the number of already instantiated VMs for these task queues
-      totalWaitingVMs = totalVMs
+      totalWaitingVMs = 0
+      result = virtualMachineDB.getInstanceCounters( 'Status', { 'Endpoint': endpoint } )
+      if result['OK']:
+        for status in result['Value']:
+          if status in [ 'New', 'Submitted' ]:
+            totalWaitingVMs += result['Value'][status]
       if totalWaitingVMs >= totalTQJobs:
         self.log.verbose( "%d VMs already for all the available jobs" % totalWaitingVMs )
 

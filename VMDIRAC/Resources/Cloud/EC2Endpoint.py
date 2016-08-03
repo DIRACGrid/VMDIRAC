@@ -93,6 +93,7 @@ class EC2Endpoint( Endpoint ):
         self.log.debug( 'Created VM instance %s/%s' % ( ec2Id, instanceID ) )
         outputDict[ec2Id] = nodeDict
       else:
+        self.log.error( 'Create EC2 instance error:', result['Message'] )
         break
 
     return S_OK( outputDict )
@@ -115,6 +116,7 @@ class EC2Endpoint( Endpoint ):
           imageId = image.id
           break
       except Exception as e:
+        self.log.error( "Exception when get ID from image name %s:" % self.parameters['ImageName'], e )
         return S_ERROR( "Failed to get image for Name %s" % self.parameters['ImageName'] )
       if imageId is None:
         return S_ERROR( "Image name %s not found" % self.parameters['ImageName'] )

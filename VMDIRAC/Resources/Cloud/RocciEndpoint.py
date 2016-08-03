@@ -129,6 +129,7 @@ class RocciEndpoint( Endpoint ):
         self.log.debug( 'Created VM instance %s/%s' % ( occiId, instanceID ) )
         outputDict[occiId] = nodeDict
       else:
+        self.log.error( 'Create Rocci instance error:', result['Message'] )
         break
 
     return S_OK( outputDict )
@@ -217,7 +218,7 @@ class RocciEndpoint( Endpoint ):
     actionArgs = ['--action', 'delete', '--resource', nodeID]
     result = self.__occiCommand( actionArgs )
     if not result['OK']:
-      errmsg = 'Exception terminate instance %s: %s' % ( nodeID, e )
+      errmsg = 'Can not terminate instance %s: %s' % ( nodeID, result['Message'] )
       self.log.error( errmsg )
       return S_ERROR( errmsg )
 

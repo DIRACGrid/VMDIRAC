@@ -33,6 +33,7 @@ def findGenericCloudCredentials( vo = False, group = False ):
     if not result[ 'OK' ]:
       return S_ERROR( "%s@%s has no proxy in ProxyManager" )
     return S_OK( ( cloudDN, cloudGroup ) )
+  return S_ERROR( "Cloud credentials not found" )
 
 def getImages( siteList = None, ceList = None, imageList = None, vo = None ):
   """ Get CE/image options according to the specified selection

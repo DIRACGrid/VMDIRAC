@@ -74,6 +74,9 @@ if [ -f /etc/profile.d/mjf.sh ]; then
   . /etc/profile.d/mjf.sh
 fi
 
+# Top BDII address
+export LCG_GFAL_INFOSYS=cclcgtopbdii01.in2p3.fr:2170,topbdii.grif.fr:2170
+
 # Clear it to avoid problems ( be careful if there is more than one agent ! )
 #rm -rf /tmp/area/*
 

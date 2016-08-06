@@ -67,7 +67,7 @@ export TMPDIR=/scratch/
 export EDG_WL_SCRATCH=$TMPDIR
 
 # Still needed in Pilot 2.0
-export X509_USER_PROXY=/scratch/$USER/etc/grid-security/hostkey.pem
+#export X509_USER_PROXY=/scratch/$USER/etc/grid-security/hostkey.pem
 
 # So these NFS mounted directories can be found
 if [ -f /etc/profile.d/mjf.sh ]; then

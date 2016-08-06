@@ -22,20 +22,14 @@ from DIRAC.Core.DISET.RPCClient                            import RPCClient
 from DIRAC.Core.Utilities.List                             import fromChar
 
 # VMDIRAC
-from VMDIRAC.Resources.Cloud.CloudEndpointFactory          import CloudEndpointFactory
-from VMDIRAC.WorkloadManagementSystem.Agent.ConfigHelper   import findGenericCloudCredentials, getImages
+from VMDIRAC.Resources.Cloud.EndpointFactory               import EndpointFactory
+from VMDIRAC.Resources.Cloud.ConfigHelper                  import findGenericCloudCredentials, \
+                                                                  getImages, \
+                                                                  getPilotBootstrapParameters
 from VMDIRAC.WorkloadManagementSystem.Client.ServerUtils   import virtualMachineDB
 from DIRAC.WorkloadManagementSystem.Client.ServerUtils     import pilotAgentsDB
 
-__RCSID__ = "318e087 (2016-05-08 04:26:25 +0200) Andrei Tsaregorodtsev <atsareg@in2p3.fr>"
-
-def getSubmitPools( group = None, vo = None ):
-  if group:
-    return Registry.getGroupOption( group, 'SubmitPools', '' )
-  if vo:
-    return Registry.getVOOption( vo, 'SubmitPools', '' )
-  return ''
-
+__RCSID__ = "$Id$"
 
 class CloudDirector( AgentModule ):
   """
@@ -108,8 +102,6 @@ class CloudDirector( AgentModule ):
     self.maxVMsToSubmit = self.am_getOption( 'MaxVMsToSubmit', 1 )
     self.runningPod = self.am_getOption( 'RunningPod', self.vo)
 
-    self.defaultSubmitPools = getSubmitPools( self.group, self.vo )
-
     # Get the site description dictionary
     siteNames = None
     if not self.am_getOption( 'Site', 'Any' ).lower() == "any":
@@ -170,19 +162,12 @@ class CloudDirector( AgentModule ):
     """
 
     self.imageDict = {}
-    ceFactory = CloudEndpointFactory()
+    ceFactory = EndpointFactory()
 
-    op = Operations.Operations( vo = self.vo )
-    result = op.getOptionsDict( 'Cloud' )
-    opParameters = {}
-    if result['OK']:
-      opParameters = result['Value']
-    opParameters['Project'] = op.getValue( 'Cloud/Project', 'DIRAC' )
-    opParameters['Version'] = op.getValue( 'Cloud/Version' )
-    opParameters['Setup'] = gConfig.getValue( '/DIRAC/Setup', 'unknown' )
-    result = op.getOptionsDict( 'Cloud/%s' % self.runningPod )
-    if result['OK']:
-      opParameters.update( result['Value'] )
+    result = getPilotBootstrapParameters( vo = self.vo, runningPod = self.runningPod )
+    if not result['OK']:
+      return result
+    opParameters = result['Value']
 
     for site in resourceDict:
       for ce in resourceDict[site]:
@@ -295,8 +280,7 @@ class CloudDirector( AgentModule ):
     # Check that there is some work at all
     setup = CSGlobals.getSetup()
     tqDict = { 'Setup':setup,
-               'CPUTime': 9999999,
-               'SubmitPool' : self.defaultSubmitPools }
+               'CPUTime': 9999999 }
     if self.vo:
       tqDict['Community'] = self.vo
     if self.voGroups:
@@ -404,8 +388,6 @@ class CloudDirector( AgentModule ):
       if self.voGroups:
         ceDict['OwnerGroup'] = self.voGroups
 
-      # This is a hack to get rid of !
-      ceDict['SubmitPool'] = self.defaultSubmitPools
 
       result = Resources.getCompatiblePlatforms( platform )
       if not result['OK']:
@@ -437,7 +419,12 @@ class CloudDirector( AgentModule ):
       self.log.verbose( '%d job(s) from %d task queue(s) are eligible for %s queue' % (totalTQJobs, len( tqIDList ), image) )
 
       # Get the number of already instantiated VMs for these task queues
-      totalWaitingVMs = totalVMs
+      totalWaitingVMs = 0
+      result = virtualMachineDB.getInstanceCounters( 'Status', { 'Endpoint': endpoint } )
+      if result['OK']:
+        for status in result['Value']:
+          if status in [ 'New', 'Submitted' ]:
+            totalWaitingVMs += result['Value'][status]
       if totalWaitingVMs >= totalTQJobs:
         self.log.verbose( "%d VMs already for all the available jobs" % totalWaitingVMs )
 

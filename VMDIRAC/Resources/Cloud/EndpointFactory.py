@@ -1,26 +1,23 @@
 ########################################################################
-# File :   CloudEndpointFactory.py
+# File :   EndpointFactory.py
 # Author : Andrei Tsaregorodtsev
 ########################################################################
 
 """  The Cloud Endpoint Factory has one method that instantiates a given Cloud Endpoint
 """
-from DIRAC                             import S_OK, S_ERROR, gLogger
-from DIRAC.Core.Utilities              import ObjectLoader
-from VMDIRAC.Resources.Cloud.Utilities import getVMImageConfig
+from DIRAC                                import S_OK, S_ERROR, gLogger
+from DIRAC.Core.Utilities                 import ObjectLoader
+from VMDIRAC.Resources.Cloud.ConfigHelper import getVMImageConfig
 
 __RCSID__ = "$Id$"
 
-class CloudEndpointFactory( object ):
+class EndpointFactory( object ):
 
   #############################################################################
-  def __init__(self, ceType=''):
+  def __init__(self):
     """ Standard constructor
     """
-    self.ceType = 'Base'
-    if ceType:
-      self.ceType = ceType
-    self.log = gLogger.getSubLogger( self.ceType )
+    self.log = gLogger.getSubLogger( 'EndpointFactory' )
 
   def getCE( self, site, endpoint, image = '' ):
 
@@ -33,17 +30,13 @@ class CloudEndpointFactory( object ):
     return result
 
   #############################################################################
-  def getCEObject( self, ceType = '', parameters = {} ):
+  def getCEObject( self, parameters = {} ):
     """This method returns the CloudEndpoint instance corresponding to the supplied
        CEUniqueID.  If no corresponding CE is available, this is indicated.
     """
-    ceTypeLocal = ceType
-    if not ceTypeLocal:
-      ceTypeLocal = self.ceType
-    self.log.verbose('Creating CloudEndpoint of %s type' % ceTypeLocal )
-    subClassName = "%sCloudEndpoint" % (ceTypeLocal)
-    if ceTypeLocal == "Base":
-      subClassName = "CloudEndpoint"
+    ceType = parameters.get( 'CEType', 'Cloud' )
+    self.log.verbose('Creating Endpoint of %s type' % ceType )
+    subClassName = "%sEndpoint" % (ceType)
 
     objectLoader = ObjectLoader.ObjectLoader()
     result = objectLoader.loadObject( 'Resources.Cloud.%s' % subClassName, subClassName )
@@ -53,13 +46,13 @@ class CloudEndpointFactory( object ):
 
     ceClass = result['Value']
     try:
-      cloudEndpoint = ceClass( parameters )
+      endpoint = ceClass( parameters )
     except Exception as x:
-      msg = 'CloudEndpointFactory could not instantiate %s object: %s' % ( subClassName, str( x ) )
+      msg = 'EndpointFactory could not instantiate %s object: %s' % ( subClassName, str( x ) )
       self.log.exception()
       self.log.warn( msg )
       return S_ERROR( msg )
 
-    return S_OK( cloudEndpoint )
+    return S_OK( endpoint )
 
 #EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#

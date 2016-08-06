@@ -33,6 +33,7 @@ def findGenericCloudCredentials( vo = False, group = False ):
     if not result[ 'OK' ]:
       return S_ERROR( "%s@%s has no proxy in ProxyManager" )
     return S_OK( ( cloudDN, cloudGroup ) )
+  return S_ERROR( "Cloud credentials not found" )
 
 def getImages( siteList = None, ceList = None, imageList = None, vo = None ):
   """ Get CE/image options according to the specified selection
@@ -94,7 +95,7 @@ def getImages( siteList = None, ceList = None, imageList = None, vo = None ):
 
   return S_OK( resultDict )
 
-def getImage( site, ce, image ):
+def getVMImageConfig( site, ce, image = '' ):
   """ Get parameters of the specified queue
   """
   Tags = []
@@ -106,15 +107,34 @@ def getImage( site, ce, image ):
   ceTags = resultDict.get( 'Tag' )
   if ceTags:
     Tags = fromChar( ceTags )
-  result = gConfig.getOptionsDict( '/Resources/Sites/%s/%s/Cloud/%s/Images/%s' % ( grid, site, ce, image ) )
-  if not result['OK']:
-    return result
-  resultDict.update( result['Value'] )
-  imageTags = resultDict.get( 'Tag' )
-  if imageTags:
-    imageTags = fromChar( imageTags )
-    Tags = list( set( Tags + imageTags ) )
+
+  if image:
+    result = gConfig.getOptionsDict( '/Resources/Sites/%s/%s/Cloud/%s/Images/%s' % ( grid, site, ce, image ) )
+    if not result['OK']:
+      return result
+    resultDict.update( result['Value'] )
+    queueTags = resultDict.get( 'Tag' )
+    if queueTags:
+      queueTags = fromChar( queueTags )
+      Tags = list( set( Tags + queueTags ) )
+
   if Tags:
     resultDict['Tag'] = Tags
-  resultDict['Queue'] = image
+  resultDict['Image'] = image
+  resultDict['Site'] = site
   return S_OK( resultDict )
+
+def getPilotBootstrapParameters( vo = '', runningPod = '' ):
+
+  op = Operations.Operations( vo = vo )
+  result = op.getOptionsDict( 'Cloud' )
+  opParameters = {}
+  if result['OK']:
+    opParameters = result['Value']
+  opParameters['Project'] = op.getValue( 'Cloud/Project', 'DIRAC' )
+  opParameters['Version'] = op.getValue( 'Cloud/Version' )
+  opParameters['Setup'] = gConfig.getValue( '/DIRAC/Setup', 'unknown' )
+  result = op.getOptionsDict( 'Cloud/%s' % runningPod )
+  if result['OK']:
+    opParameters.update( result['Value'] )
+  return S_OK( opParameters )

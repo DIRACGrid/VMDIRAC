@@ -1,9 +1,0 @@
-#!/bin/bash
-rcfile=/opt/dirac/bashrc
-[ -e $rcfile ] && source $rcfile
-#
-exec 2>&1
-#
-[ "agent" = "agent" ] && renice 20 -p $$
-#
-exec python /opt/dirac/DIRAC/Core/scripts/dirac-agent.py WorkloadManagement/VirtualMachineMonitorAgent -o LogLevel=INFO < /dev/null

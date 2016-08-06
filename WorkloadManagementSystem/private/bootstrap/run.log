@@ -1,6 +1,0 @@
-#!/bin/bash
-#
-rcfile=/opt/dirac/bashrc
-[ -e $rcfile ] && source $rcfile
-#
-exec svlogd .

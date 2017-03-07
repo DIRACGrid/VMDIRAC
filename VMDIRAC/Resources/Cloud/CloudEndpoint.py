@@ -190,6 +190,10 @@ class CloudEndpoint( Endpoint ):
       else:
         break
 
+    # We failed submission utterly
+    if not outputDict:
+      return result
+
     return S_OK( outputDict )
 
   def createInstance( self, instanceID = '', createPublicIP = True  ):
@@ -272,9 +276,9 @@ class CloudEndpoint( Endpoint ):
 
     createNodeDict['name'] = 'DIRAC_%s' % instanceID
 
-    createNodeDict['ex_config_drive'] = True
+    #createNodeDict['ex_config_drive'] = True
 
-    self.log.info( "Creating node:" )
+    self.log.verbose( "Creating node:" )
     for key, value in createNodeDict.items():
       self.log.verbose( "%s: %s" % ( key, value ) )
 
@@ -291,7 +295,7 @@ class CloudEndpoint( Endpoint ):
       vmNode = self.__driver.create_node( **createNodeDict )
 
     except Exception as errmsg:
-      self.log.debug( "Exception in driver.create_node", errmsg )
+      self.log.error( "Exception in driver.create_node", errmsg )
       return S_ERROR( errmsg )
 
     publicIP = None

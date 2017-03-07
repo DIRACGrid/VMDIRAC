@@ -1,9 +1,23 @@
-[rel-v1r5]
+[v2r1p1]
+
+FIX: CloudEndpoint - several minor fixes
+FIX: dirac-resource-get-parameters - correct use of getImages() helper utility
+
+[v2r1]
+
+NEW: EC2 and Rocci endpoint implementations 
+
+[v2r0]
+
+NEW: Refactored code structure, following the new CS structure
+     describing Cloud resources
+
+[v1r5]
 NEW: New Tag logic, tested with v6r15p2
 NEW: cvmfs for enrmr VO (non CERN LHC repos)
 Minor bugfixes
 
-[rel-v1r4]
+[v1r4]
 
 NEW: A image can have different bootImageName and Flavor depending in the cloud endpoint
 NEW: Try to halt a VM when declared Stalled, if success then go Halt status
@@ -12,7 +26,7 @@ Several bugfixes, particularly of interest is:
     requires a VirtualMachine_DB update to the field size
 Bug fixes:
 FIX: UniqueID up to 255 VARCHAR  [Víctor Méndez]
-FIX: nova pulic ip could be none in delete VM  [Víctor Méndez]
+FIX: nova public ip could be none in delete VM  [Víctor Méndez]
 FIX: No hurry to declare a VM in Stalled  [Víctor Méndez]
 FIX: lastest breakseq sw stack in opt  [Víctor Méndez]
 FIX: get public key in eth1 only for ssh context method  [Víctor Méndez]

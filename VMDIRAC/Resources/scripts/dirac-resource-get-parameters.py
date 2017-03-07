@@ -38,14 +38,14 @@ Script.registerSwitch( "Q:", "Queue=", "Queue Name (Mandatory)", setQueue )
 Script.parseCommandLine( ignoreErrors = True )
 args = Script.getExtraCLICFGFiles()
 
-from VMDIRAC.WorkloadManagementSystem.Agent.ConfigHelper import getImage
+from VMDIRAC.Resources.Cloud.ConfigHelper import getImages
 
 if len( args ) > 1:
   Script.showHelp()
   exit( -1 )
 
 
-result = getImage( Site, ceName, Queue )
+result = getImages( Site, ceName, Queue )
 if not result['OK']:
   gLogger.error( "Could not retrieve resource parameters", ": " + result['Message'] )
   DIRACExit( 1 )

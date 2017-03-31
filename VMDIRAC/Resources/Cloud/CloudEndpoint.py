@@ -14,6 +14,7 @@ __RCSID__ = '$Id$'
 
 import os
 import ssl
+import time
 
 from libcloud                   import security
 from libcloud.compute.types     import Provider
@@ -51,7 +52,7 @@ class CloudEndpoint( Endpoint ):
 
     # Variables needed to contact the service
     connDict = {}
-    for var in [ 'ex_force_auth_url', 'ex_force_service_region', 'ex_force_auth_version',
+    for var in [ 'ex_domain_name', 'ex_force_auth_url', 'ex_force_service_region', 'ex_force_auth_version',
                  'ex_tenant_name', 'ex_keyname', 'ex_voms_proxy']:
       if var in self.parameters:
         connDict[var] = self.parameters[var]
@@ -303,7 +304,7 @@ class CloudEndpoint( Endpoint ):
 
       # Wait until the node is running, otherwise getting public IP fails
       try:
-        self.__driver.wait_until_running( [vmNode], timeout = 60 )
+        self.__driver.wait_until_running( [vmNode], timeout = 600 )
         result = self.assignFloatingIP( vmNode )
         if result['OK']:
           publicIP = result['Value']
@@ -500,6 +501,8 @@ class CloudEndpoint( Endpoint ):
       pool = result['Value']
       try:
         floatingIP = pool.create_floating_ip()
+        ## Add sleep between creation and assignment
+        time.sleep( 60 )
         self.__driver.ex_attach_floating_ip_to_node( node, floatingIP )
         publicIP = floatingIP.ip_address
         return S_OK( publicIP )

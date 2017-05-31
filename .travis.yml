@@ -8,6 +8,13 @@ install:
   - "pip install -r requirements.txt"
 # command to run tests
 script:
-  - export PYTHONPATH=${PWD%/VMDIRAC/VMDIRAC/*}
+  - cd ..
+  - wget https://github.com/DIRACGrid/DIRAC/archive/rel-v6r15.zip
+  - unzip -q rel-v6r15.zip
+  - mv DIRAC-rel-v6r15 DIRAC
+  - export DIRAC=${PWD}
+  - cd VMDIRAC
+  - export PYTHONPATH=${PWD%/*}
+  - echo $PYTHONPATH
   - ls $PYTHONPATH
   - py.test

@@ -1,3 +1,4 @@
+six
 GSI>=0.6.4
 certifi
 coverage>=4.0.3

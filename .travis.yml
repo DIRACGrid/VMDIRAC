@@ -9,9 +9,9 @@ install:
 # command to run tests
 script:
   - cd ..
-  - wget https://github.com/DIRACGrid/DIRAC/archive/rel-v6r15.zip
-  - unzip -q rel-v6r15.zip
-  - mv DIRAC-rel-v6r15 DIRAC
+  - wget https://github.com/DIRACGrid/DIRAC/archive/master.zip
+  - unzip -q master.zip
+  - mv DIRAC-master DIRAC
   - export DIRAC=${PWD}
   - cd VMDIRAC
   - export PYTHONPATH=${PWD%/*}

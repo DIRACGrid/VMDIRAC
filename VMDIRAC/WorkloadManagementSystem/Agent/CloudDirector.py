@@ -6,6 +6,7 @@
 """  The Cloud Director is a simple agent performing VM instantiations
 """
 import os
+import re
 import random
 import socket
 import hashlib
@@ -142,10 +143,10 @@ class CloudDirector( AgentModule ):
     if self.firstPass:
       if self.imageDict:
         self.log.always( "Agent will serve images:" )
-        for queue in self.imageDict:
-          self.log.always( "Site: %s, CE: %s, Image: %s" % ( self.imageDict[queue]['Site'],
-                                                             self.imageDict[queue]['CEName'],
-                                                             queue ) )
+        for image in self.imageDict:
+          self.log.always( "Site: %s, CE: %s, Image: %s" % ( self.imageDict[image]['Site'],
+                                                             self.imageDict[image]['CEName'],
+                                                             image ) )
     self.firstPass = False
     return S_OK()
 
@@ -185,6 +186,7 @@ class CloudDirector( AgentModule ):
           self.imageDict[imageName]['ParametersDict']['Site'] = site
           self.imageDict[imageName]['ParametersDict']['Setup'] = gConfig.getValue( '/DIRAC/Setup', 'unknown' )
           self.imageDict[imageName]['ParametersDict']['CPUTime'] = 99999999
+
           imageTags = self.imageDict[imageName]['ParametersDict'].get( 'Tag' )
           if imageTags and isinstance( imageTags, basestring ):
             imageTags = fromChar( imageTags )
@@ -200,6 +202,21 @@ class CloudDirector( AgentModule ):
           maxRAM = ceMaxRAM if not maxRAM else maxRAM
           if maxRAM:
             self.imageDict[imageName]['ParametersDict']['MaxRAM'] = maxRAM
+
+          ceNumberOfProcessors = ceDict.get( 'NumberOfProcessors' )
+          numberOfProcessors = self.imageDict[imageName]['ParametersDict'].get( 'NumberOfProcessors', ceNumberOfProcessors )
+          if numberOfProcessors:
+            numberOfProcessorsList = range( 1, int( numberOfProcessors ) + 1 )
+            processorsTags = ['%dProcessors' % processors for processors in numberOfProcessorsList]
+            if processorsTags:
+              self.imageDict[imageName]['ParametersDict'].setdefault( 'Tags', [] )
+              self.imageDict[imageName]['ParametersDict']['Tags'] += processorsTags
+
+          ceWholeNode = ceDict.get( 'WholeNode', 'false' )
+          wholeNode = self.imageDict[imageName]['ParametersDict'].get( 'WholeNode', ceWholeNode )
+          if wholeNode.lower() in ( 'yes', 'true' ):
+            self.imageDict[imageName]['ParametersDict'].setdefault( 'Tags', [] )
+            self.imageDict[imageName]['ParametersDict']['Tags'].append( 'WholeNode' )
 
           platform = ''
           if "Platform" in self.imageDict[imageName]['ParametersDict']:
@@ -277,6 +294,8 @@ class CloudDirector( AgentModule ):
     """ Go through defined computing elements and submit jobs if necessary
     """
 
+    images = self.imageDict.keys()
+
     # Check that there is some work at all
     setup = CSGlobals.getSetup()
     tqDict = { 'Setup':setup,
@@ -291,7 +310,12 @@ class CloudDirector( AgentModule ):
       return result
     tqDict['Platform'] = result['Value']
     tqDict['Site'] = self.sites
-    tqDict['Tag'] = []
+    tags = []
+    for image in images:
+      if 'Tags' in self.imageDict[image]['ParametersDict']:
+        tags += self.imageDict[image]['ParametersDict']['Tags']
+    tqDict['Tag'] = list( set( tags ) )
+
     self.log.verbose( 'Checking overall TQ availability with requirements' )
     self.log.verbose( tqDict )
 
@@ -361,9 +385,17 @@ class CloudDirector( AgentModule ):
       imageName = self.imageDict[image]['ImageName']
       siteName = self.imageDict[image]['Site']
       platform = self.imageDict[image]['Platform']
+      imageTags = self.imageDict[image]['ParametersDict'].get( 'Tags', [] )
       siteMask = siteName in siteMaskList
       endpoint = "%s::%s" % ( siteName, ceName )
       maxInstances = int( self.imageDict[image]['MaxInstances'] )
+      processorTags = []
+
+      for tag in imageTags:
+        if re.match( r'^[0-9]+Processors$', tag ):
+          processorTags.append( tag )
+      # vms support WholeNode naturally
+      processorTags.append( 'WholeNode' )
 
       if not anySite and siteName not in jobSites:
         self.log.verbose( "Skipping queue %s at %s: no workload expected" % (imageName, siteName) )
@@ -393,6 +425,8 @@ class CloudDirector( AgentModule ):
       if not result['OK']:
         continue
       ceDict['Platform'] = result['Value']
+
+      ceDict['Tag'] = processorTags
 
       # Get the number of eligible jobs for the target site/queue
 

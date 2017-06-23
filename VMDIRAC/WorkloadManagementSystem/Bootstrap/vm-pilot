@@ -99,4 +99,4 @@ python dirac-pilot.py \
  -o /Resources/Computing/CEDefaults/SubmitPool=$SUBMIT_POOL \
  -o /Resources/Computing/CEDefaults/VirtualOrganization=$VO \
  -o '/Systems/WorkloadManagement/Production/Agents/JobAgent/StopAfterFailedMatches=0' \
- -o '/Systems/WorkloadManagement/Production/Agents/JobAgent/CEType=InProcess'
+ -o '/Systems/WorkloadManagement/Production/Agents/JobAgent/CEType=Pool'

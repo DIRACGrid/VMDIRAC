@@ -155,7 +155,7 @@ chmod +x $CONTEXTDIR/save-payload-logs
 
 echo "*/5 * * * * root $CONTEXTDIR/save-payload-logs 2>/dev/null" >/etc/cron.d/save-payload-logs
 
-export NUM_JOB_SLOTS=
+export NUM_JOB_SLOTS=1
 if [ "$MACHINEFEATURES" ]; then
   export NUM_JOB_SLOTS=`python -c "import urllib ; print urllib.urlopen('$MACHINEFEATURES/log_cores').read().strip()"`
 fi

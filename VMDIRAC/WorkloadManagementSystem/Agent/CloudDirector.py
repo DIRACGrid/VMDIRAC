@@ -212,7 +212,7 @@ class CloudDirector( AgentModule ):
               self.imageDict[imageName]['ParametersDict'].setdefault( 'Tags', [] )
               self.imageDict[imageName]['ParametersDict']['Tags'] += processorsTags
 
-          ceWholeNode = ceDict.get( 'WholeNode', 'false' )
+          ceWholeNode = ceDict.get( 'WholeNode', 'true' )
           wholeNode = self.imageDict[imageName]['ParametersDict'].get( 'WholeNode', ceWholeNode )
           if wholeNode.lower() in ( 'yes', 'true' ):
             self.imageDict[imageName]['ParametersDict'].setdefault( 'Tags', [] )

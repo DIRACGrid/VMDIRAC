@@ -48,8 +48,11 @@ class Endpoint( object ):
                       'running-pod': self.parameters['RunningPod'],
                       'cvmfs-proxy': self.parameters.get( 'CVMFSProxy', 'None' ),
                       'cs-servers': ','.join( self.parameters.get( 'CSServers', [] ) ),
-                      'release-version': self.parameters['Version'] ,
-                      'release-project': self.parameters['Project'] ,
+                      'number-of-processors': self.parameters.get( 'NumberOfProcessors', 1 ),
+                      'whole-node': self.parameters.get( 'WholeNode', True ),
+                      'required-tag': self.parameters.get( 'RequiredTag', '' ),
+                      'release-version': self.parameters['Version'],
+                      'release-project': self.parameters['Project'],
                       'setup': self.parameters['Setup'] }
 
     bootstrapString = ''

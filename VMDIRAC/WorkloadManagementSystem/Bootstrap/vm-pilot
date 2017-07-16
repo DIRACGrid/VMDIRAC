@@ -47,6 +47,15 @@ case $i in
     --cs-servers=*)
     CS_SERVERS="${i#*=}"
     ;;
+    --number-of-processors=*)
+    NUMBER_OF_PROCESSORS="${i#*=}"
+    ;;
+    --whole-node=*)
+    WHOLE_NODE="${i#*=}"
+    ;;
+    --required-tag=*)
+    REQUIRED_TAG="${i#*=}"
+    ;;
     *)
     # unknown option
     ;;
@@ -82,6 +91,12 @@ export LCG_GFAL_INFOSYS=cclcgtopbdii01.in2p3.fr:2170,topbdii.grif.fr:2170
 
 cp $CONTEXTDIR/*.py .
 
+
+REQUIRED_TAG_ARGS=''
+if [ $REQUIRED_TAG ]; then
+  REQUIRED_TAG_ARGS="-o /AgentJobRequirements/RequiredTag=$REQUIRED_TAG"
+fi
+
 # Run the Pilot 2.0 script
 python dirac-pilot.py \
  --debug \
@@ -98,5 +113,8 @@ python dirac-pilot.py \
  --certLocation=/scratch/$USER/etc/grid-security \
  -o /Resources/Computing/CEDefaults/SubmitPool=$SUBMIT_POOL \
  -o /Resources/Computing/CEDefaults/VirtualOrganization=$VO \
+ -o /Resources/Computing/CEDefaults/NumberOfProcessors=$NUMBER_OF_PROCESSORS \
+ -o /Resources/Computing/CEDefaults/WholeNode=$WHOLE_NODE \
+ $REQUIRED_TAG_ARGS \
  -o '/Systems/WorkloadManagement/Production/Agents/JobAgent/StopAfterFailedMatches=0' \
- -o '/Systems/WorkloadManagement/Production/Agents/JobAgent/CEType=InProcess'
+ -o '/Systems/WorkloadManagement/Production/Agents/JobAgent/CEType=Pool'

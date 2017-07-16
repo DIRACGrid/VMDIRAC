@@ -52,6 +52,15 @@ case $i in
     --cs-servers=*)
     CS_SERVERS="${i#*=}"
     ;;
+    --number-of-processors=*)
+    NUMBER_OF_PROCESSORS="${i#*=}"
+    ;;
+    --whole-node=*)
+    WHOLE_NODE="${i#*=}"
+    ;;
+    --required-tag=*)
+    REQUIRED_TAG="${i#*=}"
+    ;;
     *)
     # unknown option
     ;;
@@ -155,7 +164,7 @@ chmod +x $CONTEXTDIR/save-payload-logs
 
 echo "*/5 * * * * root $CONTEXTDIR/save-payload-logs 2>/dev/null" >/etc/cron.d/save-payload-logs
 
-export NUM_JOB_SLOTS=
+export NUM_JOB_SLOTS=1
 if [ "$MACHINEFEATURES" ]; then
   export NUM_JOB_SLOTS=`python -c "import urllib ; print urllib.urlopen('$MACHINEFEATURES/log_cores').read().strip()"`
 fi
@@ -183,6 +192,7 @@ chmod +x $CONTEXTDIR/parse-jobagent-log
 date --utc +"%Y-%m-%d %H:%M:%S %Z Starting $NUM_JOB_SLOTS pilots"
 
 n=0
+NUM_JOB_SLOTS=1
 while [ $n -lt $NUM_JOB_SLOTS ]
 do
   nn=`printf '%02d' $n`

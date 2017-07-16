@@ -291,6 +291,9 @@ class CloudEndpoint( Endpoint ):
     if 'keyname' in self.parameters:
       createNodeDict['ex_keyname'] = self.parameters['keyname']
 
+    if 'availability_zone' in self.parameters:
+      createNodeDict['ex_availability_zone'] = self.parameters['availability_zone']
+
     # Create the VM instance now
     try:
       vmNode = self.__driver.create_node( **createNodeDict )

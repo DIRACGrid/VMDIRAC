@@ -1,0 +1,20 @@
+language: python
+python:
+  - "2.7"
+# command to install dependencies
+install:
+  - "pip install --upgrade setuptools"
+  - "pip install --upgrade pip"
+  - "pip install -r requirements.txt"
+# command to run tests
+script:
+  - cd ..
+  - wget https://github.com/DIRACGrid/DIRAC/archive/master.zip
+  - unzip -q master.zip
+  - mv DIRAC-master DIRAC
+  - export DIRAC=${PWD}
+  - cd VMDIRAC
+  - export PYTHONPATH=${PWD%/*}
+  - echo $PYTHONPATH
+  - ls $PYTHONPATH
+  - py.test

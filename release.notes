@@ -1,3 +1,9 @@
+[v2r2]
+
+FIX: CloudEndpoint - fix connection details
+NEW: Settings for travis and basic unit test
+NEW: Multicore support is added with the logic similar to SiteDirector.
+
 [v2r1p1]
 
 FIX: CloudEndpoint - several minor fixes

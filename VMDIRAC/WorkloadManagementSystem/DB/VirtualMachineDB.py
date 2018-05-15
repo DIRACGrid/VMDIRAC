@@ -1,4 +1,4 @@
-########################################################################
+q########################################################################
 # $HeadURL$
 # File :   VirtualMachineDB.py
 # Author : Ricardo Graciani
@@ -41,7 +41,7 @@ from DIRAC                import gConfig, S_ERROR, S_OK
 from DIRAC.Core.Base.DB   import DB
 from DIRAC.Core.Utilities import DEncode, Time
 
-__RCSID__ = "$Id: VirtualMachineDB.py 16 2010-03-15 11:39:29Z ricardo.graciani@gmail.com $"
+__RCSID__ = "$Id$"
 
 class VirtualMachineDB( DB ):
 
@@ -49,7 +49,7 @@ class VirtualMachineDB( DB ):
   # When declaring a new Status, it will be set to Error if not in the list
   validImageStates    = [ 'New', 'Validated', 'Error' ]
   validInstanceStates = [ 'New', 'Submitted', 'Running', 'Stopping', 'Halted', 'Stalled', 'Error' ]
-  validRunningPodStates = [ 'New', 'Unactive', 'Active', 'Error' ]
+  validRunningPodStates = [ 'New', 'InActive', 'Active', 'Error' ]
 
 
   # In seconds !

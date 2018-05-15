@@ -240,6 +240,9 @@ class CloudDirector( AgentModule ):
           ceImageDict.update( self.imageDict[imageName]['ParametersDict'] )
           ceImageDict.update( opParameters )
 
+          ceImageDict['CAPath'] = gConfig.getOption('/DIRAC/Security/CAPath',
+                                                    "/opt/dirac/etc/grid-security/certificates/cas.pem")
+
           # Generate the CE object for the image or pick the already existing one
           # if the image definition did not change
           imageHash = self.__generateImageHash( ceImageDict )
@@ -301,7 +304,7 @@ class CloudDirector( AgentModule ):
     tqDict = { 'Setup':setup,
                'CPUTime': 9999999 }
     if self.vo:
-      tqDict['Community'] = self.vo
+      tqDict['VO'] = self.vo
     if self.voGroups:
       tqDict['OwnerGroup'] = self.voGroups
 
@@ -315,6 +318,7 @@ class CloudDirector( AgentModule ):
       if 'Tags' in self.imageDict[image]['ParametersDict']:
         tags += self.imageDict[image]['ParametersDict']['Tags']
     tqDict['Tag'] = list( set( tags ) )
+    tqDict['SubmitPool'] = "mpdPool"
 
     self.log.verbose( 'Checking overall TQ availability with requirements' )
     self.log.verbose( tqDict )
@@ -376,9 +380,9 @@ class CloudDirector( AgentModule ):
       #  self.failedImages[image] += 1
       #  continue
 
-      print "AT >>> image parameters:", image
-      for key,value in self.imageDict[image].items():
-        print key,value
+      #print "AT >>> image parameters:", image
+      #for key,value in self.imageDict[image].items():
+      #  print key,value
 
       ce = self.imageDict[image]['CE']
       ceName = self.imageDict[image]['CEName']
@@ -430,12 +434,7 @@ class CloudDirector( AgentModule ):
 
       # Get the number of eligible jobs for the target site/queue
 
-      print "AT >>> getMatchingTaskQueues ceDict", ceDict
-
       result = rpcMatcher.getMatchingTaskQueues( ceDict )
-
-      print result
-
       if not result['OK']:
         self.log.error( 'Could not retrieve TaskQueues from TaskQueueDB', result['Message'] )
         return result
@@ -465,12 +464,11 @@ class CloudDirector( AgentModule ):
       self.log.verbose( "%d VMs for the total of %d eligible jobs for %s" % (totalWaitingVMs, totalTQJobs, image) )
 
       # Get the working proxy
-      #cpuTime = imageCPUTime + 86400
-      #self.log.verbose( "Getting cloud proxy for %s/%s %d long" % ( self.cloudDN, self.cloudGroup, cpuTime ) )
-      #result = gProxyManager.getPilotProxyFromDIRACGroup( self.cloudDN, self.cloudGroup, cpuTime )
-      #if not result['OK']:
-      #  return result
-      #self.proxy = result['Value']
+      self.log.verbose( "Getting cloud proxy for %s/%s" % (self.cloudDN, self.cloudGroup))
+      result = gProxyManager.getPilotProxyFromDIRACGroup( self.cloudDN, self.cloudGroup, 3600 )
+      if not result['OK']:
+        return result
+      self.proxy = result['Value']
       #ce.setProxy( self.proxy, cpuTime - 60 )
 
       # Get the number of available slots on the target site/endpoint
@@ -483,14 +481,12 @@ class CloudDirector( AgentModule ):
       self.log.info( '%s: Slots=%d, TQ jobs=%d, VMs: %d, to submit=%d' % \
                               ( image, totalSlots, totalTQJobs, totalWaitingVMs, vmsToSubmit ) )
 
-      # Limit the number of clouds to submit to MAX_PILOTS_TO_SUBMIT
+      # Limit the number of VM instances to create to vmsToSubmit
       vmsToSubmit = min( self.maxVMsToSubmit, vmsToSubmit )
 
       self.log.info( 'Going to submit %d VMs to %s queue' % ( vmsToSubmit, image ) )
       result = ce.createInstances( vmsToSubmit )
-
-      print "AT >>> createInstances", result, image
-
+      #result = S_OK()
       if not result['OK']:
         self.log.error( 'Failed submission to queue %s:\n' % image, result['Message'] )
         self.failedImages.setdefault( image, 0 )
@@ -548,9 +544,6 @@ class CloudDirector( AgentModule ):
   def getVMInstances( self, endpoint, maxInstances ):
 
     result = virtualMachineDB.getInstanceCounters( 'Status', { 'Endpoint': endpoint } )
-
-    print "AT >>> getVMInstances", result
-
     if not result['OK']:
       return result
 

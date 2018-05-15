@@ -63,7 +63,7 @@ def getImages( siteList = None, ceList = None, imageList = None, vo = None ):
         continue
       ces = result['Value']
       for ce in ces:
-        if ceList is not None and not ce in ceList:
+        if ceList is not None and ce not in ceList:
           continue
         if vo:
           voList = gConfig.getValue( '/Resources/Sites/%s/%s/Cloud/%s/VO' % ( grid, site, ce ), [] )
@@ -73,23 +73,29 @@ def getImages( siteList = None, ceList = None, imageList = None, vo = None ):
         if not result['OK']:
           continue
         ceOptionsDict = result['Value']
-        result = gConfig.getSections( '/Resources/Sites/%s/%s/Cloud/%s/Images' % ( grid, site, ce ) )
+        result = gConfig.getSections( '/Resources/Sites/%s/%s/Cloud/%s/VMTypes' % ( grid, site, ce ) )
         if not result['OK']:
-          continue
+          result = gConfig.getSections( '/Resources/Sites/%s/%s/Cloud/%s/Images' % ( grid, site, ce ) )
+          if not result['OK']:
+            return result
         images = result['Value']
         for image in images:
           if imageList is not None and not image in imageList:
             continue
           if vo:
-            voList = gConfig.getValue( '/Resources/Sites/%s/%s/Cloud/%s/Images/%s/VO' % ( grid, site, ce, image ), [] )
+            voList = gConfig.getValue( '/Resources/Sites/%s/%s/Cloud/%s/VMTypes/%s/VO' % ( grid, site, ce, image ), [] )
+            if not voList:
+              voList = gConfig.getValue( '/Resources/Sites/%s/%s/Cloud/%s/Images/%s/VO' % ( grid, site, ce, image ), [] )
             if voList and not vo in voList:
               continue
           resultDict.setdefault( site, {} )
           resultDict[site].setdefault( ce, ceOptionsDict )
           resultDict[site][ce].setdefault( 'Images', {} )
-          result = gConfig.getOptionsDict( '/Resources/Sites/%s/%s/Cloud/%s/Images/%s' % ( grid, site, ce, image ) )
+          result = gConfig.getOptionsDict( '/Resources/Sites/%s/%s/Cloud/%s/VMTypes/%s' % ( grid, site, ce, image ) )
           if not result['OK']:
-            continue
+            result = gConfig.getOptionsDict( '/Resources/Sites/%s/%s/Cloud/%s/Images/%s' % ( grid, site, ce, image ) )
+            if not result['OK']:
+              continue
           imageOptionsDict = result['Value']
           resultDict[site][ce]['Images'][image] = imageOptionsDict
 
@@ -107,6 +113,7 @@ def getVMImageConfig( site, ce, image = '' ):
   ceTags = resultDict.get( 'Tag' )
   if ceTags:
     Tags = fromChar( ceTags )
+  resultDict['CEName'] = ce
 
   if image:
     result = gConfig.getOptionsDict( '/Resources/Sites/%s/%s/Cloud/%s/Images/%s' % ( grid, site, ce, image ) )

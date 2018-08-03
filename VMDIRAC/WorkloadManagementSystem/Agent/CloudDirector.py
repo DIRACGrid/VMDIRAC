@@ -533,7 +533,6 @@ class CloudDirector( AgentModule ):
                                                     '',
                                                     self.localhost,
                                                     'Cloud',
-                                                    '',
                                                     stampDict )
         if not result['OK']:
           self.log.error( 'Failed to insert pilots into the PilotAgentsDB' )

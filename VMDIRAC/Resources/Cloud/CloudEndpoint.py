@@ -271,7 +271,7 @@ class CloudEndpoint( Endpoint ):
     createNodeDict['ex_userdata'] = result['Value']
 
     # Optional node contextualization parameters
-    for param in [ 'ex_metadata', 'ex_pubkey_path', 'ex_keyname' ]:
+    for param in [ 'ex_metadata', 'ex_pubkey_path', 'ex_keyname', 'ex_config_drive' ]:
       if param in self.parameters:
         createNodeDict[param] = self.parameters[param]
 

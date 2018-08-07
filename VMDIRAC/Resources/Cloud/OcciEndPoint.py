@@ -218,6 +218,7 @@ class OcciEndpoint( Endpoint ):
 
   def createInstances( self, vmsToSubmit ):
     outputDict = {}
+    message = ''
     for nvm in xrange( vmsToSubmit ):
       instanceID = makeGuid()[:8]
       createPublicIP = 'ipPool' in self.parameters
@@ -234,11 +235,12 @@ class OcciEndpoint( Endpoint ):
         #nodeDict['Price'] = self.flavor.price
         outputDict[nodeID] = nodeDict
       else:
+        message = result['Message']
         break
 
     # We failed submission utterly
     if not outputDict:
-      return S_ERROR('No VM submitted')
+      return S_ERROR('No VM submitted: %s' % message)
 
     return S_OK( outputDict )
 
@@ -314,9 +316,11 @@ class OcciEndpoint( Endpoint ):
     #print "AT >>> createInstance", result, result.headers
     #print "AT >>> result.text", result.text
 
-    nodeID = result.text.split()[-1]
+    if result.status_code == 201:
+      nodeID = result.text.split()[-1]
+      return S_OK((nodeID,None))
 
-    return S_OK((nodeID,None))
+    return S_ERROR('Failed VM creation: %s' % result.text)
 
   def getVMIDs( self ):
     """ Get all the VM IDs on the endpoint

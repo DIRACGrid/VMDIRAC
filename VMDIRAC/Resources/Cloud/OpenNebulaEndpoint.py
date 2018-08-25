@@ -1,14 +1,8 @@
-###########################################################
-# $HeadURL$
-# File: OcciEndpoint.py
-# Author: A.T.
-###########################################################
-
 """
-   OcciEndpoint is Endpoint base class implementation for the Occi cloud service.
+   OpenNebulaEndpoint is Endpoint base class implementation for OpenNebula XML-RPC protocol.
 """
 
-__RCSID__ = 'e069e3a (2018-05-15 22:19:34 +0200) Andrei Tsaregorodtsev <atsareg@in2p3.fr>'
+__RCSID__ = '$Id$'
 
 import os
 import requests
@@ -34,8 +28,6 @@ class OpenNebulaEndpoint( Endpoint ):
     """
     """
     super( OpenNebulaEndpoint, self ).__init__(parameters = parameters, bootstrapParameters=parameters)
-
-    print "AT >>> parameters", parameters
 
     # TODO: HostCert and HostKey are not set via parameters
     self.parameters['HostCert'] = '/opt/dirac/etc/grid-security/hostcert.pem'
@@ -101,7 +93,6 @@ class OpenNebulaEndpoint( Endpoint ):
   def createInstances( self, vmsToSubmit ):
     outputDict = {}
     message = ''
-    self.log.info("atata vmsToSubmit " + str(vmsToSubmit))
     for nvm in xrange( vmsToSubmit ):
       instanceID = makeGuid()[:8]
       createPublicIP = 'ipPool' in self.parameters
@@ -130,24 +121,24 @@ class OpenNebulaEndpoint( Endpoint ):
 
   def createInstance( self, instanceID = '', createPublicIP = True  ):
     """
-    This creates a VM instance for the given boot image
-    and creates a context script, taken the given parameters.
-    Successful creation returns instance VM
+    Creates VM in OpenNebula cloud.
 
-    Boots a new node on the OpenStack server defined by self.endpointConfig. The
-    'personality' of the node is done by self.imageConfig. Both variables are
-    defined on initialization phase.
+    one.template.instantiate XML-RPC method is called with the following parameters
 
-    The node name has the following format:
-    <bootImageName><contextMethod><time>
+    * template ID is obtained from Endpoint's `TemplateID` constructor parameter
+    * VM name equals to `instanceID` method argument
+    * onhold flag is obtained from Endpoint's `Onhold` constructor parameter
+    * template string contains userdata scripts encoded in base64 and DNS 
+    servers adresses
 
-    It boots the node. If IPpool is defined on the imageConfiguration, a floating
-    IP is created and assigned to the node.
+    :Parameters:
+      **instanceID** - `string`
+        name of a new VM
+      **createPublicIP** - `bool`
+        ignored
 
     :return: S_OK( ( nodeID, publicIP ) ) | S_ERROR
     """
-
-    self.log.info('atata createInstance' + str(instanceID))
 
     # TODO: which templateId to use? 
     templateId = self.parameters.get( 'TemplateID', 1362 )
@@ -226,15 +217,14 @@ USERDATA_ENCODING = "base64"
 
   def stopVM( self, nodeID, publicIP = '' ):
     """
-    Given the node ID it gets the node details, which are used to destroy the
-    node making use of the libcloud.openstack driver. If three is any public IP
-    ( floating IP ) assigned, frees it as well.
+    Terminates VM specified by nodeID by sending one.vm.action(..., 'delete', ..)
+    request.
 
     :Parameters:
-      **uniqueId** - `string`
-        openstack node id ( not uuid ! )
-      **public_ip** - `string`
-        public IP assigned to the node if any
+      **nodeID** - `string`
+        OpenNebula VM id specifier
+      **publicIP** - `string`
+        ignored
 
     :return: S_OK | S_ERROR
     """

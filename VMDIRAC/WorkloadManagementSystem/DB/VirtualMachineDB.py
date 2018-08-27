@@ -135,7 +135,7 @@ class VirtualMachineDB( DB ):
 
   def __init__( self, maxQueueSize = 10 ):
 
-    DB.__init__( self, 'VirtualMachineDB', 'WorkloadManagement/VirtualMachineDB', maxQueueSize )
+    DB.__init__( self, 'VirtualMachineDB', 'WorkloadManagement/VirtualMachineDB' )
     if not self._MySQL__initialized:
       raise Exception( 'Can not connect to VirtualMachineDB, exiting...' )
 

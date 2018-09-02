@@ -21,7 +21,7 @@ from DIRAC.Core.Utilities.File import makeGuid
 DEBUG = False
 
 class OpenNebulaEndpoint( Endpoint ):
-  """ OCCI implementation of the Cloud Endpoint interface
+  """ OpenNebula implementation of the Cloud Endpoint interface
   """
 
   def __init__( self, parameters = {} ):

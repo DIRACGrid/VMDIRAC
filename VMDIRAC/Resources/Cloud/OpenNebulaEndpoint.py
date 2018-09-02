@@ -1,8 +1,15 @@
+###########################################################
+# $HeadURL$
+# File: OcciEndpoint.py
+# Author: A.T.
+#bbaac
+###########################################################
+
 """
-   OpenNebulaEndpoint is Endpoint base class implementation for OpenNebula XML-RPC protocol.
+   OpenNebula Endpoint base class implementation for the OpenNebula cloud service.
 """
 
-__RCSID__ = '$Id$'
+__RCSID__ = 'e069e3a (2018-05-15 22:19:34 +0200) Andrei Tsaregorodtsev <atsareg@in2p3.fr>'
 
 import os
 import requests
@@ -18,10 +25,10 @@ from VMDIRAC.Resources.Cloud.Endpoint import Endpoint
 from VMDIRAC.Resources.Cloud.KeystoneClient import KeystoneClient
 from DIRAC.Core.Utilities.File import makeGuid
 
-DEBUG = False
+DEBUG = True
 
 class OpenNebulaEndpoint( Endpoint ):
-  """ OCCI implementation of the Cloud Endpoint interface
+  """ OpenNebula implementation of the Cloud Endpoint interface
   """
 
   def __init__( self, parameters = {} ):
@@ -29,17 +36,13 @@ class OpenNebulaEndpoint( Endpoint ):
     """
     super( OpenNebulaEndpoint, self ).__init__(parameters = parameters, bootstrapParameters=parameters)
 
-    # TODO: HostCert and HostKey are not set via parameters
-    self.parameters['HostCert'] = '/opt/dirac/etc/grid-security/hostcert.pem'
+    self.parameters['HostCert'] = self.parameters.get("HostCert")
+    self.parameters['HostKey'] = self.parameters.get("HostKey")
     self.bootstrapParameters['HostCert'] = self.parameters['HostCert']
-    self.parameters['HostKey'] = '/opt/dirac/etc/grid-security/hostkey.pem'
     self.bootstrapParameters['HostKey'] = self.parameters['HostKey']
 
-    # logger
     self.log = gLogger.getSubLogger( 'OpenNebulaEndpoint' )
 
-    #self.log.info(parameters['CAPath']['CallStack'])
-    #self.log.info(parameters['CAPath']['Message'])
     self.valid = False
     self.vmType = self.parameters.get( 'VMType' )
     self.site = self.parameters.get( 'Site' )
@@ -58,8 +61,8 @@ class OpenNebulaEndpoint( Endpoint ):
       self.loginMode = True
       self.oneauth = self.user + ':' + self.password
     else:
-      # TODO: untested branch
       # we have the user proxy case
+      # TODO: test
       self.userProxy = os.environ.get( 'X509_USER_PROXY' )
       self.userProxy = self.parameters.get( "Proxy", self.userProxy )
       if self.userProxy is None:
@@ -67,7 +70,7 @@ class OpenNebulaEndpoint( Endpoint ):
         self.valid = False
         return
       self.authArgs['cert'] = self.userProxy
-      self.caPath = self.parameters.get( 'CAPath', '/opt/dirac/etc/grid-security/certificates/RDIG.pem' )
+      self.caPath = self.parameters.get( 'CAPath')
       self.authArgs['verify'] = self.caPath
       if self.parameters.get("Auth") == "voms":
         self.authArgs['data'] = '{"auth":{"voms": true}}'
@@ -76,23 +79,24 @@ class OpenNebulaEndpoint( Endpoint ):
 
     result = self.initialize()
     if result['OK']:
-      self.log.debug( 'OpenNebulaEndpoint is created and validated' )
+      self.log.debug('OpenNebulaEndpoint created and validated')
       self.valid = True
 
   def initialize( self ):
+    self.log.info('INITIALIZE')
+
     ssl_ctx = ssl.create_default_context()
     ssl_ctx.check_hostname = False
     ssl_ctx.verify_mode = ssl.CERT_NONE
 
-    self.rpcproxy = xmlrpclib.ServerProxy( self.serviceUrl, context=ssl_ctx )
-
-    # TODO: check that self.serviceUrl is acceceble
+    self.rpcproxy = xmlrpclib.ServerProxy(self.serviceUrl, context=ssl_ctx)
 
     return  S_OK()
 
   def createInstances( self, vmsToSubmit ):
     outputDict = {}
     message = ''
+    self.log.debug("vmsToSubmit " + str(vmsToSubmit))
     for nvm in xrange( vmsToSubmit ):
       instanceID = makeGuid()[:8]
       createPublicIP = 'ipPool' in self.parameters
@@ -104,10 +108,7 @@ class OpenNebulaEndpoint( Endpoint ):
         nodeDict = {}
         nodeDict['PublicIP'] = publicIP
         nodeDict['InstanceID'] = instanceID
-        nodeDict['NumberOfCPUs'] = 2
-        #nodeDict['RAM'] = self.flavor.ram
-        #nodeDict['DiskSize'] = self.flavor.disk
-        #nodeDict['Price'] = self.flavor.price
+        nodeDict['NumberOfCPUs'] = 2 # TODO: Check why CloudDirector expects this. Otherwise throws error but jobs are still done.
         outputDict[nodeID] = nodeDict
       else:
         message = result['Message']
@@ -124,35 +125,48 @@ class OpenNebulaEndpoint( Endpoint ):
     Creates VM in OpenNebula cloud.
 
     one.template.instantiate XML-RPC method is called with the following parameters
+    This creates a VM instance for the given boot image
+    and creates a context script, taken the given parameters.
+    Successful creation returns instance VM
+
+    Boots a new node on the OpenStack server defined by self.endpointConfig. The
+    'personality' of the node is done by self.imageConfig. Both variables are
+    defined on initialization phase.
 
     * template ID is obtained from Endpoint's `TemplateID` constructor parameter
     * VM name equals to `instanceID` method argument
     * onhold flag is obtained from Endpoint's `Onhold` constructor parameter
     * template string contains userdata scripts encoded in base64 and DNS 
     servers adresses
+    The node name has the following format:
+    <bootImageName><contextMethod><time>
 
     :Parameters:
       **instanceID** - `string`
         name of a new VM
       **createPublicIP** - `bool`
         ignored
+    It boots the node. If IPpool is defined on the imageConfiguration, a floating
+    IP is created and assigned to the node.
 
     :return: S_OK( ( nodeID, publicIP ) ) | S_ERROR
     """
 
+
     # TODO: which templateId to use? 
-    templateId = self.parameters.get( 'TemplateID', 1362 )
+    templateId = int(self.parameters.get( 'TemplateID' )) #1627 )
     onhold = self.parameters.get( 'Onhold', False )
 
-    # this stuff is required by _createUserDataScript
+    # TODO: remove this stuff (required by _createUserDataScript)
     self.parameters['VMUUID'] = instanceID
-    self.parameters['VMType'] = self.parameters.get( 'CEType', 'Occi' )
+    #self.parameters['VMType'] = self.parameters.get( 'CEType', 'Occi' )
+    self.parameters['VMType'] = self.parameters.get( 'CEType', 'OpenNebula' )
     result = self._createUserDataScript()
     if not result['OK']:
       return result
     userData = str( result['Value'] )
-
-    # TODO: hardcoding DNS is also not a good idea
+    
+    # TODO: Should we have it as a parameter???
     template='''CONTEXT = [
 NETWORK = "YES",
 USER_DATA = "{}",
@@ -237,6 +251,10 @@ USERDATA_ENCODING = "base64"
     payload = ret[1]
     error = ret[2]
 
+    self.log.debug('Delete OK: ' + str(ok))
+    self.log.debug('Payload: ' + str(payload))
+    self.log.debug('Error: ' + str(error))
+
     if ok:
       return S_OK(payload)
 
@@ -251,7 +269,7 @@ USERDATA_ENCODING = "base64"
       **node** - `libcloud.compute.base.Node`
         node object with the vm details
 
-    :return: S_OK( public_ip ) | S_ERROR
+    :return: S_OK | S_ERROR
     """
     return S_ERROR('assignFloatingIP is not implemented')
 

@@ -64,9 +64,16 @@ def createUserDataScript(vmParameters, bootstrapParameters):
   with open( bootstrapParameters['HostKey'] ) as kfile:
     userDataDict['user_data_file_hostcert'] = kfile.read().strip()
   sshKey = None
+  userDataDict['add_root_ssh_key'] = ""
   if 'SshKey' in bootstrapParameters:
     with open(bootstrapParameters['SshKey'] ) as sfile:
       sshKey = sfile.read().strip()
+      userDataDict['add_root_ssh_key'] = """
+        # Allow root login
+        sed -i 's/PermitRootLogin no/PermitRootLogin yes/g' /etc/ssh/sshd_config
+        # Copy id_rsa.pub to authorized_keys
+        echo \" """ + sshKey + """\" > /root/.ssh/authorized_keys
+        service sshd restart"""
 
   # List of commands to be downloaded
   bootstrapCommands = bootstrapParameters.get( 'user_data_commands' )
@@ -98,6 +105,7 @@ do
   done
   curl --insecure -s %(user_data_commands_base_url)s/$dfile -o $dfile || echo Download of $dfile failed with $? !
 done
+%(add_root_ssh_key)s
 chmod +x vm-bootstrap
 /var/spool/checkout/context/vm-bootstrap %(bootstrapArgs)s
 #/sbin/shutdown -h now
@@ -127,7 +135,7 @@ output: {all: '| tee -a /var/log/cloud-init-output.log'}
 cloud_final_modules:
   - [scripts-user, always]
     """
-
+  # Also try to add ssh key using standart cloudinit approach(may not work)
   if sshKey:
     cloud_config += """
 users:
@@ -140,3 +148,4 @@ users:
 
   return createMimeData( ( ( user_data, 'text/x-shellscript', 'dirac_boot.sh' ),
                            ( cloud_config, 'text/cloud-config', 'cloud-config') ) )
+

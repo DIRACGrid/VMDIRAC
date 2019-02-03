@@ -55,9 +55,9 @@ vm_mount_scratch_disk() {
   fi
 
   # We rely on the hypervisor's disk I/O scheduling
-  echo 'noop' > /sys/block/vda/queue/scheduler
+  echo 'none' > /sys/block/vda/queue/scheduler
   if [ -b /dev/vdb ] ; then
-    echo 'noop' > /sys/block/vdb/queue/scheduler
+    echo 'none' > /sys/block/vdb/queue/scheduler
   fi
 }
 

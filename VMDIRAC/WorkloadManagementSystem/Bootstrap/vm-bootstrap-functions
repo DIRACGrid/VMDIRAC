@@ -31,10 +31,11 @@ vm_mount_scratch_disk() {
     mount /dev/vda2 /scratch
   elif [ -b /dev/vda1 ] ; then
     # We just have a big vda but vda2 is not created
-    echo -e 'n\np\n2\n\n\nw\n'| fdisk /dev/vda
+    #echo -e 'n\np\n2\n\n\nw\n'| fdisk /dev/vda
     # Have to reboot now, otherwise the new partition is not synced
-    echo "Rebooting in order the vda partitioning is effective"
-    /sbin/shutdown -r now
+    #echo "Rebooting in order the vda partitioning is effective"
+    #/sbin/shutdown -r now
+    echo "No extra disk to mount, making /scratch right in the root partition"
   elif [ -b /dev/sdb ] ; then
     # Virtual SCSI
     mkfs -q -t ext4 /dev/sdb
@@ -75,9 +76,11 @@ vm_disable_mail() {
 vm_cvmfs_install() {
 
   date --utc +'%Y-%m-%d %H:%M:%S %Z Installing CVMFS'
-  rpm --import https://cvmrepo.web.cern.ch/cvmrepo/yum/RPM-GPG-KEY-CernVM
-  yum -y install https://ecsft.cern.ch/dist/cvmfs/cvmfs-release/cvmfs-release-latest.noarch.rpm
-  yum -y update
+  yum -y install wget
+  cd /etc/yum.repos.d/
+  wget http://cvmrepo.web.cern.ch/cvmrepo/yum/cernvm.repo
+  cd /etc/pki/rpm-gpg/
+  wget http://cvmrepo.web.cern.ch/cvmrepo/yum/RPM-GPG-KEY-CernVM
   yum -y install cvmfs cvmfs-config-default cvmfs-keys cvmfs-init-scripts
 }
 
@@ -87,12 +90,31 @@ vm_cvmfs_bootstrap() {
     vm_cvmfs_install
   fi
 
+  # Configure CVMFS
+  echo -e "\n#Enable cvmfs mount\n/cvmfs /etc/auto.cvmfs" >> /etc/auto.master
+  sed -i "s/# user_allow_other/user_allow_other/g" /etc/fuse.conf
+
   # Bigger cvmfs cache, on the logical partition
   if [ -d /etc/cvmfs ]; then
     mkdir -p /scratch/cvmfs-cache
-    echo -e "CVMFS_QUOTA_LIMIT=11000\nCVMFS_CACHE_BASE=/scratch/cvmfs-cache" >>/etc/cvmfs/site.conf
-    /usr/bin/cvmfs_config reload
-    attr -g proxy /mnt/.ro
+    echo -e "CVMFS_REPOSITORIES=dirac.egi.eu,grid.cern.ch" >>/etc/cvmfs/default.local
+    echo -e "CVMFS_QUOTA_LIMIT=11000" >>/etc/cvmfs/default.local
+    echo -e "CVMFS_CACHE_BASE=/scratch/cvmfs-cache" >>/etc/cvmfs/default.local
+    if [ ! -z "$cvmfs_proxy" ]
+    then
+      echo -e "CVMFS_HTTP_PROXY=\"$cvmfs_proxy\"" >>/etc/cvmfs/default.local
+    else
+      echo -e "CVMFS_HTTP_PROXY=DIRECT" >>/etc/cvmfs/default.local
+    fi
+    # In case of SELinux enforced
+    enforce=`getenforce`
+    if [ "$enforce" = "Enforcing" ]
+    then
+      chcon -Rv --type=cvmfs_cache_t /scratch/cvmfs-cache
+    fi
+    cvmfs_config setup
+    cvmfs_config chksetup
+    cvmfs_config probe
     export CVMFS=1
   else
     echo CVMFS is not available on this VM

@@ -29,6 +29,7 @@ from VMDIRAC.Security                                     import VmProperties
 from VMDIRAC.Resources.Cloud.Utilities                    import STATE_MAP
 from VMDIRAC.Resources.Cloud.ConfigHelper                 import getVMImageConfig, getImages
 from VMDIRAC.Resources.Cloud.EndpointFactory              import EndpointFactory
+from VMDIRAC.WorkloadManagementSystem.Utilities.Utils     import getProxyFileForCE
 
 __RCSID__ = '$Id$'
 
@@ -168,13 +169,18 @@ def haltInstances( vmList ):
 
     endpoint = result [ 'Value' ]
 
-    result = gVirtualMachineDB.getPublicIpFromInstance ( uniqueID )
-    if not result[ 'OK' ]:
-      gLogger.error( 'haltInstances: can not get publicIP' )
-      continue
-    publicIP = result[ 'Value' ]
+    # Get proxy to be used to connect to the cloud endpoint
+    authType = endpoint.parameters.get('Auth')
+    if authType and authType.lower() in ['x509', 'voms']:
+      siteName = endpoint.parameters['Site']
+      ceName = endpoint.parameters['CEName']
+      gLogger.verbose( "Getting cloud proxy for %s/%s" % (siteName, ceName))
+      result = getProxyFileForCE(endpoint)
+      if not result['OK']:
+        continue
+      endpoint.setProxy(result['Value'])
 
-    result = endpoint.stopVM( uniqueID, publicIP )
+    result = endpoint.stopVM(uniqueID)
     if result['OK']:
       gVirtualMachineDB.recordDBHalt( instanceID, 0 )
       successful[instanceID] = True

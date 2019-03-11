@@ -44,10 +44,10 @@ class CloudDirector( AgentModule ):
     """ c'tor
     """
     AgentModule.__init__( self, *args, **kwargs )
-    self.imageDict = {}
-    self.imageCECache = {}
-    self.imageSlots = {}
-    self.failedImages = defaultdict( int )
+    self.vmTypeDict = {}
+    self.vmTypeCECache = {}
+    self.vmTypeSlots = {}
+    self.failedVMTypes = defaultdict( int )
     self.firstPass = True
 
     self.vo = ''
@@ -138,20 +138,20 @@ class CloudDirector( AgentModule ):
     self.proxy = ''
 
     if self.firstPass:
-      if self.imageDict:
-        self.log.always( "Agent will serve images:" )
-        for image in self.imageDict:
-          self.log.always( "Site: %s, CE: %s, Image: %s" % ( self.imageDict[image]['Site'],
-                                                             self.imageDict[image]['CEName'],
-                                                             image ) )
+      if self.vmTypeDict:
+        self.log.always( "Agent will serve VM types:" )
+        for vmType in self.vmTypeDict:
+          self.log.always( "Site: %s, CE: %s, VMType: %s" % ( self.vmTypeDict[vmType]['Site'],
+                                                             self.vmTypeDict[vmType]['CEName'],
+                                                             vmType ) )
     self.firstPass = False
     return S_OK()
 
-  def __generateImageHash( self, imageDict ):
+  def __generateVMTypeHash( self, vmTypeDict ):
     """ Generate a hash of the queue description
     """
     myMD5 = hashlib.md5()
-    myMD5.update( str( imageDict ) )
+    myMD5.update( str( vmTypeDict ) )
     hexstring = myMD5.hexdigest()
     return hexstring
 
@@ -159,7 +159,7 @@ class CloudDirector( AgentModule ):
     """ Get the list of relevant CEs and their descriptions
     """
 
-    self.imageDict = {}
+    self.vmTypeDict = {}
     ceFactory = EndpointFactory()
 
     result = getPilotBootstrapParameters( vo = self.vo, runningPod = self.runningPod )
@@ -175,85 +175,85 @@ class CloudDirector( AgentModule ):
           ceTags = fromChar( ceTags )
         ceMaxRAM = ceDict.get( 'MaxRAM', None )
         qDict = ceDict.pop( 'VMTypes' )
-        for image in qDict:
-          imageName = '%s_%s' % ( ce, image )
-          self.imageDict[imageName] = {}
-          self.imageDict[imageName]['ParametersDict'] = qDict[image]
-          self.imageDict[imageName]['ParametersDict']['Image'] = image
-          self.imageDict[imageName]['ParametersDict']['Site'] = site
-          self.imageDict[imageName]['ParametersDict']['Setup'] = gConfig.getValue( '/DIRAC/Setup', 'unknown' )
-          self.imageDict[imageName]['ParametersDict']['CPUTime'] = 99999999
+        for vmType in qDict:
+          vmTypeName = '%s_%s' % ( ce, vmType )
+          self.vmTypeDict[vmTypeName] = {}
+          self.vmTypeDict[vmTypeName]['ParametersDict'] = qDict[vmType]
+          self.vmTypeDict[vmTypeName]['ParametersDict']['VMType'] = vmType
+          self.vmTypeDict[vmTypeName]['ParametersDict']['Site'] = site
+          self.vmTypeDict[vmTypeName]['ParametersDict']['Setup'] = gConfig.getValue( '/DIRAC/Setup', 'unknown' )
+          self.vmTypeDict[vmTypeName]['ParametersDict']['CPUTime'] = 99999999
 
-          imageTags = self.imageDict[imageName]['ParametersDict'].get( 'Tag' )
-          if imageTags and isinstance( imageTags, basestring ):
-            imageTags = fromChar( imageTags )
-            self.imageDict[imageName]['ParametersDict']['Tag'] = imageTags
+          vmTypeTags = self.vmTypeDict[vmTypeName]['ParametersDict'].get( 'Tag' )
+          if vmTypeTags and isinstance( vmTypeTags, basestring ):
+            vmTypeTags = fromChar( vmTypeTags )
+            self.vmTypeDict[vmTypeName]['ParametersDict']['Tag'] = vmTypeTags
           if ceTags:
-            if imageTags:
-              allTags = list( set( ceTags + imageTags ) )
-              self.imageDict[imageName]['ParametersDict']['Tag'] = allTags
+            if vmTypeTags:
+              allTags = list( set( ceTags + vmTypeTags ) )
+              self.vmTypeDict[vmTypeName]['ParametersDict']['Tag'] = allTags
             else:
-              self.imageDict[imageName]['ParametersDict']['Tag'] = ceTags
+              self.vmTypeDict[vmTypeName]['ParametersDict']['Tag'] = ceTags
 
-          maxRAM = self.imageDict[imageName]['ParametersDict'].get( 'MaxRAM' )
+          maxRAM = self.vmTypeDict[vmTypeName]['ParametersDict'].get( 'MaxRAM' )
           maxRAM = ceMaxRAM if not maxRAM else maxRAM
           if maxRAM:
-            self.imageDict[imageName]['ParametersDict']['MaxRAM'] = maxRAM
+            self.vmTypeDict[vmTypeName]['ParametersDict']['MaxRAM'] = maxRAM
 
           ceWholeNode = ceDict.get( 'WholeNode', 'true' )
-          wholeNode = self.imageDict[imageName]['ParametersDict'].get( 'WholeNode', ceWholeNode )
+          wholeNode = self.vmTypeDict[vmTypeName]['ParametersDict'].get( 'WholeNode', ceWholeNode )
           if wholeNode.lower() in ( 'yes', 'true' ):
-            self.imageDict[imageName]['ParametersDict'].setdefault( 'Tags', [] )
-            self.imageDict[imageName]['ParametersDict']['Tags'].append( 'WholeNode' )
+            self.vmTypeDict[vmTypeName]['ParametersDict'].setdefault( 'Tags', [] )
+            self.vmTypeDict[vmTypeName]['ParametersDict']['Tags'].append( 'WholeNode' )
 
           platform = ''
-          if "Platform" in self.imageDict[imageName]['ParametersDict']:
-            platform = self.imageDict[imageName]['ParametersDict']['Platform']
+          if "Platform" in self.vmTypeDict[vmTypeName]['ParametersDict']:
+            platform = self.vmTypeDict[vmTypeName]['ParametersDict']['Platform']
           elif "Platform" in ceDict:
             platform = ceDict['Platform']
           if platform and not platform in self.platforms:
             self.platforms.append( platform )
 
-          if not "Platform" in self.imageDict[imageName]['ParametersDict'] and platform:
+          if not "Platform" in self.vmTypeDict[vmTypeName]['ParametersDict'] and platform:
             result = Resources.getDIRACPlatform( platform )
             if result['OK']:
-              self.imageDict[imageName]['ParametersDict']['Platform'] = result['Value'][0]
+              self.vmTypeDict[vmTypeName]['ParametersDict']['Platform'] = result['Value'][0]
 
-          ceImageDict = dict( ceDict )
-          ceImageDict['CEName'] = ce
-          ceImageDict['VO'] = self.vo
-          ceImageDict['Image'] = image
-          ceImageDict['RunningPod'] = self.runningPod
-          ceImageDict['CSServers'] = gConfig.getValue( "/DIRAC/Configuration/Servers", [] )
-          ceImageDict.update( self.imageDict[imageName]['ParametersDict'] )
+          ceVMTypeDict = dict( ceDict )
+          ceVMTypeDict['CEName'] = ce
+          ceVMTypeDict['VO'] = self.vo
+          ceVMTypeDict['VMType'] = vmType
+          ceVMTypeDict['RunningPod'] = self.runningPod
+          ceVMTypeDict['CSServers'] = gConfig.getValue( "/DIRAC/Configuration/Servers", [] )
+          ceVMTypeDict.update( self.vmTypeDict[vmTypeName]['ParametersDict'] )
 
-          ceImageDict['CAPath'] = gConfig.getValue('/DIRAC/Security/CAPath',
+          ceVMTypeDict['CAPath'] = gConfig.getValue('/DIRAC/Security/CAPath',
                                                    "/opt/dirac/etc/grid-security/certificates/cas.pem")
 
-          # Generate the CE object for the image or pick the already existing one
-          # if the image definition did not change
-          imageHash = self.__generateImageHash( ceImageDict )
-          if imageName in self.imageCECache and self.imageCECache[imageName]['Hash'] == imageHash:
-            imageCE = self.imageCECache[imageName]['CE']
+          # Generate the CE object for the vmType or pick the already existing one
+          # if the vmType definition did not change
+          vmTypeHash = self.__generateVMTypeHash( ceVMTypeDict )
+          if vmTypeName in self.vmTypeCECache and self.vmTypeCECache[vmTypeName]['Hash'] == vmTypeHash:
+            vmTypeCE = self.vmTypeCECache[vmTypeName]['CE']
           else:
-            result = ceFactory.getCEObject( parameters = ceImageDict )
+            result = ceFactory.getCEObject( parameters = ceVMTypeDict )
             if not result['OK']:
               return result
-            self.imageCECache.setdefault( imageName, {} )
-            self.imageCECache[imageName]['Hash'] = imageHash
-            self.imageCECache[imageName]['CE'] = result['Value']
-            imageCE = self.imageCECache[imageName]['CE']
-            imageCE.setBootstrapParameters(opParameters)
+            self.vmTypeCECache.setdefault( vmTypeName, {} )
+            self.vmTypeCECache[vmTypeName]['Hash'] = vmTypeHash
+            self.vmTypeCECache[vmTypeName]['CE'] = result['Value']
+            vmTypeCE = self.vmTypeCECache[vmTypeName]['CE']
+            vmTypeCE.setBootstrapParameters(opParameters)
 
-          self.imageDict[imageName]['CE'] = imageCE
-          self.imageDict[imageName]['CEName'] = ce
-          self.imageDict[imageName]['CEType'] = ceDict['CEType']
-          self.imageDict[imageName]['Site'] = site
-          self.imageDict[imageName]['ImageName'] = image
-          self.imageDict[imageName]['Platform'] = platform
-          self.imageDict[imageName]['MaxInstances'] = ceDict['MaxInstances']
-          if not self.imageDict[imageName]['CE'].isValid():
-            self.log.error( 'Failed to instantiate CloudEndpoint for %s' % imageName )
+          self.vmTypeDict[vmTypeName]['CE'] = vmTypeCE
+          self.vmTypeDict[vmTypeName]['CEName'] = ce
+          self.vmTypeDict[vmTypeName]['CEType'] = ceDict['CEType']
+          self.vmTypeDict[vmTypeName]['Site'] = site
+          self.vmTypeDict[vmTypeName]['VMType'] = vmType
+          self.vmTypeDict[vmTypeName]['Platform'] = platform
+          self.vmTypeDict[vmTypeName]['MaxInstances'] = ceDict['MaxInstances']
+          if not self.vmTypeDict[vmTypeName]['CE'].isValid():
+            self.log.error( 'Failed to instantiate CloudEndpoint for %s' % vmTypeName )
             continue
 
           if site not in self.sites:
@@ -265,7 +265,7 @@ class CloudDirector( AgentModule ):
     """ Main execution method
     """
 
-    if not self.imageDict:
+    if not self.vmTypeDict:
       self.log.warn( 'No site defined, exiting the cycle' )
       return S_OK()
 
@@ -285,7 +285,7 @@ class CloudDirector( AgentModule ):
     """ Go through defined computing elements and submit jobs if necessary
     """
 
-    images = self.imageDict.keys()
+    vmTypeList = self.vmTypeDict.keys()
 
     # Check that there is some work at all
     setup = CSGlobals.getSetup()
@@ -302,9 +302,9 @@ class CloudDirector( AgentModule ):
     tqDict['Platform'] = result['Value']
     tqDict['Site'] = self.sites
     tags = []
-    for image in images:
-      if 'Tags' in self.imageDict[image]['ParametersDict']:
-        tags += self.imageDict[image]['ParametersDict']['Tags']
+    for vmType in vmTypeList:
+      if 'Tags' in self.vmTypeDict[vmType]['ParametersDict']:
+        tags += self.vmTypeDict[vmType]['ParametersDict']['Tags']
     tqDict['Tag'] = list( set( tags ) )
     tqDict['SubmitPool'] = "wenmrPool"
 
@@ -355,48 +355,48 @@ class CloudDirector( AgentModule ):
       return S_ERROR( 'Can not get the site mask' )
     siteMaskList = result['Value']
 
-    images = self.imageDict.keys()
-    random.shuffle( images )
+    vmTypeList = self.vmTypeDict.keys()
+    random.shuffle( vmTypeList )
     totalSubmittedPilots = 0
     matchedQueues = 0
-    for image in images:
+    for vmType in vmTypeList:
 
-      # Check if the image failed previously
-      #failedCount = self.failedImages[ image ] % self.failedImageCycleFactor
+      # Check if the vmType failed previously
+      #failedCount = self.failedVMTypes[ vmType ] % self.failedVMTypeCycleFactor
       #if failedCount != 0:
-      #  self.log.warn( "%s queue failed recently, skipping %d cycles" % ( image, 10-failedCount ) )
-      #  self.failedImages[image] += 1
+      #  self.log.warn( "%s queue failed recently, skipping %d cycles" % ( vmType, 10-failedCount ) )
+      #  self.failedVMTypes[vmType] += 1
       #  continue
 
-      #print "AT >>> image parameters:", image
-      #for key,value in self.imageDict[image].items():
+      #print "AT >>> vmType parameters:", vmType
+      #for key,value in self.vmTypeDict[vmType].items():
       #  print key,value
 
-      ce = self.imageDict[image]['CE']
-      ceName = self.imageDict[image]['CEName']
-      imageName = self.imageDict[image]['ImageName']
-      siteName = self.imageDict[image]['Site']
-      platform = self.imageDict[image]['Platform']
-      imageTags = self.imageDict[image]['ParametersDict'].get( 'Tags', [] )
+      ce = self.vmTypeDict[vmType]['CE']
+      ceName = self.vmTypeDict[vmType]['CEName']
+      vmTypeName = self.vmTypeDict[vmType]['VMType']
+      siteName = self.vmTypeDict[vmType]['Site']
+      platform = self.vmTypeDict[vmType]['Platform']
+      vmTypeTags = self.vmTypeDict[vmType]['ParametersDict'].get( 'Tags', [] )
       siteMask = siteName in siteMaskList
       endpoint = "%s::%s" % ( siteName, ceName )
-      maxInstances = int( self.imageDict[image]['MaxInstances'] )
+      maxInstances = int( self.vmTypeDict[vmType]['MaxInstances'] )
       processorTags = []
 
       # vms support WholeNode naturally
       processorTags.append( 'WholeNode' )
 
       if not anySite and siteName not in jobSites:
-        self.log.verbose( "Skipping queue %s at %s: no workload expected" % (imageName, siteName) )
+        self.log.verbose( "Skipping queue %s at %s: no workload expected" % (vmTypeName, siteName) )
         continue
       if not siteMask and siteName not in testSites:
-        self.log.verbose( "Skipping queue %s: site %s not in the mask" % (imageName, siteName) )
+        self.log.verbose( "Skipping queue %s: site %s not in the mask" % (vmTypeName, siteName) )
         continue
 
-      if 'CPUTime' in self.imageDict[image]['ParametersDict'] :
-        imageCPUTime = int( self.imageDict[image]['ParametersDict']['CPUTime'] )
+      if 'CPUTime' in self.vmTypeDict[vmType]['ParametersDict'] :
+        vmTypeCPUTime = int( self.vmTypeDict[vmType]['ParametersDict']['CPUTime'] )
       else:
-        self.log.warn( 'CPU time limit is not specified for queue %s, skipping...' % image )
+        self.log.warn( 'CPU time limit is not specified for queue %s, skipping...' % vmType )
         continue
 
       # Prepare the queue description to look for eligible jobs
@@ -415,7 +415,7 @@ class CloudDirector( AgentModule ):
         continue
       ceDict['Platform'] = result['Value']
 
-      ceDict['Tag'] = processorTags + imageTags
+      ceDict['Tag'] = processorTags + vmTypeTags
 
       # Get the number of eligible jobs for the target site/queue
 
@@ -425,7 +425,7 @@ class CloudDirector( AgentModule ):
         return result
       taskQueueDict = result['Value']
       if not taskQueueDict:
-        self.log.verbose( 'No matching TQs found for %s' % image )
+        self.log.verbose( 'No matching TQs found for %s' % vmType )
         continue
 
       matchedQueues += 1
@@ -434,7 +434,7 @@ class CloudDirector( AgentModule ):
       for tq in taskQueueDict:
         totalTQJobs += taskQueueDict[tq]['Jobs']
 
-      self.log.verbose( '%d job(s) from %d task queue(s) are eligible for %s queue' % (totalTQJobs, len( tqIDList ), image) )
+      self.log.verbose( '%d job(s) from %d task queue(s) are eligible for %s queue' % (totalTQJobs, len( tqIDList ), vmType) )
 
       # Get the number of already instantiated VMs for these task queues
       totalWaitingVMs = 0
@@ -446,7 +446,7 @@ class CloudDirector( AgentModule ):
       if totalWaitingVMs >= totalTQJobs:
         self.log.verbose( "%d VMs already for all the available jobs" % totalWaitingVMs )
 
-      self.log.verbose( "%d VMs for the total of %d eligible jobs for %s" % (totalWaitingVMs, totalTQJobs, image) )
+      self.log.verbose( "%d VMs for the total of %d eligible jobs for %s" % (totalWaitingVMs, totalTQJobs, vmType) )
 
       # Get proxy to be used to connect to the cloud endpoint
       authType = ce.parameters.get('Auth')
@@ -460,36 +460,36 @@ class CloudDirector( AgentModule ):
       # Get the number of available slots on the target site/endpoint
       totalSlots = self.getVMInstances( endpoint, maxInstances )
       if totalSlots == 0:
-        self.log.debug( '%s: No slots available' % image )
+        self.log.debug( '%s: No slots available' % vmType )
         continue
 
       vmsToSubmit = max( 0, min( totalSlots, totalTQJobs - totalWaitingVMs ) )
       self.log.info( '%s: Slots=%d, TQ jobs=%d, VMs: %d, to submit=%d' % \
-                              ( image, totalSlots, totalTQJobs, totalWaitingVMs, vmsToSubmit ) )
+                              ( vmType, totalSlots, totalTQJobs, totalWaitingVMs, vmsToSubmit ) )
 
       # Limit the number of VM instances to create to vmsToSubmit
       vmsToSubmit = min( self.maxVMsToSubmit, vmsToSubmit )
 
-      self.log.info( 'Going to submit %d VMs to %s queue' % ( vmsToSubmit, image ) )
+      self.log.info( 'Going to submit %d VMs to %s queue' % ( vmsToSubmit, vmType ) )
       result = ce.createInstances(vmsToSubmit)
 
       #result = S_OK()
       if not result['OK']:
-        self.log.error( 'Failed submission to queue %s:\n' % image, result['Message'] )
-        self.failedImages.setdefault( image, 0 )
-        self.failedImages[image] += 1
+        self.log.error( 'Failed submission to queue %s:\n' % vmType, result['Message'] )
+        self.failedVMTypes.setdefault( vmType, 0 )
+        self.failedVMTypes[vmType] += 1
         continue
 
       # Add VMs to the VirtualMachineDB
       vmDict = result['Value']
       totalSubmittedPilots += len( vmDict )
-      self.log.info( 'Submitted %d VMs to %s@%s' % ( len( vmDict ), imageName, ceName ) )
+      self.log.info( 'Submitted %d VMs to %s@%s' % ( len( vmDict ), vmTypeName, ceName ) )
 
       pilotList = []
       for uuID in vmDict:
         diracUUID = vmDict[uuID]['InstanceID']
-        endpoint = '%s::%s' % ( self.imageDict[image]['Site'], ceName )
-        result = virtualMachineDB.insertInstance( uuID, imageName, diracUUID, endpoint, self.vo )
+        endpoint = '%s::%s' % ( self.vmTypeDict[vmType]['Site'], ceName )
+        result = virtualMachineDB.insertInstance( uuID, vmTypeName, diracUUID, endpoint, self.vo )
         if not result['OK']:
           continue
         for ncpu in range( vmDict[uuID]['NumberOfCPUs'] ):

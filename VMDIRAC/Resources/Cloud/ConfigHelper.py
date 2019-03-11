@@ -35,7 +35,7 @@ def findGenericCloudCredentials( vo = False, group = False ):
     return S_OK( ( cloudDN, cloudGroup ) )
   return S_ERROR( "Cloud credentials not found" )
 
-def getImages( siteList = None, ceList = None, imageList = None, vo = None ):
+def getVMTypes( siteList = None, ceList = None, imageList = None, vo = None ):
   """ Get CE/image options according to the specified selection
   """
 
@@ -90,18 +90,18 @@ def getImages( siteList = None, ceList = None, imageList = None, vo = None ):
               continue
           resultDict.setdefault( site, {} )
           resultDict[site].setdefault( ce, ceOptionsDict )
-          resultDict[site][ce].setdefault( 'Images', {} )
+          resultDict[site][ce].setdefault( 'VMTypes', {} )
           result = gConfig.getOptionsDict( '/Resources/Sites/%s/%s/Cloud/%s/VMTypes/%s' % ( grid, site, ce, image ) )
           if not result['OK']:
             result = gConfig.getOptionsDict( '/Resources/Sites/%s/%s/Cloud/%s/Images/%s' % ( grid, site, ce, image ) )
             if not result['OK']:
               continue
           imageOptionsDict = result['Value']
-          resultDict[site][ce]['Images'][image] = imageOptionsDict
+          resultDict[site][ce]['VMTypes'][image] = imageOptionsDict
 
   return S_OK( resultDict )
 
-def getVMImageConfig( site, ce, image = '' ):
+def getVMTypeConfig( site, ce, vmtype = '' ):
   """ Get parameters of the specified queue
   """
   Tags = []
@@ -115,8 +115,8 @@ def getVMImageConfig( site, ce, image = '' ):
     Tags = fromChar( ceTags )
   resultDict['CEName'] = ce
 
-  if image:
-    result = gConfig.getOptionsDict( '/Resources/Sites/%s/%s/Cloud/%s/Images/%s' % ( grid, site, ce, image ) )
+  if vmtype:
+    result = gConfig.getOptionsDict( '/Resources/Sites/%s/%s/Cloud/%s/VMTypes/%s' % ( grid, site, ce, vmtype ) )
     if not result['OK']:
       return result
     resultDict.update( result['Value'] )
@@ -127,7 +127,7 @@ def getVMImageConfig( site, ce, image = '' ):
 
   if Tags:
     resultDict['Tag'] = Tags
-  resultDict['Image'] = image
+  resultDict['VMType'] = vmtype
   resultDict['Site'] = site
   return S_OK( resultDict )
 
@@ -138,9 +138,11 @@ def getPilotBootstrapParameters( vo = '', runningPod = '' ):
   opParameters = {}
   if result['OK']:
     opParameters = result['Value']
-  opParameters['Project'] = op.getValue( 'Cloud/Project', 'DIRAC' )
+  opParameters['VO'] = vo
+  #opParameters['Project'] = op.getValue( 'Cloud/Project', 'DIRAC' )
   opParameters['Version'] = op.getValue( 'Cloud/Version' )
   opParameters['Setup'] = gConfig.getValue( '/DIRAC/Setup', 'unknown' )
+  opParameters['SubmitPool'] = op.getValue( 'Cloud/SubmitPool' )
   result = op.getOptionsDict( 'Cloud/%s' % runningPod )
   if result['OK']:
     opParameters.update( result['Value'] )

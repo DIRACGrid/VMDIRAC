@@ -84,6 +84,14 @@ vm_cvmfs_install() {
   yum -y install cvmfs cvmfs-config-default cvmfs-keys cvmfs-init-scripts
 }
 
+vm_docker_install() {
+  yum install -y yum-utils device-mapper-persistent-data lvm2
+  yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+  yum install -y docker-ce docker-ce-cli containerd.io
+  systemctl start docker
+  usermod -aG docker plt00
+}
+
 vm_cvmfs_bootstrap() {
 
   if [ ! -d /etc/cvmfs ]; then

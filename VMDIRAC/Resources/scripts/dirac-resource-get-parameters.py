@@ -17,6 +17,8 @@ Script.setUsageMessage( '\n'.join( ['Get the Tag of a CE',
 
 ceName = ''
 ceType = ''
+Site = None
+Queue = None
 
 def setCEName( args ):
   global ceName
@@ -38,14 +40,14 @@ Script.registerSwitch( "Q:", "Queue=", "Queue Name (Mandatory)", setQueue )
 Script.parseCommandLine( ignoreErrors = True )
 args = Script.getExtraCLICFGFiles()
 
-from VMDIRAC.Resources.Cloud.ConfigHelper import getImages
+from VMDIRAC.Resources.Cloud.ConfigHelper import getVMTypes
 
 if len( args ) > 1:
   Script.showHelp()
   exit( -1 )
 
 
-result = getImages( Site, ceName, Queue )
+result = getVMTypes( Site, ceName, Queue )
 if not result['OK']:
   gLogger.error( "Could not retrieve resource parameters", ": " + result['Message'] )
   DIRACExit( 1 )

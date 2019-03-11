@@ -7,8 +7,10 @@
    cloud providers
 """
 
-from DIRAC import S_ERROR
-from VMDIRAC.Resources.Cloud.Utilities import createUserDataScript
+import os
+
+from DIRAC import S_ERROR, S_OK
+from VMDIRAC.Resources.Cloud.Utilities import createUserDataScript, createPilotDataScript
 
 __RCSID__ = '$Id$'
 
@@ -22,15 +24,16 @@ class Endpoint( object ):
     self.parameters = parameters
     self.bootstrapParameters = bootstrapParameters
     self.valid = False
+    self.proxy = None
 
   def isValid( self ):
     return self.valid
 
   def setParameters( self, parameters ):
-    self.parameters = parameters
+    self.parameters.update(parameters)
 
   def setBootstrapParameters(self, bootstrapParameters):
-    self.bootstrapParameters = bootstrapParameters
+    self.bootstrapParameters.update(bootstrapParameters)
 
   def getParameterDict( self ):
     return self.parameters
@@ -38,6 +41,20 @@ class Endpoint( object ):
   def initialize( self ):
     pass
 
-  def _createUserDataScript( self ):
+  def setProxy(self, proxy):
+    self.proxy = proxy
 
-    return createUserDataScript(self.parameters, self.bootstrapParameters)
+  def getProxyFileLocation(self):
+    if not self.proxy:
+      self.proxy = self.parameters.get("Proxy", os.environ.get('X509_USER_PROXY'))
+      if not self.proxy:
+        return S_ERROR('Can not find proxy')
+    return S_OK(self.proxy)
+
+  def _createUserDataScript(self):
+
+    bootType = self.bootstrapParameters.get('BootType', 'pilot')
+    if bootType.lower() == 'pilot':
+      return createPilotDataScript(self.parameters, self.bootstrapParameters)
+    elif bootType.lower() == 'user':
+      return createUserDataScript(self.parameters)

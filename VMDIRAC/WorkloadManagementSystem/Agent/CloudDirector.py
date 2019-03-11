@@ -5,30 +5,27 @@
 
 """  The Cloud Director is a simple agent performing VM instantiations
 """
-import os
-import re
 import random
 import socket
 import hashlib
 from collections import defaultdict
 
 # DIRAC
-import DIRAC
 from DIRAC                                                 import S_OK, S_ERROR, gConfig
 from DIRAC.Core.Base.AgentModule                           import AgentModule
-from DIRAC.ConfigurationSystem.Client.Helpers              import CSGlobals, Registry, Operations, Resources
+from DIRAC.ConfigurationSystem.Client.Helpers              import CSGlobals, Registry, Resources
 from DIRAC.WorkloadManagementSystem.Client.ServerUtils     import jobDB
-from DIRAC.FrameworkSystem.Client.ProxyManagerClient       import gProxyManager
 from DIRAC.Core.DISET.RPCClient                            import RPCClient
 from DIRAC.Core.Utilities.List                             import fromChar
+from DIRAC.WorkloadManagementSystem.Client.ServerUtils     import pilotAgentsDB
 
 # VMDIRAC
 from VMDIRAC.Resources.Cloud.EndpointFactory               import EndpointFactory
 from VMDIRAC.Resources.Cloud.ConfigHelper                  import findGenericCloudCredentials, \
-                                                                  getImages, \
+                                                                  getVMTypes, \
                                                                   getPilotBootstrapParameters
 from VMDIRAC.WorkloadManagementSystem.Client.ServerUtils   import virtualMachineDB
-from DIRAC.WorkloadManagementSystem.Client.ServerUtils     import pilotAgentsDB
+from VMDIRAC.WorkloadManagementSystem.Utilities.Utils      import getProxyFileForCE
 
 __RCSID__ = "$Id$"
 
@@ -115,12 +112,12 @@ class CloudDirector( AgentModule ):
       if not ces:
         ces = None
 
-    result = getImages( vo = self.vo,
+    result = getVMTypes( vo = self.vo,
                         siteList = siteNames )
     if not result['OK']:
       return result
     resourceDict = result['Value']
-    result = self.getImages( resourceDict )
+    result = self.getEndpoints(resourceDict)
     if not result['OK']:
       return result
 
@@ -158,7 +155,7 @@ class CloudDirector( AgentModule ):
     hexstring = myMD5.hexdigest()
     return hexstring
 
-  def getImages( self, resourceDict ):
+  def getEndpoints( self, resourceDict ):
     """ Get the list of relevant CEs and their descriptions
     """
 
@@ -177,7 +174,7 @@ class CloudDirector( AgentModule ):
         if isinstance( ceTags, basestring ):
           ceTags = fromChar( ceTags )
         ceMaxRAM = ceDict.get( 'MaxRAM', None )
-        qDict = ceDict.pop( 'Images' )
+        qDict = ceDict.pop( 'VMTypes' )
         for image in qDict:
           imageName = '%s_%s' % ( ce, image )
           self.imageDict[imageName] = {}
@@ -202,15 +199,6 @@ class CloudDirector( AgentModule ):
           maxRAM = ceMaxRAM if not maxRAM else maxRAM
           if maxRAM:
             self.imageDict[imageName]['ParametersDict']['MaxRAM'] = maxRAM
-
-          ceNumberOfProcessors = ceDict.get( 'NumberOfProcessors' )
-          numberOfProcessors = self.imageDict[imageName]['ParametersDict'].get( 'NumberOfProcessors', ceNumberOfProcessors )
-          if numberOfProcessors:
-            numberOfProcessorsList = range( 1, int( numberOfProcessors ) + 1 )
-            processorsTags = ['%dProcessors' % processors for processors in numberOfProcessorsList]
-            if processorsTags:
-              self.imageDict[imageName]['ParametersDict'].setdefault( 'Tags', [] )
-              self.imageDict[imageName]['ParametersDict']['Tags'] += processorsTags
 
           ceWholeNode = ceDict.get( 'WholeNode', 'true' )
           wholeNode = self.imageDict[imageName]['ParametersDict'].get( 'WholeNode', ceWholeNode )
@@ -238,10 +226,9 @@ class CloudDirector( AgentModule ):
           ceImageDict['RunningPod'] = self.runningPod
           ceImageDict['CSServers'] = gConfig.getValue( "/DIRAC/Configuration/Servers", [] )
           ceImageDict.update( self.imageDict[imageName]['ParametersDict'] )
-          ceImageDict.update( opParameters )
 
-          ceImageDict['CAPath'] = gConfig.getOption('/DIRAC/Security/CAPath',
-                                                    "/opt/dirac/etc/grid-security/certificates/cas.pem")
+          ceImageDict['CAPath'] = gConfig.getValue('/DIRAC/Security/CAPath',
+                                                   "/opt/dirac/etc/grid-security/certificates/cas.pem")
 
           # Generate the CE object for the image or pick the already existing one
           # if the image definition did not change
@@ -256,6 +243,7 @@ class CloudDirector( AgentModule ):
             self.imageCECache[imageName]['Hash'] = imageHash
             self.imageCECache[imageName]['CE'] = result['Value']
             imageCE = self.imageCECache[imageName]['CE']
+            imageCE.setBootstrapParameters(opParameters)
 
           self.imageDict[imageName]['CE'] = imageCE
           self.imageDict[imageName]['CEName'] = ce
@@ -318,7 +306,7 @@ class CloudDirector( AgentModule ):
       if 'Tags' in self.imageDict[image]['ParametersDict']:
         tags += self.imageDict[image]['ParametersDict']['Tags']
     tqDict['Tag'] = list( set( tags ) )
-    tqDict['SubmitPool'] = "mpdPool"
+    tqDict['SubmitPool'] = "wenmrPool"
 
     self.log.verbose( 'Checking overall TQ availability with requirements' )
     self.log.verbose( tqDict )
@@ -395,9 +383,6 @@ class CloudDirector( AgentModule ):
       maxInstances = int( self.imageDict[image]['MaxInstances'] )
       processorTags = []
 
-      for tag in imageTags:
-        if re.match( r'^[0-9]+Processors$', tag ):
-          processorTags.append( tag )
       # vms support WholeNode naturally
       processorTags.append( 'WholeNode' )
 
@@ -430,7 +415,7 @@ class CloudDirector( AgentModule ):
         continue
       ceDict['Platform'] = result['Value']
 
-      ceDict['Tag'] = processorTags
+      ceDict['Tag'] = processorTags + imageTags
 
       # Get the number of eligible jobs for the target site/queue
 
@@ -463,13 +448,14 @@ class CloudDirector( AgentModule ):
 
       self.log.verbose( "%d VMs for the total of %d eligible jobs for %s" % (totalWaitingVMs, totalTQJobs, image) )
 
-      # Get the working proxy
-      self.log.verbose( "Getting cloud proxy for %s/%s" % (self.cloudDN, self.cloudGroup))
-      result = gProxyManager.getPilotProxyFromDIRACGroup( self.cloudDN, self.cloudGroup, 3600 )
-      if not result['OK']:
-        return result
-      self.proxy = result['Value']
-      #ce.setProxy( self.proxy, cpuTime - 60 )
+      # Get proxy to be used to connect to the cloud endpoint
+      authType = ce.parameters.get('Auth')
+      if authType.lower() in ['x509', 'voms']:
+        self.log.verbose( "Getting cloud proxy for %s/%s" % (siteName, ceName))
+        result = getProxyFileForCE(ce)
+        if not result['OK']:
+          continue
+        ce.setProxy(result['Value'])
 
       # Get the number of available slots on the target site/endpoint
       totalSlots = self.getVMInstances( endpoint, maxInstances )
@@ -485,7 +471,8 @@ class CloudDirector( AgentModule ):
       vmsToSubmit = min( self.maxVMsToSubmit, vmsToSubmit )
 
       self.log.info( 'Going to submit %d VMs to %s queue' % ( vmsToSubmit, image ) )
-      result = ce.createInstances( vmsToSubmit )
+      result = ce.createInstances(vmsToSubmit)
+
       #result = S_OK()
       if not result['OK']:
         self.log.error( 'Failed submission to queue %s:\n' % image, result['Message'] )
@@ -535,7 +522,7 @@ class CloudDirector( AgentModule ):
                                                     'Cloud',
                                                     stampDict )
         if not result['OK']:
-          self.log.error( 'Failed to insert pilots into the PilotAgentsDB' )
+          self.log.error( 'Failed to insert pilots into the PilotAgentsDB: %s' % result['Message'] )
 
     self.log.info( "%d VMs submitted in total in this cycle, %d matched queues" % ( totalSubmittedPilots, matchedQueues ) )
     return S_OK()

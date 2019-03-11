@@ -7,7 +7,7 @@
 """
 from DIRAC                                import S_OK, S_ERROR, gLogger
 from DIRAC.Core.Utilities                 import ObjectLoader
-from VMDIRAC.Resources.Cloud.ConfigHelper import getVMImageConfig
+from VMDIRAC.Resources.Cloud.ConfigHelper import getVMTypeConfig
 
 __RCSID__ = "$Id$"
 
@@ -21,7 +21,7 @@ class EndpointFactory( object ):
 
   def getCE( self, site, endpoint, image = '' ):
 
-    result = getVMImageConfig( site, endpoint, image )
+    result = getVMTypeConfig( site, endpoint, image )
     if not result[ 'OK' ]:
       return result
 

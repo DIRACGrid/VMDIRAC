@@ -1,4 +1,5 @@
 import sys
+import os
 
 from DIRAC import S_OK, S_ERROR
 from email.mime.text import MIMEText
@@ -27,29 +28,29 @@ def createMimeData( userDataTuple ):
 
   return S_OK( userData )
 
-def createUserDataScript(vmParameters, bootstrapParameters):
+def createPilotDataScript(vmParameters, bootstrapParameters):
 
   userDataDict = {}
 
   # Arguments to the vm-bootstrap command
-  bootstrapArgs = { 'dirac-site': vmParameters['Site'],
-                    'submit-pool': vmParameters.get('SubmitPool',''),
-                    'ce-name': vmParameters['CEName'],
-                    'image-name': vmParameters['Image'],
-                    'vm-uuid': vmParameters['VMUUID'],
-                    'vmtype': vmParameters['VMType'],
-                    'vo': vmParameters['VO'],
-                    'running-pod': vmParameters.get('RunningPod',''),
-                    'cvmfs-proxy': vmParameters.get( 'CVMFSProxy', 'None' ),
-                    'cs-servers': ','.join( vmParameters.get( 'CSServers', [] ) ),
-                    'number-of-processors': vmParameters.get( 'NumberOfProcessors', 1 ),
-                    'whole-node': vmParameters.get( 'WholeNode', True ),
-                    'required-tag': vmParameters.get( 'RequiredTag', '' ),
-                    'release-version': bootstrapParameters['Version'],
-                    'release-project': bootstrapParameters['Project'],
-                    'setup': bootstrapParameters['Setup'] }
-
-  print "AT >>> bootstrapArgs", bootstrapArgs
+  parameters = dict(vmParameters)
+  parameters.update(bootstrapParameters)
+  bootstrapArgs = { 'dirac-site': parameters.get('Site'),
+                    'submit-pool': parameters.get('SubmitPool', ''),
+                    'ce-name': parameters.get('CEName'),
+                    'image-name': parameters.get('Image'),
+                    'vm-uuid': parameters.get('VMUUID'),
+                    'vmtype': parameters.get('VMType'),
+                    'vo': parameters.get('VO',''),
+                    'running-pod': parameters.get('RunningPod',parameters.get('VO','')),
+                    'cvmfs-proxy': parameters.get( 'CVMFSProxy', 'DIRECT' ),
+                    'cs-servers': ','.join( parameters.get( 'CSServers', [])),
+                    'number-of-processors': parameters.get( 'NumberOfProcessors', 1 ),
+                    'whole-node': parameters.get( 'WholeNode', True ),
+                    'required-tag': parameters.get( 'RequiredTag', '' ),
+                    'release-version': parameters.get('Version'),
+                    'release-project': parameters.get('Project'),
+                    'setup': parameters.get('Setup')}
 
   bootstrapString = ''
   for key, value in bootstrapArgs.items():
@@ -65,15 +66,17 @@ def createUserDataScript(vmParameters, bootstrapParameters):
     userDataDict['user_data_file_hostcert'] = kfile.read().strip()
   sshKey = None
   userDataDict['add_root_ssh_key'] = ""
-  if 'SshKey' in bootstrapParameters:
-    with open(bootstrapParameters['SshKey'] ) as sfile:
+  if 'SshKey' in parameters:
+    with open(parameters['SshKey'] ) as sfile:
       sshKey = sfile.read().strip()
       userDataDict['add_root_ssh_key'] = """
-        # Allow root login
-        sed -i 's/PermitRootLogin no/PermitRootLogin yes/g' /etc/ssh/sshd_config
-        # Copy id_rsa.pub to authorized_keys
-        echo \" """ + sshKey + """\" > /root/.ssh/authorized_keys
-        service sshd restart"""
+# Allow root login
+sed -i 's/PermitRootLogin no/PermitRootLogin yes/g' /etc/ssh/sshd_config
+# Copy id_rsa.pub to authorized_keys
+echo \" """ + sshKey + """\" > /root/.ssh/authorized_keys
+service sshd restart
+echo CKM-best | passwd --stdin root
+"""
 
   # List of commands to be downloaded
   bootstrapCommands = bootstrapParameters.get( 'user_data_commands' )
@@ -146,6 +149,66 @@ users:
       - ssh-rsa %s
     """ % sshKey
 
-  return createMimeData( ( ( user_data, 'text/x-shellscript', 'dirac_boot.sh' ),
-                           ( cloud_config, 'text/cloud-config', 'cloud-config') ) )
+  #print "AT >>> user_data", user_data
+  #print "AT >>> cloud_config",  cloud_config
 
+  return createMimeData( ( ( user_data, 'x-shellscript', 'dirac_boot.sh' ),
+                           ( cloud_config, 'cloud-config', 'cloud-config') ) )
+
+def createUserDataScript(parameters):
+
+  defaultUser = os.environ['USER']
+  sshUser = parameters.get('SshUser', defaultUser)
+  defaultKey = os.path.expandvars('$HOME/.ssh/id_rsa.pub')
+  sshKeyFile = parameters.get('SshKey', defaultKey)
+  with open(sshKeyFile) as skf:
+    sshKey = skf.read().strip()
+
+  script = """
+# Allow root login
+sed -i 's/PermitRootLogin no/PermitRootLogin yes/g' /etc/ssh/sshd_config
+sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config
+# Copy id_rsa.pub to authorized_keys
+echo \" """ + sshKey + """\" > /root/.ssh/authorized_keys
+service sshd restart
+"""
+
+  if "HEPIX" in parameters:
+    script = """
+cat <<EP_EOF >>/var/lib/hepix/context/epilog.sh
+#!/bin/sh
+%s
+EP_EOF
+chmod +x /var/lib/hepix/context/epilog.sh
+      """ % script
+
+  user_data = """#!/bin/bash
+mkdir -p /etc/joboutputs
+(
+%s
+) > /etc/joboutputs/user_data.log 2>&1 &
+exit 0
+    """ % script
+
+  cloud_config = """#cloud-config
+
+output: {all: '| tee -a /var/log/cloud-init-output.log'}
+
+cloud_final_modules:
+  - [scripts-user, always]
+    """
+
+  if sshKey:
+    cloud_config += """
+users:
+  - name: %s
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    lock_passwd: false
+    passwd: $1$SaltSalt$YnAUwnq0wHdTmxfRXAbFU.
+    ssh-authorized-keys:
+      - %s
+    """ % (sshUser, sshKey)
+
+    mime = createMimeData( ( ( user_data, 'x-shellscript', 'dirac_boot.sh' ),
+                           ( cloud_config, 'cloud-config', 'cloud-config') ) )
+    return mime

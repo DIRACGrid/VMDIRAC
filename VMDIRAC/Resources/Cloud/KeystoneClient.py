@@ -2,8 +2,6 @@
 """
 
 import requests
-import json
-import os
 
 from DIRAC import S_OK, S_ERROR, gLogger
 from DIRAC.Core.Utilities.Time import fromString, dateTime
@@ -131,6 +129,8 @@ class KeystoneClient():
     issued = fromString(str(output['access']['token']['issued_at']).replace('T',' ').replace('Z',''))
     self.expires = dateTime() + (expires - issued )
 
+    self.projectID = output['access']['token']['tenant']['id']
+
     for endpoint in output['access']['serviceCatalog']:
       if endpoint['type'] == 'compute':
         self.computeURL = str(endpoint['endpoints'][0]['publicURL'])
@@ -209,7 +209,7 @@ class KeystoneClient():
 
     output = result.json()
     #import pprint
-    #:qpprint.pprint(output)
+    #pprint.pprint(output)
 
     expires = fromString(str(output['token']['expires_at']).replace('T',' ').replace('Z',''))
     issued = fromString(str(output['token']['issued_at']).replace('T',' ').replace('Z',''))

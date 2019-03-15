@@ -450,7 +450,7 @@ class CloudDirector( AgentModule ):
 
       # Get proxy to be used to connect to the cloud endpoint
       authType = ce.parameters.get('Auth')
-      if authType.lower() in ['x509', 'voms']:
+      if authType and authType.lower() in ['x509', 'voms']:
         self.log.verbose( "Getting cloud proxy for %s/%s" % (siteName, ceName))
         result = getProxyFileForCE(ce)
         if not result['OK']:

@@ -7,9 +7,12 @@ Welcome to VMDIRAC's documentation!
 ===================================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Contents:
 
+   installingVMDirac
+   CommandReference/index
+   CodeDocumentation/index
 
 
 Indices and tables

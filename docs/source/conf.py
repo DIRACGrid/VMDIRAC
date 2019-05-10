@@ -16,6 +16,59 @@
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 
+import logging
+import datetime
+import os
+import sys
+
+sys.path.insert(0, ".")
+
+import diracdoctools
+import diracdoctools.cmd
+from diracdoctools import fakeEnvironment, environmentSetup, DIRAC_DOC_MOCK_LIST
+from diracdoctools.Utilities import setUpReadTheDocsEnvironment
+
+logging.basicConfig(level=logging.INFO, format='%(name)25s: %(levelname)8s: %(message)s')
+LOG = logging.getLogger('conf.py')
+
+vmdiracRelease = os.environ.get('DIRACVERSION', 'integration')
+if os.environ.get('READTHEDOCS') == 'True':
+  vmdiracRelease = os.path.basename(os.path.abspath("../../"))
+  if vmdiracRelease.startswith("rel-"):
+    vmdiracRelease = vmdiracRelease[4:]
+LOG.info('DIRACVERSION is %r', vmdiracRelease)
+
+LOG.info('Current location %r', os.getcwd())
+LOG.info('DiracDocTools location %r', diracdoctools.__file__)
+LOG.info('DiracDocTools location %r', diracdoctools.Utilities.__file__)
+LOG.info('DiracDocTools location %r', diracdoctools.cmd.__file__)
+#...............................................................................
+# configuration
+
+# If extensions (or modules to document with autodoc) are in another directory,
+# add these directories to sys.path here. If the directory is relative to the
+# documentation root, use os.path.abspath to make it absolute, like shown here.
+
+# AUTO SETUP START
+if os.environ.get('READTHEDOCS') == 'True':
+  setUpReadTheDocsEnvironment(moduleName='VMDIRAC')
+
+  # re-create the RST files for the command references
+  LOG.info('Building command reference')
+  from diracdoctools.cmd.commandReference import run as buildCommandReference
+  buildCommandReference(configFile='../docs.conf')
+
+  # singlehtml build needs too much memory, so we need to create less code documentation
+  buildType = 'limited' if any('singlehtml' in arg for arg in sys.argv) else 'full'
+  LOG.info('Chosing build type: %r', buildType)
+  from diracdoctools.cmd.codeReference import run as buildCodeDoc
+  buildCodeDoc(configFile='../docs.conf', buildType=buildType)
+
+  # Update dirac.cfg
+  # LOG.info('Concatenating dirac.cfg')
+  # from diracdoctools.cmd.concatcfg import run as updateCompleteDiracCFG
+  # updateCompleteDiracCFG(configFile='../docs.conf')
+
 
 # -- Project information -----------------------------------------------------
 
@@ -26,7 +79,7 @@ author = u'VMDIRAC Authors'
 # The short X.Y version
 version = u''
 # The full version, including alpha/beta/rc tags
-release = u''
+release = vmdiracRelease
 
 
 # -- General configuration ---------------------------------------------------
@@ -71,13 +124,45 @@ exclude_patterns = []
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = None
 
+# if true complain about bad links
+nitpicky = True
+nitpick_ignore = [
+    ('py:exc', 'TypeError'),
+    ('py:exc', 'ValueError'),
+    ('py:class', 'list'),
+    ('py:class', 'python:list'),
+    ('py:class', 'lists'),
+    ('py:class', 'string'),  # inherited
+    ('py:class', 'TypeError'), # transformation
+    ('py:class', 'tuple'),
+    ('py:class', 'bool/str'),
+    ('py:class', 'StringIO'),
+    ('py:class', 'Int'),
+    ('py:class', 'python:list of tuples'),
+    ('py:class', 'list of tuples'),
+    ('py:class', 'dictionary'),
+    ('py:class', "'Check'"),
+    ('py:class', "'Read'"),
+    ('py:class', "'Remove'"),
+    ('py:class', "'Write'"),
+    ('py:class', 'Boolean'),
+    ('py:class', 'LFN str'),
+    ('py:class', 'Single LFN string'),
+    ('py:class', 'boolean'),
+    ('py:class', 'integer'),
+    ('py:class', 'list of LFNs'),
+    ('py:class', 'list of lists of LFNs'),
+    ('py:class', 'list of strings'),
+    ('py:class', 'of string and dictionaries'),
+    ('py:class', 'string in'),
+]
 
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'alabaster'
+html_theme = 'nature'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -178,7 +263,16 @@ epub_exclude_files = ['search.html']
 
 # -- Extension configuration -------------------------------------------------
 
+autodoc_mock_imports = DIRAC_DOC_MOCK_LIST + ['libcloud', 'boto3']
+#autodoc_member_order = 'groupwise'
+autodoc_member_order = 'bysource'
+
+# A list of ignored prefixes for module index sorting.
+modindex_common_prefix = ['VMDIRAC.']
+
 # -- Options for intersphinx extension ---------------------------------------
 
 # Example configuration for intersphinx: refer to the Python standard library.
-intersphinx_mapping = {'https://docs.python.org/': None}
+intersphinx_mapping = {'DIRAC': ('https://dirac.readthedocs.io/en/rel-v6r21', None),
+                       'python': ('https://docs.python.org/2.7', None),
+                       }

@@ -29,17 +29,21 @@ from VMDIRAC.Resources.Cloud.Endpoint import Endpoint
 DEBUG = False
 
 
+# pylint: disable=broad-except
 class CloudEndpoint(Endpoint):
   """ CloudEndpoint base class
   """
 
-  def __init__(self, parameters={}):
+  def __init__(self, parameters=None):
     """
     """
+    if parameters is None:
+      parameters = {}
     super(CloudEndpoint, self).__init__(parameters=parameters)
     # logger
     self.log = gLogger.getSubLogger('CloudEndpoint')
     self.valid = False
+    self.flavor = None
     result = self.initialize()
     if result['OK']:
       self.log.debug('CloudEndpoint created and validated')
@@ -144,7 +148,7 @@ class CloudEndpoint(Endpoint):
 
     return S_OK(flavor)
 
-  def __getSecurityGroups(self, securityGroupNames=[]):
+  def __getSecurityGroups(self, securityGroupNames=None):
     """
     Given the securityGroupName, returns the current security group object from the server.
 
@@ -172,9 +176,10 @@ class CloudEndpoint(Endpoint):
     return S_OK([secGroup for secGroup in secGroups if secGroup.name in securityGroupNames])
 
   def createInstances(self, vmsToSubmit):
+    """Create instances."""
     outputDict = {}
 
-    for nvm in xrange(vmsToSubmit):
+    for _ in xrange(vmsToSubmit):
       instanceID = makeGuid()[:8]
       createPublicIP = 'ipPool' in self.parameters
       result = self.createInstance(instanceID, createPublicIP)
@@ -198,6 +203,7 @@ class CloudEndpoint(Endpoint):
 
     return S_OK(outputDict)
 
+  # pylint: disable=too-many-return-statements, too-many-branches, too-many-statements
   def createInstance(self, instanceID='', createPublicIP=True):
     """
     This creates a VM instance for the given boot image
@@ -237,8 +243,7 @@ class CloudEndpoint(Endpoint):
       except Exception as e:
         if "Image not found" in str(e):
           return S_ERROR("Image with ID %s not found" % self.parameters['ImageID'])
-        else:
-          return S_ERROR("Failed to get image for ID %s" % self.parameters['ImageID'])
+        return S_ERROR("Failed to get image for ID %s" % self.parameters['ImageID'])
     else:
       return S_ERROR('No image specified')
     createNodeDict['image'] = image
@@ -278,7 +283,7 @@ class CloudEndpoint(Endpoint):
 
     createNodeDict['name'] = 'DIRAC_%s' % instanceID
 
-    #createNodeDict['ex_config_drive'] = True
+    # createNodeDict['ex_config_drive'] = True
 
     self.log.verbose("Creating node:")
     for key, value in createNodeDict.items():
@@ -349,7 +354,7 @@ class CloudEndpoint(Endpoint):
 
     try:
       node = self.__driver.ex_get_node_details(nodeID)
-    except Exception as errmsg:
+    except Exception:
       # Let's if the node is in the list of available nodes
       result = self.getVMNodes()
       if not result['OK']:
@@ -401,12 +406,14 @@ class CloudEndpoint(Endpoint):
 
     return S_OK(stateMapDict[state])
 
-  def getVMNetwork(self, networkNames=[]):
+  def getVMNetwork(self, networkNames=None):
     """ Get a network object corresponding to the networkName
 
     :param str networkName: network name
     :return: S_OK|S_ERROR network object in case of S_OK
     """
+    if networkNames is None:
+      networkNames = []
     resultList = []
     nameList = list(networkNames)
     if not nameList:
@@ -469,7 +476,7 @@ class CloudEndpoint(Endpoint):
     return S_OK()
 
   def getVMPool(self, poolName):
-
+    """Get VM pool."""
     try:
       poolList = self.__driver.ex_list_floating_ip_pools()
       for pool in poolList:
@@ -517,7 +524,7 @@ class CloudEndpoint(Endpoint):
       return S_ERROR('No IP pool specified')
 
   def getVMFloatingIP(self, publicIP):
-
+    """Get VM floating ip."""
     # We are still with IPv4
     publicIP = publicIP.replace('::ffff:', '')
 

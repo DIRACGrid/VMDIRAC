@@ -8,6 +8,7 @@ import json
 
 from DIRAC import S_OK, S_ERROR
 
+
 class KeystoneClient():
   """
   """
@@ -24,7 +25,7 @@ class KeystoneClient():
 
     try:
       result = requests.post("%s/v2.0/tokens" % self.url,
-                             headers = {"Content-Type": "application/json"},
+                             headers={"Content-Type": "application/json"},
                              **self.authArgs).json()
     except Exception as exc:
       #print "AT >> getToken", exc
@@ -39,14 +40,14 @@ class KeystoneClient():
 
     try:
       result = requests.get("%s/v2.0/tenants/" % self.url,
-                            headers = {"Content-Type": "application/json",
-                                       "X-Auth-Token": self.token},
+                            headers={"Content-Type": "application/json",
+                                     "X-Auth-Token": self.token},
                             **self.authArgs).json()
     except Exception as exc:
-      return S_ERROR( 'Failed to get tenants: %s' % str( exc ) )
+      return S_ERROR('Failed to get tenants: %s' % str(exc))
 
-    tenants = [ tenant['name'] for tenant in result['tenants'] ]
-    return S_OK( tenants )
+    tenants = [tenant['name'] for tenant in result['tenants']]
+    return S_OK(tenants)
 
   def getTenantToken(self, tenants):
 
@@ -57,19 +58,17 @@ class KeystoneClient():
       try:
         data = '{"auth": {"voms": true, "tenantName": "%s"}}' % tenant
         result = requests.post("%s/v2.0/tokens" % self.url,
-                               data = data,
-                               headers = {'Accept': 'application/json',
-                                          'X-Auth-Token': self.token,
-                                          'User-Agent': 'VMDIRAC v3r0' + ' ( OCCI/1.1 )',
-                                          'Content-Type': 'application/json',
-                                          'Content-Length': str(len(json.dumps(data)))},
-                                **authArgs).json()
+                               data=data,
+                               headers={'Accept': 'application/json',
+                                        'X-Auth-Token': self.token,
+                                        'User-Agent': 'VMDIRAC v3r0' + ' ( OCCI/1.1 )',
+                                        'Content-Type': 'application/json',
+                                        'Content-Length': str(len(json.dumps(data)))},
+                               **authArgs).json()
       except Exception as exc:
         return S_ERROR('Can not get token for tenant', '%s: %s' % (tenant, repr(exc)))
 
       if 'access' in result:
-        return S_OK( result['access']['token']['id'] )
+        return S_OK(result['access']['token']['id'])
 
-    return S_ERROR( 'Failed to get token for any tenant' )
-
-
+    return S_ERROR('Failed to get token for any tenant')

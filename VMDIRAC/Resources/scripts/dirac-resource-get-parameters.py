@@ -9,48 +9,48 @@ import json
 from DIRAC.Core.Base import Script
 from DIRAC import gLogger, exit as DIRACExit
 
-Script.setUsageMessage( '\n'.join( ['Get the Tag of a CE',
-                                    'Usage:',
-                                    '%s [option]... [cfgfile]' % Script.scriptName,
-                                    'Arguments:',
-                                    ' cfgfile: DIRAC Cfg with description of the configuration (optional)'] ) )
+Script.setUsageMessage('\n'.join(['Get the Tag of a CE',
+                                  'Usage:',
+                                  '%s [option]... [cfgfile]' % Script.scriptName,
+                                  'Arguments:',
+                                  ' cfgfile: DIRAC Cfg with description of the configuration (optional)']))
 
 ceName = ''
 ceType = ''
 
-def setCEName( args ):
+
+def setCEName(args):
   global ceName
   ceName = args
 
-def setSite( args ):
+
+def setSite(args):
   global Site
   Site = args
 
-def setQueue( args ):
+
+def setQueue(args):
   global Queue
   Queue = args
 
-Script.registerSwitch( "N:", "Name=", "Computing Element Name (Mandatory)", setCEName )
-Script.registerSwitch( "S:", "Site=", "Site Name (Mandatory)", setSite )
-Script.registerSwitch( "Q:", "Queue=", "Queue Name (Mandatory)", setQueue )
+
+Script.registerSwitch("N:", "Name=", "Computing Element Name (Mandatory)", setCEName)
+Script.registerSwitch("S:", "Site=", "Site Name (Mandatory)", setSite)
+Script.registerSwitch("Q:", "Queue=", "Queue Name (Mandatory)", setQueue)
 
 
-Script.parseCommandLine( ignoreErrors = True )
+Script.parseCommandLine(ignoreErrors=True)
 args = Script.getExtraCLICFGFiles()
 
 from VMDIRAC.Resources.Cloud.ConfigHelper import getImages
 
-if len( args ) > 1:
+if len(args) > 1:
   Script.showHelp()
-  exit( -1 )
+  exit(-1)
 
 
-result = getImages( Site, ceName, Queue )
+result = getImages(Site, ceName, Queue)
 if not result['OK']:
-  gLogger.error( "Could not retrieve resource parameters", ": " + result['Message'] )
-  DIRACExit( 1 )
-gLogger.notice( json.dumps( result['Value'] ) )
-
-
-
-
+  gLogger.error("Could not retrieve resource parameters", ": " + result['Message'])
+  DIRACExit(1)
+gLogger.notice(json.dumps(result['Value']))

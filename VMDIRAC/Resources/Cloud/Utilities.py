@@ -4,69 +4,71 @@ from DIRAC import S_OK, S_ERROR
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-STATE_MAP = { 0: 'RUNNING',
-              1: 'REBOOTING',
-              2: 'TERMINATED',
-              3: 'PENDING',
-              4: 'UNKNOWN',
-              5: 'STOPPED',
-              6: 'SUSPENDED',
-              7: 'ERROR',
-              8: 'PAUSED' }
+STATE_MAP = {0: 'RUNNING',
+             1: 'REBOOTING',
+             2: 'TERMINATED',
+             3: 'PENDING',
+             4: 'UNKNOWN',
+             5: 'STOPPED',
+             6: 'SUSPENDED',
+             7: 'ERROR',
+             8: 'PAUSED'}
 
-def createMimeData( userDataTuple ):
+
+def createMimeData(userDataTuple):
 
   userData = MIMEMultipart()
   for contents, mtype, fname in userDataTuple:
     try:
       mimeText = MIMEText(contents, mtype, sys.getdefaultencoding())
-      mimeText.add_header('Content-Disposition', 'attachment; filename="%s"' % fname )
-      userData.attach( mimeText )
+      mimeText.add_header('Content-Disposition', 'attachment; filename="%s"' % fname)
+      userData.attach(mimeText)
     except Exception as e:
-      return S_ERROR( str( e ) )
+      return S_ERROR(str(e))
 
-  return S_OK( userData )
+  return S_OK(userData)
+
 
 def createUserDataScript(vmParameters, bootstrapParameters):
 
   userDataDict = {}
 
   # Arguments to the vm-bootstrap command
-  bootstrapArgs = { 'dirac-site': vmParameters['Site'],
-                    'submit-pool': vmParameters.get('SubmitPool',''),
-                    'ce-name': vmParameters['CEName'],
-                    'image-name': vmParameters['Image'],
-                    'vm-uuid': vmParameters['VMUUID'],
-                    'vmtype': vmParameters['VMType'],
-                    'vo': vmParameters['VO'],
-                    'running-pod': vmParameters.get('RunningPod',''),
-                    'cvmfs-proxy': vmParameters.get( 'CVMFSProxy', 'None' ),
-                    'cs-servers': ','.join( vmParameters.get( 'CSServers', [] ) ),
-                    'number-of-processors': vmParameters.get( 'NumberOfProcessors', 1 ),
-                    'whole-node': vmParameters.get( 'WholeNode', True ),
-                    'required-tag': vmParameters.get( 'RequiredTag', '' ),
-                    'release-version': bootstrapParameters['Version'],
-                    'release-project': bootstrapParameters['Project'],
-                    'setup': bootstrapParameters['Setup'] }
+  bootstrapArgs = {'dirac-site': vmParameters['Site'],
+                   'submit-pool': vmParameters.get('SubmitPool', ''),
+                   'ce-name': vmParameters['CEName'],
+                   'image-name': vmParameters['Image'],
+                   'vm-uuid': vmParameters['VMUUID'],
+                   'vmtype': vmParameters['VMType'],
+                   'vo': vmParameters['VO'],
+                   'running-pod': vmParameters.get('RunningPod', ''),
+                   'cvmfs-proxy': vmParameters.get('CVMFSProxy', 'None'),
+                   'cs-servers': ','.join(vmParameters.get('CSServers', [])),
+                   'number-of-processors': vmParameters.get('NumberOfProcessors', 1),
+                   'whole-node': vmParameters.get('WholeNode', True),
+                   'required-tag': vmParameters.get('RequiredTag', ''),
+                   'release-version': bootstrapParameters['Version'],
+                   'release-project': bootstrapParameters['Project'],
+                   'setup': bootstrapParameters['Setup']}
 
   print "AT >>> bootstrapArgs", bootstrapArgs
 
   bootstrapString = ''
   for key, value in bootstrapArgs.items():
-    bootstrapString += " --%s=%s \\\n" % ( key, value )
+    bootstrapString += " --%s=%s \\\n" % (key, value)
   userDataDict['bootstrapArgs'] = bootstrapString
 
-  userDataDict['user_data_commands_base_url'] = bootstrapParameters.get( 'user_data_commands_base_url' )
+  userDataDict['user_data_commands_base_url'] = bootstrapParameters.get('user_data_commands_base_url')
   if not userDataDict['user_data_commands_base_url']:
-    return S_ERROR( 'user_data_commands_base_url is not defined' )
-  with open( bootstrapParameters['HostCert'] ) as cfile:
+    return S_ERROR('user_data_commands_base_url is not defined')
+  with open(bootstrapParameters['HostCert']) as cfile:
     userDataDict['user_data_file_hostkey'] = cfile.read().strip()
-  with open( bootstrapParameters['HostKey'] ) as kfile:
+  with open(bootstrapParameters['HostKey']) as kfile:
     userDataDict['user_data_file_hostcert'] = kfile.read().strip()
   sshKey = None
   userDataDict['add_root_ssh_key'] = ""
   if 'SshKey' in bootstrapParameters:
-    with open(bootstrapParameters['SshKey'] ) as sfile:
+    with open(bootstrapParameters['SshKey']) as sfile:
       sshKey = sfile.read().strip()
       userDataDict['add_root_ssh_key'] = """
         # Allow root login
@@ -76,12 +78,12 @@ def createUserDataScript(vmParameters, bootstrapParameters):
         service sshd restart"""
 
   # List of commands to be downloaded
-  bootstrapCommands = bootstrapParameters.get( 'user_data_commands' )
-  if isinstance( bootstrapCommands, basestring ):
-    bootstrapCommands = bootstrapCommands.split( ',' )
+  bootstrapCommands = bootstrapParameters.get('user_data_commands')
+  if isinstance(bootstrapCommands, basestring):
+    bootstrapCommands = bootstrapCommands.split(',')
   if not bootstrapCommands:
-    return S_ERROR( 'user_data_commands list is not defined' )
-  userDataDict['bootstrapCommands'] = ' '.join( bootstrapCommands )
+    return S_ERROR('user_data_commands list is not defined')
+  userDataDict['bootstrapCommands'] = ' '.join(bootstrapCommands)
 
   script = """
 cat <<X5_EOF >/root/hostkey.pem
@@ -146,6 +148,5 @@ users:
       - ssh-rsa %s
     """ % sshKey
 
-  return createMimeData( ( ( user_data, 'text/x-shellscript', 'dirac_boot.sh' ),
-                           ( cloud_config, 'text/cloud-config', 'cloud-config') ) )
-
+  return createMimeData(((user_data, 'text/x-shellscript', 'dirac_boot.sh'),
+                         (cloud_config, 'text/cloud-config', 'cloud-config')))

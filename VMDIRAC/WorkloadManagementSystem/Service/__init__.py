@@ -3,7 +3,7 @@
   VMDIRAC.WorkloadManagementSystem.Service package
 """
 
-__RCSID__  = '$Id: $'
+__RCSID__ = '$Id: $'
 
-#...............................................................................
-#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF
+# ...............................................................................
+# EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF

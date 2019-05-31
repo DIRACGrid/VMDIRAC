@@ -12,10 +12,12 @@ from VMDIRAC.Resources.Cloud.Utilities import createUserDataScript
 
 __RCSID__ = '$Id$'
 
-class Endpoint( object ):
+
+class Endpoint(object):
   """ Endpoint base class
   """
-  def __init__(self, parameters = {}, bootstrapParameters={}):
+
+  def __init__(self, parameters={}, bootstrapParameters={}):
     """
     """
     # logger
@@ -23,21 +25,21 @@ class Endpoint( object ):
     self.bootstrapParameters = bootstrapParameters
     self.valid = False
 
-  def isValid( self ):
+  def isValid(self):
     return self.valid
 
-  def setParameters( self, parameters ):
+  def setParameters(self, parameters):
     self.parameters = parameters
 
   def setBootstrapParameters(self, bootstrapParameters):
     self.bootstrapParameters = bootstrapParameters
 
-  def getParameterDict( self ):
+  def getParameterDict(self):
     return self.parameters
 
-  def initialize( self ):
+  def initialize(self):
     pass
 
-  def _createUserDataScript( self ):
+  def _createUserDataScript(self):
 
     return createUserDataScript(self.parameters, self.bootstrapParameters)

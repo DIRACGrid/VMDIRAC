@@ -14,32 +14,33 @@ from VMDIRAC.Resources.Cloud.Endpoint import Endpoint
 
 __RCSID__ = '$Id$'
 
-class RocciEndpoint( Endpoint ):
 
-  def __init__( self, parameters = {} ):
+class RocciEndpoint(Endpoint):
+
+  def __init__(self, parameters={}):
     """
     """
-    Endpoint.__init__( self, parameters = parameters )
+    Endpoint.__init__(self, parameters=parameters)
     # logger
-    self.log = gLogger.getSubLogger( 'RocciEndpoint' )
+    self.log = gLogger.getSubLogger('RocciEndpoint')
     self.valid = False
     result = self.initialize()
     if result['OK']:
-      self.log.debug( 'RocciEndpoint created and validated' )
+      self.log.debug('RocciEndpoint created and validated')
       self.valid = True
     else:
-      self.log.error( result['Message'] )
+      self.log.error(result['Message'])
 
-  def initialize( self ):
+  def initialize(self):
 
     availableParams = {
-      'EndpointUrl': 'endpoint',
-      'Timeout':     'timeout',
-      'Auth':        'auth',
-      'User':        'username',
-      'Password':    'password',
-      'UserCred':    'user-cred',
-      'VOMS':        'voms',
+        'EndpointUrl': 'endpoint',
+        'Timeout': 'timeout',
+        'Auth': 'auth',
+        'User': 'username',
+        'Password': 'password',
+        'UserCred': 'user-cred',
+        'VOMS': 'voms',
     }
 
     self.__occiBaseCmd = ['occi', '--skip-ca-check', '--output-format', 'json_extended']
@@ -50,47 +51,47 @@ class RocciEndpoint( Endpoint ):
     result = self.__checkConnection()
     return result
 
-  def __filterCommand( self, cmd ):
+  def __filterCommand(self, cmd):
     filteredCmd = []
     mask = False
     for arg in cmd:
       if mask:
-        filteredCmd.append( 'xxxxxx' )
+        filteredCmd.append('xxxxxx')
         mask = False
       else:
-        filteredCmd.append( arg )
+        filteredCmd.append(arg)
 
       if arg in ['--username', '--password']:
         mask = True
-    return ' '.join( filteredCmd )
+    return ' '.join(filteredCmd)
 
-  def __occiCommand( self, actionArgs ):
+  def __occiCommand(self, actionArgs):
     try:
       finalCmd = self.__occiBaseCmd + actionArgs
-      self.log.debug( 'Running command:', self.__filterCommand( finalCmd ) )
-      p = subprocess.Popen( finalCmd, stdout = subprocess.PIPE, stderr = subprocess.PIPE )
+      self.log.debug('Running command:', self.__filterCommand(finalCmd))
+      p = subprocess.Popen(finalCmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
       stdout, stderr = p.communicate()
       if p.returncode != 0:
-        return S_ERROR( 'occi command exit with error %s: %s' % (p.returncode, stderr) )
+        return S_ERROR('occi command exit with error %s: %s' % (p.returncode, stderr))
     except Exception as e:
-      return S_ERROR( 'Can not run occi command' )
+      return S_ERROR('Can not run occi command')
 
-    return S_OK( stdout )
+    return S_OK(stdout)
 
-  def __checkConnection( self ):
+  def __checkConnection(self):
     """
     Checks connection status by trying to list the images.
 
     :return: S_OK | S_ERROR
     """
     actionArgs = ['--action', 'list', '--resource', 'os_tpl']
-    result = self.__occiCommand( actionArgs )
+    result = self.__occiCommand(actionArgs)
     if not result['OK']:
       return result
 
     return S_OK()
 
-  def __getImageByName( self, imageName ):
+  def __getImageByName(self, imageName):
     """
     Given the imageName, returns the current image object from the server.
 
@@ -101,69 +102,70 @@ class RocciEndpoint( Endpoint ):
     """
     # the libcloud library, throws Exception. Nothing to do.
     actionArgs = ['--action', 'describe', '--resource', 'os_tpl']
-    result = self.__occiCommand( actionArgs )
+    result = self.__occiCommand(actionArgs)
     if not result['OK']:
       return result
 
     imageIds = []
-    for image in json.loads( result['Value'] ):
+    for image in json.loads(result['Value']):
       if image['title'] == imageName:
-        imageIds.append( image['term'] )
+        imageIds.append(image['term'])
 
     if not imageIds:
-      return S_ERROR( "Image %s not found" % imageName )
+      return S_ERROR("Image %s not found" % imageName)
 
-    if len( imageIds ) > 1:
-      self.log.warn( 'More than one image found', '%s images with name "%s"' % ( len( imageIds ), imageName ) )
+    if len(imageIds) > 1:
+      self.log.warn('More than one image found', '%s images with name "%s"' % (len(imageIds), imageName))
 
-    return S_OK( imageIds[-1] )
+    return S_OK(imageIds[-1])
 
-  def createInstances( self, vmsToSubmit ):
+  def createInstances(self, vmsToSubmit):
     outputDict = {}
 
-    for nvm in xrange( vmsToSubmit ):
+    for nvm in xrange(vmsToSubmit):
       instanceID = makeGuid()[:8]
-      result = self.createInstance( instanceID )
+      result = self.createInstance(instanceID)
       if result['OK']:
         occiId, nodeDict = result['Value']
-        self.log.debug( 'Created VM instance %s/%s' % ( occiId, instanceID ) )
+        self.log.debug('Created VM instance %s/%s' % (occiId, instanceID))
         outputDict[occiId] = nodeDict
       else:
-        self.log.error( 'Create Rocci instance error:', result['Message'] )
+        self.log.error('Create Rocci instance error:', result['Message'])
         break
 
-    return S_OK( outputDict )
+    return S_OK(outputDict)
 
-  def createInstance( self, instanceID = ''  ):
+  def createInstance(self, instanceID=''):
     if not instanceID:
       instanceID = makeGuid()[:8]
 
     self.parameters['VMUUID'] = instanceID
-    self.parameters['VMType'] = self.parameters.get( 'CEType', 'EC2' )
+    self.parameters['VMType'] = self.parameters.get('CEType', 'EC2')
 
     actionArgs = ['--action', 'create']
     actionArgs += ['--resource', 'compute']
 
     # Image
-    if not "ImageID" in self.parameters and 'ImageName' in self.parameters:
-      result = self.__getImageByName( self.parameters['ImageName'] )
+    if "ImageID" not in self.parameters and 'ImageName' in self.parameters:
+      result = self.__getImageByName(self.parameters['ImageName'])
       if not result['OK']:
         return result
       imageId = result['Value']
     elif "ImageID" in self.parameters:
-      result = self.__occiCommand( ['--action', 'describe', '--resource', 'os_tpl#%s' % self.parameters['ImageID']] )
+      result = self.__occiCommand(['--action', 'describe', '--resource', 'os_tpl#%s' % self.parameters['ImageID']])
       if not result['OK']:
-        return S_ERROR( "Failed to get image for ID %s" % self.parameters['ImageID'], result['Message'] )
+        return S_ERROR("Failed to get image for ID %s" % self.parameters['ImageID'], result['Message'])
       imageId = self.parameters['ImageID']
     else:
-      return S_ERROR( 'No image specified' )
+      return S_ERROR('No image specified')
     actionArgs += ['--mixin', 'os_tpl#%s' % imageId]
 
     # Optional flavor name
     if 'FlavorName' in self.parameters:
-      result = self.__occiCommand( ['--action', 'describe', '--resource', 'resource_tpl#%s' % self.parameters['FlavorName']] )
+      result = self.__occiCommand(['--action', 'describe', '--resource', 'resource_tpl#%s' %
+                                   self.parameters['FlavorName']])
       if not result['OK']:
-        return S_ERROR( "Failed to get flavor %s" % self.parameters['FlavorName'], result['Message'] )
+        return S_ERROR("Failed to get flavor %s" % self.parameters['FlavorName'], result['Message'])
       actionArgs += ['--mixin', 'resource_tpl#%s' % self.parameters['FlavorName']]
 
     # Instance name
@@ -174,52 +176,52 @@ class RocciEndpoint( Endpoint ):
       if param in self.parameters:
         actionArgs += ['--%s' % param, '%s' % self.parameters[param]]
 
-    self.log.info( "Creating node:" )
-    self.log.verbose( ' '.join( actionArgs ) )
+    self.log.info("Creating node:")
+    self.log.verbose(' '.join(actionArgs))
 
     # User data
     result = self._createUserDataScript()
     if not result['OK']:
       return result
 #    actionArgs += ['--context', 'user_data=%s' % str( result['Value'] )]
-    f = tempfile.NamedTemporaryFile( delete = False )
-    f.write( str( result['Value'] ) )
+    f = tempfile.NamedTemporaryFile(delete=False)
+    f.write(str(result['Value']))
     f.close()
-    self.log.debug( 'Write user_data to temp file:', f.name )
-    actionArgs += ['--context', 'user_data=file://%s' % f.name ]
+    self.log.debug('Write user_data to temp file:', f.name)
+    actionArgs += ['--context', 'user_data=file://%s' % f.name]
 
     # Create the VM instance now
-    result = self.__occiCommand( actionArgs )
-    os.unlink( f.name )
+    result = self.__occiCommand(actionArgs)
+    os.unlink(f.name)
     if not result['OK']:
       errmsg = 'Error in rOCCI create instances: %s' % result['Message']
-      self.log.error( errmsg )
-      return S_ERROR( errmsg )
+      self.log.error(errmsg)
+      return S_ERROR(errmsg)
 
     occiId = result['Value'].strip()
 
     # Properties of the instance
     nodeDict = {}
     nodeDict['InstanceID'] = instanceID
-    result = self.__occiCommand( ['--action', 'describe', '--resource', occiId] )
+    result = self.__occiCommand(['--action', 'describe', '--resource', occiId])
     if result['OK']:
-      nodeInfo = json.loads( result['Value'] )
+      nodeInfo = json.loads(result['Value'])
       try:
         nodeDict['NumberOfCPUs'] = nodeInfo[0]['attributes']['occi']['compute']['cores']
-        nodeDict['RAM']          = nodeInfo[0]['attributes']['occi']['compute']['memory']
+        nodeDict['RAM'] = nodeInfo[0]['attributes']['occi']['compute']['memory']
       except Exception as e:
         nodeDict['NumberOfCPUs'] = 1
     else:
       nodeDict['NumberOfCPUs'] = 1
 
-    return S_OK( ( occiId, nodeDict ) )
+    return S_OK((occiId, nodeDict))
 
-  def stopVM( self, nodeID, publicIP = '' ):
+  def stopVM(self, nodeID, publicIP=''):
     actionArgs = ['--action', 'delete', '--resource', nodeID]
-    result = self.__occiCommand( actionArgs )
+    result = self.__occiCommand(actionArgs)
     if not result['OK']:
-      errmsg = 'Can not terminate instance %s: %s' % ( nodeID, result['Message'] )
-      self.log.error( errmsg )
-      return S_ERROR( errmsg )
+      errmsg = 'Can not terminate instance %s: %s' % (nodeID, result['Message'])
+      self.log.error(errmsg)
+      return S_ERROR(errmsg)
 
     return S_OK()

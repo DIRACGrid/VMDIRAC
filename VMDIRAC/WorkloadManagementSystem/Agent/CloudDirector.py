@@ -318,7 +318,6 @@ class CloudDirector( AgentModule ):
       if 'Tags' in self.imageDict[image]['ParametersDict']:
         tags += self.imageDict[image]['ParametersDict']['Tags']
     tqDict['Tag'] = list( set( tags ) )
-    tqDict['SubmitPool'] = "mpdPool"
 
     self.log.verbose( 'Checking overall TQ availability with requirements' )
     self.log.verbose( tqDict )

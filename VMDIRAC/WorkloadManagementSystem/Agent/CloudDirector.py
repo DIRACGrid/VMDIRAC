@@ -131,7 +131,7 @@ class CloudDirector(AgentModule):
     #    return S_OK( 'No site specified for the SiteDirector' )
     #  else:
     #    siteNames = [siteName]
-    #self.siteNames = siteNames
+    # self.siteNames = siteNames
 
     self.log.always('Sites:', siteNames)
     self.log.always('CEs:', ces)
@@ -287,7 +287,7 @@ class CloudDirector(AgentModule):
     if not result['OK']:
       self.log.error('Errors in the job submission: ', result['Message'])
 
-    #cyclesDone = self.am_getModuleParam( 'cyclesDone' )
+    # cyclesDone = self.am_getModuleParam( 'cyclesDone' )
     # if self.updateStatus and cyclesDone % self.cloudStatusUpdateCycleFactor == 0:
     #  result = self.updatePilotStatus()
     #  if not result['OK']:
@@ -376,13 +376,13 @@ class CloudDirector(AgentModule):
     for image in images:
 
       # Check if the image failed previously
-      #failedCount = self.failedImages[ image ] % self.failedImageCycleFactor
+      # failedCount = self.failedImages[ image ] % self.failedImageCycleFactor
       # if failedCount != 0:
       #  self.log.warn( "%s queue failed recently, skipping %d cycles" % ( image, 10-failedCount ) )
       #  self.failedImages[image] += 1
       #  continue
 
-      #print "AT >>> image parameters:", image
+      # print "AT >>> image parameters:", image
       # for key,value in self.imageDict[image].items():
       #  print key,value
 
@@ -472,7 +472,7 @@ class CloudDirector(AgentModule):
       if not result['OK']:
         return result
       self.proxy = result['Value']
-      #ce.setProxy( self.proxy, cpuTime - 60 )
+      # ce.setProxy( self.proxy, cpuTime - 60 )
 
       # Get the number of available slots on the target site/endpoint
       totalSlots = self.getVMInstances(endpoint, maxInstances)
@@ -489,7 +489,7 @@ class CloudDirector(AgentModule):
 
       self.log.info('Going to submit %d VMs to %s queue' % (vmsToSubmit, image))
       result = ce.createInstances(vmsToSubmit)
-      #result = S_OK()
+      # result = S_OK()
       if not result['OK']:
         self.log.error('Failed submission to queue %s:\n' % image, result['Message'])
         self.failedImages.setdefault(image, 0)

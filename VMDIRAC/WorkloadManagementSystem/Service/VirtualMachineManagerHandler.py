@@ -151,7 +151,10 @@ def createEndpoint(uniqueID):
 
 def haltInstances(vmList):
   """
-   Common haltInstances for Running(from class VirtualMachineManagerHandler) and Stalled(from checkStalledInstances periodic task) to Halt
+  Halt instances.
+
+  Common haltInstances for Running(from class VirtualMachineManagerHandler) and Stalled(from
+  checkStalledInstances periodic task) to Halt
   """
 
   failed = {}

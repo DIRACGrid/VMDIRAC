@@ -14,17 +14,22 @@
   Life cycle of VMs Instances in DB
   - New:       Inserted by Director before launching a new instance, to check if image is valid
   - Submitted: Inserted by Director (adding UniqueID) when launches a new instance
-  - Wait_ssh_context:     Declared by Director for submitted instance wich need later contextualization using ssh (VirtualMachineContextualization will check)
+  - Wait_ssh_context:     Declared by Director for submitted instance wich need later contextualization
+                          using ssh (VirtualMachineContextualization will check)
   - Contextualizing:     on the waith_ssh_context path is the next status before Running
-  - Running:   Declared by VMMonitoring Server when an Instance reports back correctly (add LastUpdate, publicIP and privateIP)
-  - Stopping:  Declared by VMManager Server when an Instance has been deleted outside of the VM (f.e "Delete" button on Browse Instances)
+  - Running:   Declared by VMMonitoring Server when an Instance reports back correctly (add LastUpdate,
+               publicIP and privateIP)
+  - Stopping:  Declared by VMManager Server when an Instance has been deleted outside of the VM
+               (f.e "Delete" button on Browse Instances)
   - Halted:    Declared by VMMonitoring Server when an Instance reports halting
   - Stalled:   Declared by VMManager Server when detects Instance no more running
-  - Error:     Declared by VMMonitoring Server when an Instance reports back wrong requirements or reports as running when Halted
+  - Error:     Declared by VMMonitoring Server when an Instance reports back wrong requirements or
+               reports as running when Halted
 
   New Instances can be launched by Director if VMImage is not in Error Status.
 
-  Instance UniqueID: for KVM it could be the MAC, for Amazon the returned InstanceID(i-5dec3236), for Occi returned the VMID
+  Instance UniqueID: for KVM it could be the MAC, for Amazon the returned InstanceID(i-5dec3236),
+                     for Occi returned the VMID
 
   Life cycle of VMs RunningPods in DB
   - New:       Inserted by VM Scheduler (RunningPod - Status = New ) if not existing when launching a new instance
@@ -258,7 +263,7 @@ class VirtualMachineDB(DB):
     runningPodID = self.getFields(tableName, [idName], {'RunningPod': runningPodName})
     if not runningPodID['OK']:
       return runningPodID
-    #runningPodID = runningPodID[ 'Value' ][0][0]
+    # runningPodID = runningPodID[ 'Value' ][0][0]
 
     if runningPodID['Value']:
       runningPodID = runningPodID['Value'][0][0]
@@ -320,7 +325,7 @@ class VirtualMachineDB(DB):
     except ValueError:
       # except Exception, e:
       # FIXME: do we really want to raise an Exception ?
-      #raise e
+      # raise e
       return S_ERROR("instanceID has to be a number")
 
     tableName, _validStates, idName = self.__getTypeTuple('Instance')
@@ -834,7 +839,7 @@ class VirtualMachineDB(DB):
       if field not in validDataFields:
         return S_ERROR("%s is not a valid data field" % field)
 
-    #paramFields = fields2Get
+    # paramFields = fields2Get
     try:
       bucketSize = int(averageBucket)
     except ValueError:
@@ -1093,10 +1098,10 @@ class VirtualMachineDB(DB):
     fields = ['UniqueID', 'RunningPod', 'Name', 'Endpoint', 'VMImageID', 'Status', 'LastUpdate']
     values = [uniqueID, runningPodName, instanceName, endpoint, imageID, status, Time.toString()]
 
-    #runningPodDict = self.getRunningPodDict( runningPodName )
+    # runningPodDict = self.getRunningPodDict( runningPodName )
     # if not runningPodDict[ 'OK' ]:
     #  return runningPodDict
-    #runningPodDict = runningPodDict[ 'Value' ]
+    # runningPodDict = runningPodDict[ 'Value' ]
 
     # if 'MaxAllowedPrice' in runningPodDict:
     #  fields.append( 'MaxAllowedPrice' )
@@ -1366,7 +1371,8 @@ class VirtualMachineDB(DB):
 
   def __setLastLoadJobsAndUptime(self, instanceID, load, jobs, uptime):
     if not uptime:
-      sqlQuery = "SELECT MAX( UNIX_TIMESTAMP( `Update` ) ) - MIN( UNIX_TIMESTAMP( `Update` ) ) FROM `vm_History` WHERE InstanceID = %d GROUP BY InstanceID" % instanceID
+      sqlQuery = "SELECT MAX( UNIX_TIMESTAMP( `Update` ) ) - MIN( UNIX_TIMESTAMP( `Update` ) ) FROM `vm_History` " \
+                 "WHERE InstanceID = %d GROUP BY InstanceID" % instanceID
       result = self._query(sqlQuery)
       if result['OK'] and len(result['Value']) > 0:
         uptime = int(result['Value'][0][0])

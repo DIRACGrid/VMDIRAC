@@ -74,8 +74,8 @@ class OcciEndpoint(Endpoint):
       self.log.debug('OcciEndpoint created and validated')
       self.valid = True
 
-    #import pprint
-    #pprint.pprint( self.scheme )
+    # import pprint
+    # pprint.pprint( self.scheme )
 
   def initialize(self):
 
@@ -89,7 +89,7 @@ class OcciEndpoint(Endpoint):
 
     # for key,value in result.headers.items():
     #  print "AT >>> initialize", key,value
-    #print "AT >>> initialize text", result.text
+    # print "AT >>> initialize text", result.text
 
     return self.__checkConnection()
 
@@ -102,8 +102,8 @@ class OcciEndpoint(Endpoint):
     except Exception as e:
       return S_ERROR(str(e))
 
-    #print "AT >>> __getKeystoneUrl", result, result.text
-    #print "AT >>> __getKeystoneUrl", result.headers
+    # print "AT >>> __getKeystoneUrl", result, result.text
+    # print "AT >>> __getKeystoneUrl", result.headers
 
     if result.status_code != 401 or result.headers is None:
       return S_OK(None)
@@ -230,9 +230,9 @@ class OcciEndpoint(Endpoint):
         nodeDict['PublicIP'] = publicIP
         nodeDict['InstanceID'] = instanceID
         nodeDict['NumberOfCPUs'] = 2
-        #nodeDict['RAM'] = self.flavor.ram
-        #nodeDict['DiskSize'] = self.flavor.disk
-        #nodeDict['Price'] = self.flavor.price
+        # nodeDict['RAM'] = self.flavor.ram
+        # nodeDict['DiskSize'] = self.flavor.disk
+        # nodeDict['Price'] = self.flavor.price
         outputDict[nodeID] = nodeDict
       else:
         break
@@ -303,7 +303,7 @@ class OcciEndpoint(Endpoint):
     data += 'X-OCCI-Attribute: occi.core.title="%s"\n' % instanceID
     data += 'X-OCCI-Attribute: occi.compute.hostname="%s"\n' % instanceID
     data += 'X-OCCI-Attribute: org.openstack.compute.user_data="%s"' % base64.b64encode(userData)
-    #data += 'X-OCCI-Attribute: org.openstack.credentials.publickey.data="ssh-rsa ' + sshPublicKey + ' vmdirac"'
+    # data += 'X-OCCI-Attribute: org.openstack.credentials.publickey.data="ssh-rsa ' + sshPublicKey + ' vmdirac"'
 
     del self.authArgs['data']
 
@@ -312,8 +312,8 @@ class OcciEndpoint(Endpoint):
                                headers=headers,
                                **self.authArgs)
 
-    #print "AT >>> createInstance", result, result.headers
-    #print "AT >>> result.text", result.text
+    # print "AT >>> createInstance", result, result.headers
+    # print "AT >>> result.text", result.text
 
     nodeID = result.text.split()[-1]
 
@@ -461,8 +461,8 @@ class OcciEndpoint(Endpoint):
     result = self.session.post("%s/link/networkinterface/" % self.serviceUrl,
                                headers=headers)
 
-    #print "AT >>> createIP", result, result.headers
-    #print "AT >>> result.text", result.text
+    # print "AT >>> createIP", result, result.headers
+    # print "AT >>> result.text", result.text
 
     if result.status_code != 201:
       return S_ERROR(result.text)

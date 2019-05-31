@@ -28,10 +28,10 @@ class KeystoneClient():
                              headers={"Content-Type": "application/json"},
                              **self.authArgs).json()
     except Exception as exc:
-      #print "AT >> getToken", exc
+      # print "AT >> getToken", exc
       return S_ERROR('Failed to get keystone token: %s', str(exc))
 
-    #print "AT >>> getToken",result
+    # print "AT >>> getToken",result
 
     self.token = str(result['access']['token']['id'])
     return S_OK(self.token)

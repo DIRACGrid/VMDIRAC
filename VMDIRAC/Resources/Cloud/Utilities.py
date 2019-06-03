@@ -60,9 +60,9 @@ def createPilotDataScript(vmParameters, bootstrapParameters):
   userDataDict['user_data_commands_base_url'] = bootstrapParameters.get( 'user_data_commands_base_url' )
   if not userDataDict['user_data_commands_base_url']:
     return S_ERROR( 'user_data_commands_base_url is not defined' )
-  with open( bootstrapParameters['HostCert'] ) as cfile:
+  with open( bootstrapParameters['CloudPilotCert'] ) as cfile:
     userDataDict['user_data_file_hostkey'] = cfile.read().strip()
-  with open( bootstrapParameters['HostKey'] ) as kfile:
+  with open( bootstrapParameters['CloudPilotKey'] ) as kfile:
     userDataDict['user_data_file_hostcert'] = kfile.read().strip()
   sshKey = None
   userDataDict['add_root_ssh_key'] = ""

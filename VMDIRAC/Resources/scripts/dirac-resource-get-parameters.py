@@ -51,6 +51,10 @@ result = getVMTypes( Site, ceName, Queue )
 if not result['OK']:
   gLogger.error( "Could not retrieve resource parameters", ": " + result['Message'] )
   DIRACExit( 1 )
+
+queueDict = result['Value'][Site][ceName].pop('VMTypes')[Queue]
+ceDict = result['Value'][Site][ceName]
+ceDict.update(queueDict)
 gLogger.notice( json.dumps( result['Value'] ) )
 
 

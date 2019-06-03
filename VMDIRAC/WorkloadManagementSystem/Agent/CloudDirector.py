@@ -361,18 +361,6 @@ class CloudDirector(AgentModule):
     totalSubmittedPilots = 0
     matchedQueues = 0
     for vmType in vmTypeList:
-
-      # Check if the vmType failed previously
-      #failedCount = self.failedVMTypes[ vmType ] % self.failedVMTypeCycleFactor
-      # if failedCount != 0:
-      #  self.log.warn( "%s queue failed recently, skipping %d cycles" % ( vmType, 10-failedCount ) )
-      #  self.failedVMTypes[vmType] += 1
-      #  continue
-
-      # print "AT >>> vmType parameters:", vmType
-      # for key,value in self.vmTypeDict[vmType].items():
-      #  print key,value
-
       ce = self.vmTypeDict[vmType]['CE']
       ceName = self.vmTypeDict[vmType]['CEName']
       vmTypeName = self.vmTypeDict[vmType]['VMType']

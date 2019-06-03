@@ -74,9 +74,6 @@ class OpenStackEndpoint(Endpoint):
     self.getImages()
     self.getNetworks()
 
-    #import pprint
-    # pprint.pprint(self.parameters)
-
   def getFlavors(self):
 
     if not self.computeURL or not self.token:
@@ -88,10 +85,6 @@ class OpenStackEndpoint(Endpoint):
     result = requests.get(url, headers={"X-Auth-Token": self.token})
 
     output = json.loads(result.text)
-
-    #import pprint
-    # pprint.pprint(output)
-
     for flavor in output['flavors']:
       self.flavors[flavor["name"]] = {"FlavorID": flavor['id'],
                                       "RAM": flavor['ram'],
@@ -108,9 +101,6 @@ class OpenStackEndpoint(Endpoint):
                           headers={"X-Auth-Token": self.token})
 
     output = json.loads(result.text)
-    #import pprint
-    # pprint.pprint(output)
-
     for image in output['images']:
       self.images[image['name']] = {'id': image['id']}
 
@@ -126,9 +116,6 @@ class OpenStackEndpoint(Endpoint):
       result = requests.get("%s/v2.0/networks" % self.networkURL,
                             headers={"X-Auth-Token": self.token})
       output = json.loads(result.text)
-      #import pprint
-      # pprint.pprint(output)
-
     except Exception as exc:
       return S_ERROR('Cannot get networks: %s' % str(exc))
 
@@ -176,13 +163,6 @@ class OpenStackEndpoint(Endpoint):
 
     if not self.initialized:
       self.initialize()
-
-    #import pprint
-    # print "AT >>> initialized"
-    # pprint.pprint(self.parameters)
-    # pprint.pprint(self.images)
-    # pprint.pprint(self.flavors)
-    # pprint.pprint(self.networks)
 
     imageID = self.parameters.get('ImageID')
     if not imageID:
@@ -234,9 +214,6 @@ class OpenStackEndpoint(Endpoint):
 
     self.parameters['VMUUID'] = instanceID
     self.parameters['VMType'] = self.parameters.get('CEType', 'OpenStack')
-
-    #import pprint
-    # pprint.pprint(self.parameters)
 
     result = self._createUserDataScript()
     if not result['OK']:
@@ -363,9 +340,6 @@ class OpenStackEndpoint(Endpoint):
       result = requests.get("%s/v2.0/ports" % self.networkURL,
                             headers={"X-Auth-Token": self.token})
       output = json.loads(result.text)
-      #import pprint
-      # pprint.pprint(output)
-
       portID = None
       for port in output['ports']:
         if port['device_id'] == nodeID:
@@ -409,9 +383,6 @@ class OpenStackEndpoint(Endpoint):
       result = requests.get("%s/v2.0/floatingips" % self.networkURL,
                             headers={"X-Auth-Token": self.token})
       output = json.loads(result.text)
-      #import pprint
-      # pprint.pprint(output)
-
     except Exception as e:
       return S_ERROR('Cannot get floatingips')
 
@@ -440,8 +411,6 @@ class OpenStackEndpoint(Endpoint):
     self.vmInfo['floatingID'] = output['floatingip']['id']
 
     output = json.loads(result.text)
-    #import pprint
-    # pprint.pprint(output)
     self.vmInfo.setdefault(nodeID, {})
     self.vmInfo['floatingID'] = output['floatingip']['id']
 
@@ -460,9 +429,6 @@ class OpenStackEndpoint(Endpoint):
       return S_ERROR("VM ID %s not found" % vmID)
 
     output = json.loads(response.text)
-    #import pprint
-    # pprint.pprint(output)
-
     if response.status_code == 404:
       return S_ERROR("Cannot get VM info: %s" % output['itemNotFound']['message'])
 
@@ -518,9 +484,6 @@ class OpenStackEndpoint(Endpoint):
         result = requests.get("%s/v2.0/floatingips" % self.networkURL,
                               headers={"X-Auth-Token": self.token})
         output = json.loads(result.text)
-        #import pprint
-        # pprint.pprint(output)
-
       except Exception as e:
         return S_ERROR('Cannot get floatingips')
 

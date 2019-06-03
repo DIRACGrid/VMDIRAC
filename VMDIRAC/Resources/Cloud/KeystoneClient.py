@@ -122,10 +122,6 @@ class KeystoneClient():
       return S_ERROR('Exception getting keystone token: %s' % str(exc))
 
     output = result.json()
-
-    #import pprint
-    # pprint.pprint(output)
-
     self.token = str(output['access']['token']['id'])
     expires = fromString(str(output['access']['token']['expires']).replace('T', ' ').replace('Z', ''))
     issued = fromString(str(output['access']['token']['issued_at']).replace('T', ' ').replace('Z', ''))
@@ -185,10 +181,6 @@ class KeystoneClient():
                   (str(authArgs), str(authDict)))
 
     url = "%s/auth/tokens" % self.url
-    # print "AT >>> keystone url", url, os.environ['X509_USER_PROXY']
-    #import pprint
-    # pprint.pprint(authDict)
-    # pprint.pprint(authArgs)
     try:
       result = requests.post(url,
                              headers={"Content-Type": "application/json",
@@ -209,8 +201,6 @@ class KeystoneClient():
       return S_ERROR('Failed to get keystone token: %s' % str(exc))
 
     output = result.json()
-    #import pprint
-    # pprint.pprint(output)
 
     expires = fromString(str(output['token']['expires_at']).replace('T', ' ').replace('Z', ''))
     issued = fromString(str(output['token']['issued_at']).replace('T', ' ').replace('Z', ''))

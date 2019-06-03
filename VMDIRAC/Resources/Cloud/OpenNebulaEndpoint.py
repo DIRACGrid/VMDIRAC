@@ -152,7 +152,6 @@ class OpenNebulaEndpoint(Endpoint):
 
     # TODO: remove this stuff (required by _createUserDataScript)
     self.parameters['VMUUID'] = instanceID
-    #self.parameters['VMType'] = self.parameters.get( 'CEType', 'Occi' )
     self.parameters['VMType'] = self.parameters.get('CEType', 'OpenNebula')
     result = self._createUserDataScript()
     if not result['OK']:

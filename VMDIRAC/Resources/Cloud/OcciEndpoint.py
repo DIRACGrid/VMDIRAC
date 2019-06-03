@@ -126,7 +126,6 @@ class OcciEndpoint(Endpoint):
 
     try:
       keystoneURL = result.headers['www-authenticate'][14:-1]
-      #keystoneURL = keystoneURL.replace("/v2.0", '')
     except BaseException:
       return S_ERROR("Failed to find Keystone URL in %s" % result.headers['www-authenticate'])
 
@@ -459,8 +458,8 @@ class OcciEndpoint(Endpoint):
     nodeRef = '%s/%s' % (self.computeUrl, os.path.basename(nodeID))
     nodeRef = nodeRef.replace('//', '/')
 
-    #data = self.__renderCategory('networkinterface', "kind")
-    data = 'Category: networkinterface;scheme="http://schemas.ogf.org/occi/infrastructure#";class="kind";location="/link/networkinterface/";title="networkinterface link"\n'
+    data = 'Category: networkinterface;scheme="http://schemas.ogf.org/occi/infrastructure#";' \
+           'class="kind";location="/link/networkinterface/";title="networkinterface link"\n'
     data += 'X-OCCI-Attribute: occi.core.source="%s"\n' % nodeRef
     data += 'X-OCCI-Attribute: occi.core.target="%s/network/%s"\n' % (self.serviceUrl, network)
     data += 'X-OCCI-Attribute: occi.core.id="%s"' % networkInterfaceID
@@ -469,9 +468,6 @@ class OcciEndpoint(Endpoint):
     result = self.session.post("%s/link/networkinterface/" % self.serviceUrl,
                                headers=headers,
                                data=data)
-
-    # print "AT >>> createIP", result, result.headers
-    # print "AT >>> result.text", result.text
 
     if result.status_code != 201:
       return S_ERROR(result.text)

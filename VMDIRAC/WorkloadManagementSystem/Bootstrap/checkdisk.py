@@ -68,7 +68,7 @@ def checkPartition(partition):
     if '%s1' % partition not in mountedList and '%s2' % partition not in mountedList:
       return partition
     if '%s2' % partition not in mountedList:
-
+      pass
 
 def getScratchDevice():
 

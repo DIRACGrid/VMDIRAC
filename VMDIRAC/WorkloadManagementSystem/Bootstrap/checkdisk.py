@@ -70,6 +70,7 @@ def checkPartition(partition):
     if '%s2' % partition not in mountedList:
       pass
 
+
 def getScratchDevice():
 
   # get unmounted partitions

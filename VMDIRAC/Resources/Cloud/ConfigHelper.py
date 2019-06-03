@@ -101,11 +101,21 @@ def getVMTypes( siteList = None, ceList = None, imageList = None, vo = None ):
 
   return S_OK( resultDict )
 
-def getVMTypeConfig( site, ce, vmtype = '' ):
+def getVMTypeConfig(site, ce = '', vmtype = ''):
   """ Get parameters of the specified queue
   """
   Tags = []
   grid = site.split( '.' )[0]
+  if not ce:
+    result = gConfig.getSections('/Resources/Sites/%s/%s/Cloud' % (grid, site))
+    if not result['OK']:
+      return result
+    ceList = result['Value']
+    if len(ceList) == 1:
+      ce = ceList[0]
+    else:
+      return S_ERROR('No cloud endpoint specified')
+
   result = gConfig.getOptionsDict( '/Resources/Sites/%s/%s/Cloud/%s' % ( grid, site, ce ) )
   if not result['OK']:
     return result
@@ -139,10 +149,12 @@ def getPilotBootstrapParameters( vo = '', runningPod = '' ):
   if result['OK']:
     opParameters = result['Value']
   opParameters['VO'] = vo
-  #opParameters['Project'] = op.getValue( 'Cloud/Project', 'DIRAC' )
-  opParameters['Version'] = op.getValue( 'Cloud/Version' )
+  opParameters['ReleaseProject'] = op.getValue( 'Cloud/ReleaseProject', 'DIRAC' )
+  opParameters['ReleaseVersion'] = op.getValue( 'Cloud/ReleaseVersion' )
   opParameters['Setup'] = gConfig.getValue( '/DIRAC/Setup', 'unknown' )
   opParameters['SubmitPool'] = op.getValue( 'Cloud/SubmitPool' )
+  opParameters['CloudPilotCert'] = op.getValue( 'Cloud/CloudPilotCert' )
+  opParameters['CloudPilotKey'] = op.getValue( 'Cloud/CloudPilotKey' )
   result = op.getOptionsDict( 'Cloud/%s' % runningPod )
   if result['OK']:
     opParameters.update( result['Value'] )

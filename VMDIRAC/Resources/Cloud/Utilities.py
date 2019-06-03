@@ -77,7 +77,6 @@ sed -i 's/PermitRootLogin no/PermitRootLogin yes/g' /etc/ssh/sshd_config
 # Copy id_rsa.pub to authorized_keys
 echo \" """ + sshKey + """\" > /root/.ssh/authorized_keys
 service sshd restart
-echo CKM-best | passwd --stdin root
 """
 
   # List of commands to be downloaded
@@ -207,7 +206,6 @@ users:
   - name: %s
     sudo: ALL=(ALL) NOPASSWD:ALL
     lock_passwd: false
-    passwd: $1$SaltSalt$YnAUwnq0wHdTmxfRXAbFU.
     ssh-authorized-keys:
       - %s
     """ % (sshUser, sshKey)

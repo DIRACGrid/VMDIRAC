@@ -29,3 +29,7 @@ pip-log.txt
 .*.sw[a-z]
 *.un~
 Session.vim
+
+# docs
+docs/source/CodeDocumentation
+docs/source/CommandReference

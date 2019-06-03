@@ -12,6 +12,7 @@ from VMDIRAC.Resources.Cloud.ConfigHelper import findGenericCloudCredentials
 
 __RCSID__ = "$Id$"
 
+
 def getProxyFileForCE(ce):
   """ Get a file with the proxy to be used to connect to the
       given cloud endpoint
@@ -24,15 +25,15 @@ def getProxyFileForCE(ce):
   cloudDN = None
   cloudGroup = None
   if vo:
-    result = findGenericCloudCredentials(vo = vo)
-    if not result[ 'OK' ]:
+    result = findGenericCloudCredentials(vo=vo)
+    if not result['OK']:
       return result
-    cloudDN, cloudGroup = result[ 'Value' ]
+    cloudDN, cloudGroup = result['Value']
 
   cloudUser = ce.parameters.get('GenericCloudUser')
   if cloudUser:
     result = Registry.getDNForUsername(cloudUser)
-    if not result[ 'OK' ]:
+    if not result['OK']:
       return result
     cloudDN = result['Value'][0]
   cloudGroup = ce.parameters.get('GenericCloudGroup', cloudGroup)
@@ -46,4 +47,3 @@ def getProxyFileForCE(ce):
     return result
   else:
     return S_ERROR('Could not find generic cloud credentials')
-

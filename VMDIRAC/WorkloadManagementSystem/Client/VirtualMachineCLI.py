@@ -10,17 +10,18 @@ from DIRAC.Core.Utilities.PrettyPrint import int_with_commas, printTable
 
 from VMDIRAC.Resources.Cloud.EndpointFactory import EndpointFactory
 from VMDIRAC.Resources.Cloud.ConfigHelper import getPilotBootstrapParameters, \
-                                                 getVMTypeConfig, getVMTypes
+    getVMTypeConfig, getVMTypes
 from DIRAC.Core.Utilities.File import makeGuid
 
 __RCSID__ = "$Id$"
+
 
 class VirtualMachineCLI(CLI):
   """ Virtual Machine management console
   """
 
   def __init__(self, vo=None):
-    CLI.__init__( self )
+    CLI.__init__(self)
     self.site = None
     self.endpoint = None
     self.project = None
@@ -30,7 +31,7 @@ class VirtualMachineCLI(CLI):
     self.user = None
     self.password = None
 
-  def do_connect(self,args):
+  def do_connect(self, args):
     """ Choose the specified cloud endpoint for connection
 
         usage:
@@ -72,7 +73,7 @@ class VirtualMachineCLI(CLI):
       if not ceDict.get('User') or not ceDict.get('Password'):
         print "Endpoint requires user/password"
         self.user = raw_input(["Login:"])
-        self.password = getpass.getpass( "Password:" )
+        self.password = getpass.getpass("Password:")
 
     print "Connection: site=%s, endpoint=%s, project=%s" % (self.site, self.endpoint, self.project)
     self.prompt = '%s/%s/%s> ' % (self.site, self.endpoint, self.project)
@@ -162,11 +163,11 @@ class VirtualMachineCLI(CLI):
         vmStart = True
         for vmType in siteDict[site][ce]['VMTypes']:
           if ceStart and vmStart:
-            records.append([site,ce,vmType])
+            records.append([site, ce, vmType])
           elif ceStart:
-            records.append(['','',vmType])
+            records.append(['', '', vmType])
           else:
-            records.append(['',ce,vmType])
+            records.append(['', ce, vmType])
           vmStart = False
         ceStart = False
 
@@ -195,14 +196,13 @@ class VirtualMachineCLI(CLI):
     else:
       print result['Value']['status']
 
-
   def do_ip(self, args):
     """ Assign IP
     """
 
     argss = args.split()
     if (len(argss) == 0):
-      print self.do_assign-ip.__doc__
+      print self.do_assign - ip.__doc__
       return
     vmID = argss[0]
 
@@ -214,7 +214,7 @@ class VirtualMachineCLI(CLI):
     else:
       print result['Value']
 
-  def do_create(self,args):
+  def do_create(self, args):
     """ Create VM
     """
 
@@ -243,7 +243,7 @@ class VirtualMachineCLI(CLI):
     else:
       print result['Value']
 
-  def do_stop(self,args):
+  def do_stop(self, args):
     """ Stop VM
     """
 

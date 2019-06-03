@@ -5,28 +5,30 @@ from DIRAC import S_OK, S_ERROR
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-STATE_MAP = { 0: 'RUNNING',
-              1: 'REBOOTING',
-              2: 'TERMINATED',
-              3: 'PENDING',
-              4: 'UNKNOWN',
-              5: 'STOPPED',
-              6: 'SUSPENDED',
-              7: 'ERROR',
-              8: 'PAUSED' }
+STATE_MAP = {0: 'RUNNING',
+             1: 'REBOOTING',
+             2: 'TERMINATED',
+             3: 'PENDING',
+             4: 'UNKNOWN',
+             5: 'STOPPED',
+             6: 'SUSPENDED',
+             7: 'ERROR',
+             8: 'PAUSED'}
 
-def createMimeData( userDataTuple ):
+
+def createMimeData(userDataTuple):
 
   userData = MIMEMultipart()
   for contents, mtype, fname in userDataTuple:
     try:
       mimeText = MIMEText(contents, mtype, sys.getdefaultencoding())
-      mimeText.add_header('Content-Disposition', 'attachment; filename="%s"' % fname )
-      userData.attach( mimeText )
+      mimeText.add_header('Content-Disposition', 'attachment; filename="%s"' % fname)
+      userData.attach(mimeText)
     except Exception as e:
-      return S_ERROR( str( e ) )
+      return S_ERROR(str(e))
 
-  return S_OK( userData )
+  return S_OK(userData)
+
 
 def createPilotDataScript(vmParameters, bootstrapParameters):
 
@@ -35,39 +37,39 @@ def createPilotDataScript(vmParameters, bootstrapParameters):
   # Arguments to the vm-bootstrap command
   parameters = dict(vmParameters)
   parameters.update(bootstrapParameters)
-  bootstrapArgs = { 'dirac-site': parameters.get('Site'),
-                    'submit-pool': parameters.get('SubmitPool', ''),
-                    'ce-name': parameters.get('CEName'),
-                    'image-name': parameters.get('Image'),
-                    'vm-uuid': parameters.get('VMUUID'),
-                    'vmtype': parameters.get('VMType'),
-                    'vo': parameters.get('VO',''),
-                    'running-pod': parameters.get('RunningPod',parameters.get('VO','')),
-                    'cvmfs-proxy': parameters.get( 'CVMFSProxy', 'DIRECT' ),
-                    'cs-servers': ','.join( parameters.get( 'CSServers', [])),
-                    'number-of-processors': parameters.get( 'NumberOfProcessors', 1 ),
-                    'whole-node': parameters.get( 'WholeNode', True ),
-                    'required-tag': parameters.get( 'RequiredTag', '' ),
-                    'release-version': parameters.get('Version'),
-                    'release-project': parameters.get('Project'),
-                    'setup': parameters.get('Setup')}
+  bootstrapArgs = {'dirac-site': parameters.get('Site'),
+                   'submit-pool': parameters.get('SubmitPool', ''),
+                   'ce-name': parameters.get('CEName'),
+                   'image-name': parameters.get('Image'),
+                   'vm-uuid': parameters.get('VMUUID'),
+                   'vmtype': parameters.get('VMType'),
+                   'vo': parameters.get('VO', ''),
+                   'running-pod': parameters.get('RunningPod', parameters.get('VO', '')),
+                   'cvmfs-proxy': parameters.get('CVMFSProxy', 'DIRECT'),
+                   'cs-servers': ','.join(parameters.get('CSServers', [])),
+                   'number-of-processors': parameters.get('NumberOfProcessors', 1),
+                   'whole-node': parameters.get('WholeNode', True),
+                   'required-tag': parameters.get('RequiredTag', ''),
+                   'release-version': parameters.get('Version'),
+                   'release-project': parameters.get('Project'),
+                   'setup': parameters.get('Setup')}
 
   bootstrapString = ''
   for key, value in bootstrapArgs.items():
-    bootstrapString += " --%s=%s \\\n" % ( key, value )
+    bootstrapString += " --%s=%s \\\n" % (key, value)
   userDataDict['bootstrapArgs'] = bootstrapString
 
-  userDataDict['user_data_commands_base_url'] = bootstrapParameters.get( 'user_data_commands_base_url' )
+  userDataDict['user_data_commands_base_url'] = bootstrapParameters.get('user_data_commands_base_url')
   if not userDataDict['user_data_commands_base_url']:
-    return S_ERROR( 'user_data_commands_base_url is not defined' )
-  with open( bootstrapParameters['CloudPilotCert'] ) as cfile:
+    return S_ERROR('user_data_commands_base_url is not defined')
+  with open(bootstrapParameters['CloudPilotCert']) as cfile:
     userDataDict['user_data_file_hostkey'] = cfile.read().strip()
-  with open( bootstrapParameters['CloudPilotKey'] ) as kfile:
+  with open(bootstrapParameters['CloudPilotKey']) as kfile:
     userDataDict['user_data_file_hostcert'] = kfile.read().strip()
   sshKey = None
   userDataDict['add_root_ssh_key'] = ""
   if 'SshKey' in parameters:
-    with open(parameters['SshKey'] ) as sfile:
+    with open(parameters['SshKey']) as sfile:
       sshKey = sfile.read().strip()
       userDataDict['add_root_ssh_key'] = """
 # Allow root login
@@ -79,12 +81,12 @@ echo CKM-best | passwd --stdin root
 """
 
   # List of commands to be downloaded
-  bootstrapCommands = bootstrapParameters.get( 'user_data_commands' )
-  if isinstance( bootstrapCommands, basestring ):
-    bootstrapCommands = bootstrapCommands.split( ',' )
+  bootstrapCommands = bootstrapParameters.get('user_data_commands')
+  if isinstance(bootstrapCommands, basestring):
+    bootstrapCommands = bootstrapCommands.split(',')
   if not bootstrapCommands:
-    return S_ERROR( 'user_data_commands list is not defined' )
-  userDataDict['bootstrapCommands'] = ' '.join( bootstrapCommands )
+    return S_ERROR('user_data_commands list is not defined')
+  userDataDict['bootstrapCommands'] = ' '.join(bootstrapCommands)
 
   script = """
 cat <<X5_EOF >/root/hostkey.pem
@@ -149,11 +151,12 @@ users:
       - ssh-rsa %s
     """ % sshKey
 
-  #print "AT >>> user_data", user_data
-  #print "AT >>> cloud_config",  cloud_config
+  # print "AT >>> user_data", user_data
+  # print "AT >>> cloud_config",  cloud_config
 
-  return createMimeData( ( ( user_data, 'x-shellscript', 'dirac_boot.sh' ),
-                           ( cloud_config, 'cloud-config', 'cloud-config') ) )
+  return createMimeData(((user_data, 'x-shellscript', 'dirac_boot.sh'),
+                         (cloud_config, 'cloud-config', 'cloud-config')))
+
 
 def createUserDataScript(parameters):
 
@@ -209,6 +212,6 @@ users:
       - %s
     """ % (sshUser, sshKey)
 
-    mime = createMimeData( ( ( user_data, 'x-shellscript', 'dirac_boot.sh' ),
-                           ( cloud_config, 'cloud-config', 'cloud-config') ) )
+    mime = createMimeData(((user_data, 'x-shellscript', 'dirac_boot.sh'),
+                           (cloud_config, 'cloud-config', 'cloud-config')))
     return mime

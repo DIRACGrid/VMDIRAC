@@ -24,25 +24,26 @@ from DIRAC.Core.Utilities.File import makeGuid
 
 DEBUG = False
 
-class OcciEndpoint( Endpoint ):
+
+class OcciEndpoint(Endpoint):
   """ OCCI implementation of the Cloud Endpoint interface
   """
 
-  def __init__( self, parameters = {} ):
+  def __init__(self, parameters={}):
     """
     """
-    super( OcciEndpoint, self ).__init__(parameters = parameters)
+    super(OcciEndpoint, self).__init__(parameters=parameters)
     # logger
-    self.log = gLogger.getSubLogger( 'OcciEndpoint' )
+    self.log = gLogger.getSubLogger('OcciEndpoint')
     self.valid = False
-    self.vmType = self.parameters.get( 'VMType' )
-    self.site = self.parameters.get( 'Site' )
+    self.vmType = self.parameters.get('VMType')
+    self.site = self.parameters.get('Site')
 
     # Prepare the authentication request parameters
     self.session = None
     self.authArgs = {}
-    self.user = self.parameters.get( "User" )
-    self.password = self.parameters.get( "Password" )
+    self.user = self.parameters.get("User")
+    self.password = self.parameters.get("Password")
     self.loginMode = False
     if self.user and self.password:
       # we have the login/password case
@@ -51,8 +52,8 @@ class OcciEndpoint( Endpoint ):
       self.loginMode = True
     else:
       # we have the user proxy case
-      self.userProxy = os.environ.get( 'X509_USER_PROXY' )
-      self.userProxy = self.parameters.get( "Proxy", self.userProxy )
+      self.userProxy = os.environ.get('X509_USER_PROXY')
+      self.userProxy = self.parameters.get("Proxy", self.userProxy)
       if self.userProxy:
         self.parameters['Proxy'] = self.userProxy
       if self.userProxy is None:
@@ -60,41 +61,41 @@ class OcciEndpoint( Endpoint ):
         self.valid = False
         return
       self.authArgs['cert'] = self.userProxy
-      self.caPath = self.parameters.get( 'CAPath', '/Users/atsareg/work/client/etc/grid-security/certificates/cas.pem' )
+      self.caPath = self.parameters.get('CAPath', '/Users/atsareg/work/client/etc/grid-security/certificates/cas.pem')
       self.parameters['CAPath'] = self.caPath
       self.authArgs['verify'] = self.caPath
       if self.parameters.get("Auth") == "voms":
         self.authArgs['data'] = '{"auth":{"voms": true}}'
 
-    self.serviceUrl = self.parameters.get( 'EndpointUrl' )
+    self.serviceUrl = self.parameters.get('EndpointUrl')
     self.computeUrl = None
-    self.tenant = self.parameters.get( 'Tenant' )
+    self.tenant = self.parameters.get('Tenant')
     self.token = None
     self.scheme = {}
     result = self.initialize()
     if result['OK']:
-      self.log.debug( 'OcciEndpoint created and validated' )
+      self.log.debug('OcciEndpoint created and validated')
       self.valid = True
 
     #import pprint
     #pprint.pprint( self.scheme )
 
-  def initialize( self ):
+  def initialize(self):
 
     try:
-      result = requests.head( self.serviceUrl + '/-/',
-                              headers = {"Content-Type": "text/plain"},
-                              **self.authArgs )
+      result = requests.head(self.serviceUrl + '/-/',
+                             headers={"Content-Type": "text/plain"},
+                             **self.authArgs)
     except Exception as exc:
-      return S_ERROR( repr(exc) )
+      return S_ERROR(repr(exc))
 
-    #for key,value in result.headers.items():
+    # for key,value in result.headers.items():
     #  print "AT >>> initialize", key,value
-    #print "AT >>> initialize text", result.text
+    # print "AT >>> initialize text", result.text
 
-    return  self.__checkConnection()
+    return self.__checkConnection()
 
-  def __getKeystoneUrl( self ):
+  def __getKeystoneUrl(self):
 
     # The URL can be specified in the configuration
     if self.parameters.get('KeystoneURL'):
@@ -103,42 +104,42 @@ class OcciEndpoint( Endpoint ):
     # Make a trial service call
     try:
       result = requests.head(self.serviceUrl + '/-/',
-                             headers = {"Content-Type": "text/plain"},
+                             headers={"Content-Type": "text/plain"},
                              **self.authArgs)
     except Exception as e:
-      return S_ERROR( str( e ) )
+      return S_ERROR(str(e))
 
-    #print "AT >>> __getKeystoneUrl", result, result.text
-    #print "AT >>> __getKeystoneUrl", result.headers
+    # print "AT >>> __getKeystoneUrl", result, result.text
+    # print "AT >>> __getKeystoneUrl", result.headers
 
     # This is not an authentication error
     if result.status_code != 401 or result.headers is None:
-      return S_OK( None )
-      #return S_ERROR('Do not recognise response when connecting to ' + self.serviceUrl)
+      return S_OK(None)
+      # return S_ERROR('Do not recognise response when connecting to ' + self.serviceUrl)
 
     if 'www-authenticate' not in result.headers:
-      return S_OK( None )
+      return S_OK(None)
 
     if not result.headers['www-authenticate'].startswith("Keystone uri="):
-      return S_ERROR('Only Keystone authentication is currently supported (instead got "%s")' % \
+      return S_ERROR('Only Keystone authentication is currently supported (instead got "%s")' %
                      result.headers['www-authenticate'])
 
     try:
       keystoneURL = result.headers['www-authenticate'][14:-1]
       #keystoneURL = keystoneURL.replace("/v2.0", '')
-    except:
-      return S_ERROR( "Failed to find Keystone URL in %s" % result.headers['www-authenticate'] )
+    except BaseException:
+      return S_ERROR("Failed to find Keystone URL in %s" % result.headers['www-authenticate'])
 
     return S_OK(keystoneURL)
 
-  def __getSchemaDefinitions( self ):
+  def __getSchemaDefinitions(self):
 
     try:
       response = self.session.get("%s/-/" % self.serviceUrl,
-                              headers = {'Accept': 'text/plain,text/occi'})
+                                  headers={'Accept': 'text/plain,text/occi'})
 
     except Exception as exc:
-      return S_ERROR( 'Failed to get schema definition: %s' % str( exc ) )
+      return S_ERROR('Failed to get schema definition: %s' % str(exc))
 
     if response.status_code != 200:
       return S_ERROR("Failed to get schema definition", response.text)
@@ -149,22 +150,22 @@ class OcciEndpoint( Endpoint ):
     for category in categories:
       if category:
         values = category.split(";")
-        categoryName = values[0][values[0].find(":")+1:].strip()
+        categoryName = values[0][values[0].find(":") + 1:].strip()
         scheme = None
         className = None
         title = None
         location = None
         for property in values:
           if "scheme=" in property:
-            scheme = property.strip().replace( 'scheme=','' ).replace( '"', '' )
+            scheme = property.strip().replace('scheme=', '').replace('"', '')
           if "class=" in property:
-            className = property.strip().replace( 'class=','' ).replace( '"', '' )
+            className = property.strip().replace('class=', '').replace('"', '')
           if "title=" in property:
-            title = property.strip().replace( 'title=','' ).replace( '"', '' )
+            title = property.strip().replace('title=', '').replace('"', '')
           if "location=" in property:
             tmp = property.strip()
-            tmp = tmp.replace("https://","").replace("http://","").replace( '"', '' )
-            tmp = tmp[ tmp.find("/"): ]
+            tmp = tmp.replace("https://", "").replace("http://", "").replace('"', '')
+            tmp = tmp[tmp.find("/"):]
             location = tmp
 
         if className is None:
@@ -180,18 +181,18 @@ class OcciEndpoint( Endpoint ):
 
     return S_OK()
 
-  def __checkConnection( self ):
+  def __checkConnection(self):
     """
     Checks connection status by trying to list the images.
 
     :return: S_OK | S_ERROR
     """
     self.session = requests.Session()
-    self.session.mount( self.serviceUrl, 
-                        requests.adapters.HTTPAdapter( pool_connections = 20 ) )
+    self.session.mount(self.serviceUrl,
+                       requests.adapters.HTTPAdapter(pool_connections=20))
     self.session.verify = self.authArgs['verify']
 
-    #Retrieve token
+    # Retrieve token
     result = self.__getKeystoneUrl()
     if not result['OK']:
       return result
@@ -204,7 +205,7 @@ class OcciEndpoint( Endpoint ):
         return result
       self.token = result['Value']
       self.session.headers.clear()
-      self.session.headers.update( {"X-Auth-Token": self.token} )
+      self.session.headers.update({"X-Auth-Token": self.token})
       self.session.verify = self.authArgs['verify']
     else:
       if self.loginMode:
@@ -220,16 +221,16 @@ class OcciEndpoint( Endpoint ):
     self.computeUrl = "%s/compute/" % (self.serviceUrl)
     return S_OK()
 
-  def createInstances( self, vmsToSubmit ):
+  def createInstances(self, vmsToSubmit):
     outputDict = {}
     message = ''
-    for nvm in xrange( vmsToSubmit ):
+    for nvm in xrange(vmsToSubmit):
       instanceID = makeGuid()[:8]
       createPublicIP = 'ipPool' in self.parameters
-      result = self.createInstance( instanceID, createPublicIP )
+      result = self.createInstance(instanceID, createPublicIP)
       if result['OK']:
         nodeID, publicIP = result['Value']
-        self.log.debug( 'Created VM instance %s/%s with publicIP %s' % ( nodeID, instanceID, publicIP ) )
+        self.log.debug('Created VM instance %s/%s with publicIP %s' % (nodeID, instanceID, publicIP))
         nodeDict = {}
         nodeDict['PublicIP'] = publicIP
         nodeDict['InstanceID'] = instanceID
@@ -246,9 +247,9 @@ class OcciEndpoint( Endpoint ):
     if not outputDict:
       return S_ERROR('No VM submitted: %s' % message)
 
-    return S_OK( outputDict )
+    return S_OK(outputDict)
 
-  def __renderCategory( self, category, className ):
+  def __renderCategory(self, category, className):
 
     if className not in self.scheme:
       return None
@@ -260,11 +261,11 @@ class OcciEndpoint( Endpoint ):
                                                         className)
     for attribute in ['location', 'title']:
       if attribute in self.scheme[className][category]:
-        output += '; %s="%s"' % ( attribute, self.scheme[className][category][attribute] )
+        output += '; %s="%s"' % (attribute, self.scheme[className][category][attribute])
 
     return output + '\n'
 
-  def createInstance( self, instanceID = '', createPublicIP = True  ):
+  def createInstance(self, instanceID='', createPublicIP=True):
     """
     This creates a VM instance for the given boot image
     and creates a context script, taken the given parameters.
@@ -283,50 +284,50 @@ class OcciEndpoint( Endpoint ):
     :return: S_OK( ( nodeID, publicIP ) ) | S_ERROR
     """
 
-    imageID = self.parameters.get( 'ImageID' )
-    flavor = self.parameters.get( 'FlavorName' )
+    imageID = self.parameters.get('ImageID')
+    flavor = self.parameters.get('FlavorName')
     self.parameters['VMUUID'] = instanceID
-    self.parameters['VMType'] = self.parameters.get( 'CEType', 'Occi' )
+    self.parameters['VMType'] = self.parameters.get('CEType', 'Occi')
 
     result = self._createUserDataScript()
     if not result['OK']:
       return result
-    userData = str( result['Value'] )
+    userData = str(result['Value'])
 
     headers = {
-                'Accept': 'text/plain,text/occi',
-                'Content-Type': 'text/plain,text/occi',
-                'Connection': 'close' }
+        'Accept': 'text/plain,text/occi',
+        'Content-Type': 'text/plain,text/occi',
+        'Connection': 'close'}
 
-    data = self.__renderCategory( "compute", 'kind' )
-    for cat in [ 'user_data', imageID, flavor ]:
-      item = self.__renderCategory( cat, 'mixin' )
+    data = self.__renderCategory("compute", 'kind')
+    for cat in ['user_data', imageID, flavor]:
+      item = self.__renderCategory(cat, 'mixin')
       if item is None:
-        return S_ERROR( "Category %s not defined in the scheme" % cat )
+        return S_ERROR("Category %s not defined in the scheme" % cat)
       data += item
     data += 'X-OCCI-Attribute: occi.core.id="%s"\n' % str(uuid.uuid4())
     data += 'X-OCCI-Attribute: occi.core.title="%s"\n' % instanceID
     data += 'X-OCCI-Attribute: occi.compute.hostname="%s"\n' % instanceID
-    data += 'X-OCCI-Attribute: org.openstack.compute.user_data="%s"' % base64.b64encode( userData )
+    data += 'X-OCCI-Attribute: org.openstack.compute.user_data="%s"' % base64.b64encode(userData)
     #data += 'X-OCCI-Attribute: org.openstack.credentials.publickey.data="ssh-rsa ' + sshPublicKey + ' vmdirac"'
 
     del self.authArgs['data']
 
     result = self.session.post(self.computeUrl,
-                               data = data,
-                               headers = headers,
+                               data=data,
+                               headers=headers,
                                **self.authArgs)
 
-    #print "AT >>> createInstance", result, result.headers
-    #print "AT >>> result.text", result.text
+    # print "AT >>> createInstance", result, result.headers
+    # print "AT >>> result.text", result.text
 
     if result.status_code == 201:
       nodeID = result.text.split()[-1]
-      return S_OK((nodeID,None))
+      return S_OK((nodeID, None))
 
     return S_ERROR('Failed VM creation: %s' % result.text)
 
-  def getVMIDs( self ):
+  def getVMIDs(self):
     """ Get all the VM IDs on the endpoint
 
     :return: list of VM ids
@@ -335,12 +336,12 @@ class OcciEndpoint( Endpoint ):
     try:
       response = self.session.get(self.computeUrl)
     except Exception as e:
-      return S_ERROR( 'Cannot connect to ' + self.computeUrl + ' (' + str(e) + ')' )
+      return S_ERROR('Cannot connect to ' + self.computeUrl + ' (' + str(e) + ')')
 
-    vmIDs = [ id.split()[1] for id in response.text.split( '\n' ) if id.startswith( 'X-OCCI-Location:' ) ]
-    return S_OK( vmIDs )
+    vmIDs = [id.split()[1] for id in response.text.split('\n') if id.startswith('X-OCCI-Location:')]
+    return S_OK(vmIDs)
 
-  def getVMStatus( self, nodeID ):
+  def getVMStatus(self, nodeID):
     """
     Get the status for a given node ID. libcloud translates the status into a digit
     from 0 to 4 using a many-to-one relation ( ACTIVE and RUNNING -> 0 ), which
@@ -355,19 +356,19 @@ class OcciEndpoint( Endpoint ):
 
     :return: S_OK( status ) | S_ERROR
     """
-    url = '%s/%s' % ( self.computeUrl, os.path.basename( nodeID ) )
+    url = '%s/%s' % (self.computeUrl, os.path.basename(nodeID))
     try:
       response = self.session.get(url)
     except Exception as e:
-      return S_ERROR( 'Cannot get node details for %s (' % nodeID + str(e) + ')' )
+      return S_ERROR('Cannot get node details for %s (' % nodeID + str(e) + ')')
 
     status = "Unknown"
-    for item in response.text.split( '\n' ):
+    for item in response.text.split('\n'):
       if "occi.compute.state" in item:
-        status = item.split("=")[1].replace('"','')
-    return S_OK( status )
+        status = item.split("=")[1].replace('"', '')
+    return S_OK(status)
 
-  def getVMNetworks( self, networkNames = [] ):
+  def getVMNetworks(self, networkNames=[]):
     """ Get a network object corresponding to the networkName
 
     :param str networkName: network name
@@ -377,36 +378,36 @@ class OcciEndpoint( Endpoint ):
     try:
       response = self.session.get(networkUrl)
     except Exception as e:
-      return S_ERROR( 'Cannot get network details' )
+      return S_ERROR('Cannot get network details')
 
     if response.status_code != 200:
-      return S_ERROR( 'Failed to get available networks' )
+      return S_ERROR('Failed to get available networks')
 
     networks = []
-    for line in response.text.split( '\n' ):
-      networks.append( line.split()[1].split( '/' )[-1] )
+    for line in response.text.split('\n'):
+      networks.append(line.split()[1].split('/')[-1])
 
-    return S_OK( networks )
+    return S_OK(networks)
 
-  def getVMNetworkInterface( self, network ):
+  def getVMNetworkInterface(self, network):
     """ Get a network object corresponding to the networkName
 
     :param str networkName: network name
     :return: S_OK|S_ERROR network object in case of S_OK
     """
-    headers = { 'Accept': 'application/occi,application/json' }
-    networkUrl = "%s/network/%s" % ( self.serviceUrl, network )
+    headers = {'Accept': 'application/occi,application/json'}
+    networkUrl = "%s/network/%s" % (self.serviceUrl, network)
     try:
-      response = self.session.get( networkUrl)
+      response = self.session.get(networkUrl)
     except Exception as e:
-      return S_ERROR( 'Cannot get network details' )
+      return S_ERROR('Cannot get network details')
 
     if response.status_code != 200:
-      return S_ERROR( 'Failed to get available networks' )
+      return S_ERROR('Failed to get available networks')
 
-    return S_OK( response.text )
+    return S_OK(response.text)
 
-  def stopVM( self, nodeID, publicIP = '' ):
+  def stopVM(self, nodeID, publicIP=''):
     """
     Given the node ID it gets the node details, which are used to destroy the
     node making use of the libcloud.openstack driver. If three is any public IP
@@ -421,18 +422,18 @@ class OcciEndpoint( Endpoint ):
     :return: S_OK | S_ERROR
     """
 
-    url = '%s/%s' % ( self.computeUrl, os.path.basename( nodeID ) )
+    url = '%s/%s' % (self.computeUrl, os.path.basename(nodeID))
     try:
       response = self.session.delete(url)
     except Exception as e:
-      return S_ERROR( 'Cannot delete node %s (' % nodeID + str(e) + ')' )
+      return S_ERROR('Cannot delete node %s (' % nodeID + str(e) + ')')
 
     if response.status_code == 200:
-      return S_OK( response.text )
+      return S_OK(response.text)
     else:
-      return S_ERROR( response.text )
+      return S_ERROR(response.text)
 
-  def assignFloatingIP( self, nodeID ):
+  def assignFloatingIP(self, nodeID):
     """
     Given a node, assign a floating IP from the ipPool defined on the imageConfiguration
     on the CS.
@@ -451,38 +452,37 @@ class OcciEndpoint( Endpoint ):
     network = result['Value'][1]
     networkInterfaceID = str(uuid.uuid4())[:8]
 
-    headers = { 'Accept': 'text/plain,text/occi',
-                'Content-Type': 'text/plain,text/occi',
-                'Connection': 'close' }
+    headers = {'Accept': 'text/plain,text/occi',
+               'Content-Type': 'text/plain,text/occi',
+               'Connection': 'close'}
 
-    nodeRef = '%s/%s' % ( self.computeUrl, os.path.basename( nodeID ) )
-    nodeRef =  nodeRef.replace('//','/')
+    nodeRef = '%s/%s' % (self.computeUrl, os.path.basename(nodeID))
+    nodeRef = nodeRef.replace('//', '/')
 
     #data = self.__renderCategory('networkinterface', "kind")
     data = 'Category: networkinterface;scheme="http://schemas.ogf.org/occi/infrastructure#";class="kind";location="/link/networkinterface/";title="networkinterface link"\n'
     data += 'X-OCCI-Attribute: occi.core.source="%s"\n' % nodeRef
-    data += 'X-OCCI-Attribute: occi.core.target="%s/network/%s"\n' % ( self.serviceUrl, network )
+    data += 'X-OCCI-Attribute: occi.core.target="%s/network/%s"\n' % (self.serviceUrl, network)
     data += 'X-OCCI-Attribute: occi.core.id="%s"' % networkInterfaceID
 
     headers['Content-Length'] = str(len(data))
     result = self.session.post("%s/link/networkinterface/" % self.serviceUrl,
-                                headers = headers,
-                                data = data)
+                               headers=headers,
+                               data=data)
 
-    #print "AT >>> createIP", result, result.headers
-    #print "AT >>> result.text", result.text
+    # print "AT >>> createIP", result, result.headers
+    # print "AT >>> result.text", result.text
 
     if result.status_code != 201:
-      return S_ERROR( result.text )
+      return S_ERROR(result.text)
     else:
-      return S_OK( result.text.split()[1] )
+      return S_OK(result.text.split()[1])
 
+  def getVMFloatingIP(self, publicIP):
 
-  def getVMFloatingIP( self, publicIP ):
+    return S_ERROR('Not implemented')
 
-    return S_ERROR( 'Not implemented' )
-
-  def deleteFloatingIP( self, nodeID ):
+  def deleteFloatingIP(self, nodeID):
     """
     Deletes a floating IP <public_ip> from the server.
 
@@ -491,17 +491,17 @@ class OcciEndpoint( Endpoint ):
     :return: S_OK | S_ERROR
     """
 
-    headers = { 'Accept': 'text/plain,text/occi',
-                'Content-Type': 'text/occi',
-                'Connection': 'close' }
+    headers = {'Accept': 'text/plain,text/occi',
+               'Content-Type': 'text/occi',
+               'Connection': 'close'}
 
-    nodeURL = '%s/link/networkinterface/%s' % ( self.serviceUrl, os.path.basename( nodeID ) )
-    nodeURL =  nodeURL.replace('//','/')
+    nodeURL = '%s/link/networkinterface/%s' % (self.serviceUrl, os.path.basename(nodeID))
+    nodeURL = nodeURL.replace('//', '/')
 
     result = self.session.delete(nodeURL,
-                                 headers = headers)
+                                 headers=headers)
 
     if result.status_code != 200:
-      return S_ERROR( result.text )
+      return S_ERROR(result.text)
     else:
-      return S_OK( result.text )
+      return S_OK(result.text)

@@ -8,9 +8,11 @@ from DIRAC.Core.Utilities.Time import fromString, dateTime
 
 __RCSID__ = '$Id$'
 
+
 class KeystoneClient():
   """
   """
+
   def __init__(self, url, parameters):
     self.log = gLogger.getSubLogger("Keystone")
     self.url = url
@@ -26,7 +28,7 @@ class KeystoneClient():
     self.parameters = parameters
     self.token = None
     self.expires = None
-    self.project = self.parameters.get('Tenant',self.parameters.get('Project'))
+    self.project = self.parameters.get('Tenant', self.parameters.get('Project'))
     self.projectID = self.parameters.get('ProjectID')
     self.computeURL = None
     self.imageURL = None
@@ -58,13 +60,13 @@ class KeystoneClient():
         return result
       if result['Value']:
         self.project, self.projectID = result['Value'][0]
-        result = self.getToken(force = True)
+        result = self.getToken(force=True)
         if not result['OK']:
           return result
 
     return S_OK()
 
-  def getToken(self, force = False ):
+  def getToken(self, force=False):
     """Get the Keystone token
 
     :param force: flag to force getting the token if even there is one in the cache
@@ -96,8 +98,8 @@ class KeystoneClient():
     if user and password:
       authDict = {'auth': {"passwordCredentials": {"username": user,
                                                    "password": password}
-                          }
-                 }
+                           }
+                  }
       if self.project:
         authDict['auth']['tenantName'] = self.project
     elif self.parameters.get('Auth') == "voms":
@@ -113,8 +115,8 @@ class KeystoneClient():
 
     try:
       result = requests.post("%s/tokens" % self.url,
-                             headers = {"Content-Type": "application/json"},
-                             json = authDict,
+                             headers={"Content-Type": "application/json"},
+                             json=authDict,
                              **authArgs)
     except Exception as exc:
       return S_ERROR('Exception getting keystone token: %s' % str(exc))
@@ -122,12 +124,12 @@ class KeystoneClient():
     output = result.json()
 
     #import pprint
-    #pprint.pprint(output)
+    # pprint.pprint(output)
 
     self.token = str(output['access']['token']['id'])
-    expires = fromString(str(output['access']['token']['expires']).replace('T',' ').replace('Z',''))
-    issued = fromString(str(output['access']['token']['issued_at']).replace('T',' ').replace('Z',''))
-    self.expires = dateTime() + (expires - issued )
+    expires = fromString(str(output['access']['token']['expires']).replace('T', ' ').replace('Z', ''))
+    issued = fromString(str(output['access']['token']['issued_at']).replace('T', ' ').replace('Z', ''))
+    self.expires = dateTime() + (expires - issued)
 
     self.projectID = output['access']['token']['tenant']['id']
 
@@ -156,7 +158,7 @@ class KeystoneClient():
                                                               "domain": {"name": domain},
                                                               "password": password
                                                               }
-                                                    }
+                                                     }
                                         }
                            }
                   }
@@ -164,10 +166,10 @@ class KeystoneClient():
       if caPath:
         authArgs['verify'] = caPath
     elif self.parameters.get('Auth') == "voms":
-      authDict = { "auth": {"identity": {"methods": ["mapped"],
-                                         "mapped": {'voms': True,
-                                                    'identity_provider': 'egi.eu',
-                                                    "protocol": 'mapped'} } } }
+      authDict = {"auth": {"identity": {"methods": ["mapped"],
+                                        "mapped": {'voms': True,
+                                                   'identity_provider': 'egi.eu',
+                                                   "protocol": 'mapped'}}}}
       caPath = self.parameters.get('CAPath')
       if caPath:
         authArgs['verify'] = caPath
@@ -175,31 +177,30 @@ class KeystoneClient():
         authArgs['cert'] = self.parameters.get('Proxy')
     if self.project:
       authDict['auth']['scope'] = {"project": {"domain": {"name": domain},
-                                       "name": self.project
-                                       }
-                           }
+                                               "name": self.project
+                                               }
+                                   }
 
-    gLogger.debug('Request token with auth arguments: %s and body %s' % \
-                  (str(authArgs),str(authDict)))
-
+    gLogger.debug('Request token with auth arguments: %s and body %s' %
+                  (str(authArgs), str(authDict)))
 
     url = "%s/auth/tokens" % self.url
-    #print "AT >>> keystone url", url, os.environ['X509_USER_PROXY']
+    # print "AT >>> keystone url", url, os.environ['X509_USER_PROXY']
     #import pprint
-    #pprint.pprint(authDict)
-    #pprint.pprint(authArgs)
+    # pprint.pprint(authDict)
+    # pprint.pprint(authArgs)
     try:
       result = requests.post(url,
-                             headers = {"Content-Type": "application/json",
-                                        "Accept": "application/json",
-                                       },
-                             json = authDict,
+                             headers={"Content-Type": "application/json",
+                                      "Accept": "application/json",
+                                      },
+                             json=authDict,
                              **authArgs)
 
     except Exception as exc:
       return S_ERROR('Exception getting keystone token: %s' % str(exc))
 
-    if result.status_code not in [200,201,202,203,204]:
+    if result.status_code not in [200, 201, 202, 203, 204]:
       return S_ERROR('Failed to get keystone token: %s' % result.text)
 
     try:
@@ -209,11 +210,11 @@ class KeystoneClient():
 
     output = result.json()
     #import pprint
-    #pprint.pprint(output)
+    # pprint.pprint(output)
 
-    expires = fromString(str(output['token']['expires_at']).replace('T',' ').replace('Z',''))
-    issued = fromString(str(output['token']['issued_at']).replace('T',' ').replace('Z',''))
-    self.expires = dateTime() + (expires - issued )
+    expires = fromString(str(output['token']['expires_at']).replace('T', ' ').replace('Z', ''))
+    issued = fromString(str(output['token']['issued_at']).replace('T', ' ').replace('Z', ''))
+    self.expires = dateTime() + (expires - issued)
 
     if 'project' in output['token']:
       if output['token']['project']['name'] == self.project:
@@ -249,9 +250,9 @@ class KeystoneClient():
 
     try:
       result = requests.get("%s/tenants" % self.url,
-                             headers = {"Content-Type": "application/json",
-                                        "X-Auth-Token": self.token}
-                          )
+                            headers={"Content-Type": "application/json",
+                                     "X-Auth-Token": self.token}
+                            )
     except Exception as exc:
       return S_ERROR('Failed to get keystone token: %s' % str(exc))
 
@@ -265,5 +266,3 @@ class KeystoneClient():
         tenants.append((item["name"], item['id']))
 
     return S_OK(tenants)
-
-

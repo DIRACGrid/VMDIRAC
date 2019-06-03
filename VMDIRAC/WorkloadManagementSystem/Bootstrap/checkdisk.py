@@ -4,9 +4,10 @@ import sys
 import commands
 import os
 
+
 def getMountedPartitions():
 
-  status,output = commands.getstatusoutput('disk -h')
+  status, output = commands.getstatusoutput('disk -h')
 
   partitionList = []
   for line in output.split('\n'):
@@ -14,9 +15,10 @@ def getMountedPartitions():
       part = os.path.basename(line.split()[0])
       size = line.split()[1].rstrip('G')
       mount = line.split()[5]
-      partitionList.append((part,size,mount))
+      partitionList.append((part, size, mount))
 
   return partitionList
+
 
 def getBlockDevices():
 
@@ -30,39 +32,43 @@ def getBlockDevices():
 
   return devList
 
+
 def getPartitionSize(partition):
   """ Return the partition size in GiB
   """
 
-  status,output = commands.getstatusoutput('fdisk -l %s' % partition)
+  status, output = commands.getstatusoutput('fdisk -l %s' % partition)
   if status != 0:
     return -1
 
   size = -1
   for line in output.split('\n'):
     if line.startswith('Disk'):
-      size = float(line.split()[4])/1024./1024./1024.
+      size = float(line.split()[4]) / 1024. / 1024. / 1024.
       break
 
   return '%.1f' % size
 
+
 def getRootPartition():
 
   partList = getMountedPartitions()
-  for part,size,mount in partList:
+  for part, size, mount in partList:
     if mount == '/':
       return part
   return None
+
 
 def checkPartition(partition):
 
   partSize = getPartitionSize(partition)
   freeSize = getPartitionSize(partition) - getPartitionSize('%s1' % partition) - getPartitionSize('%s2' % partition)
-  if float(freeSize)/float(partSize) > 0.5:
+  if float(freeSize) / float(partSize) > 0.5:
     mountedList = [p[0] for p in getMountedPartitions()]
     if '%s1' % partition not in mountedList and '%s2' % partition not in mountedList:
       return partition
     if '%s2' % partition not in mountedList:
+
 
 def getScratchDevice():
 
@@ -72,7 +78,7 @@ def getScratchDevice():
 
   unmountedList = []
   for dev in devList:
-    if dev not in [p[0] for p in partList]+['vda', 'vdb']:
+    if dev not in [p[0] for p in partList] + ['vda', 'vdb']:
       unmountedList.append(dev)
 
   freevda = getPartitionSize('vda') - getPartitionSize('vda1') - getPartitionSize('vda2')
@@ -84,6 +90,7 @@ def getScratchDevice():
     if getPartitionSize(dev) > maxSize:
       maxSize = getPartitionSize(dev)
       maxDev = dev
+
 
 if __name__ == "__main__":
   partition = sys.argv[1]

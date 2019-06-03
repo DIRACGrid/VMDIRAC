@@ -219,18 +219,18 @@ class OpenStackEndpoint( Endpoint ):
     networkID = self.parameters.get( 'NetworkID' )
     if not networkID:
       network = self.parameters.get( 'Network' )
-      if not self.networks:
+      if not self.networks and self.networkURL:
         result = self.getNetworks()
         if not result['OK']:
           return result
       if network:
         if network in self.networks:
           networkID = self.networks[network]["NetworkID"]
-      else:
+      elif self.networks:
         randomNW = self.networks.keys()[0]
         networkID = self.networks[randomNW]["NetworkID"]
       if not networkID:
-        return S_ERROR('Can not get ID for the network: %s' % network)
+        self.log.warn("Failed to get ID of the network interface")
 
 
     self.parameters['VMUUID'] = instanceID
@@ -249,9 +249,11 @@ class OpenStackEndpoint( Endpoint ):
     requestDict = {"server": {"user_data": userData,
                               "name": "DIRAC_%s" % instanceID,
                               "imageRef": imageID,
-                              "networks": [{"uuid": networkID}],
                               "flavorRef": flavorID }
                    }
+    # Some cloud sites do not expose network service interface, but some do
+    if networkID:
+      requestDict["server"]["networks"] = [{"uuid": networkID}]
 
     #print "AT >>> user data", userDataCrude
     #print "AT >>> requestDict", requestDict

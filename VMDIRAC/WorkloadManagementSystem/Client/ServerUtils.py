@@ -10,13 +10,15 @@ __RCSID__ = "$Id"
 
 from DIRAC.WorkloadManagementSystem.Client.ServerUtils import getDBOrClient
 
+
 def getVirtualMachineDB():
   serverName = 'WorkloadManagement/VirtualMachineManager'
   VirtualMachineDB = None
   try:
     from VMDIRAC.WorkloadManagementSystem.DB.VirtualMachineDB import VirtualMachineDB
-  except:
+  except BaseException:
     pass
-  return getDBOrClient( VirtualMachineDB, serverName )
+  return getDBOrClient(VirtualMachineDB, serverName)
+
 
 virtualMachineDB = getVirtualMachineDB()

@@ -1,87 +1,91 @@
 import sys
+import os
 
 from DIRAC import S_OK, S_ERROR
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-STATE_MAP = { 0: 'RUNNING',
-              1: 'REBOOTING',
-              2: 'TERMINATED',
-              3: 'PENDING',
-              4: 'UNKNOWN',
-              5: 'STOPPED',
-              6: 'SUSPENDED',
-              7: 'ERROR',
-              8: 'PAUSED' }
+STATE_MAP = {0: 'RUNNING',
+             1: 'REBOOTING',
+             2: 'TERMINATED',
+             3: 'PENDING',
+             4: 'UNKNOWN',
+             5: 'STOPPED',
+             6: 'SUSPENDED',
+             7: 'ERROR',
+             8: 'PAUSED'}
 
-def createMimeData( userDataTuple ):
+
+def createMimeData(userDataTuple):
 
   userData = MIMEMultipart()
   for contents, mtype, fname in userDataTuple:
     try:
       mimeText = MIMEText(contents, mtype, sys.getdefaultencoding())
-      mimeText.add_header('Content-Disposition', 'attachment; filename="%s"' % fname )
-      userData.attach( mimeText )
+      mimeText.add_header('Content-Disposition', 'attachment; filename="%s"' % fname)
+      userData.attach(mimeText)
     except Exception as e:
-      return S_ERROR( str( e ) )
+      return S_ERROR(str(e))
 
-  return S_OK( userData )
+  return S_OK(userData)
 
-def createUserDataScript(vmParameters, bootstrapParameters):
+
+def createPilotDataScript(vmParameters, bootstrapParameters):
 
   userDataDict = {}
 
   # Arguments to the vm-bootstrap command
-  bootstrapArgs = { 'dirac-site': vmParameters['Site'],
-                    'submit-pool': vmParameters.get('SubmitPool',''),
-                    'ce-name': vmParameters['CEName'],
-                    'image-name': vmParameters['Image'],
-                    'vm-uuid': vmParameters['VMUUID'],
-                    'vmtype': vmParameters['VMType'],
-                    'vo': vmParameters['VO'],
-                    'running-pod': vmParameters.get('RunningPod',''),
-                    'cvmfs-proxy': vmParameters.get( 'CVMFSProxy', 'None' ),
-                    'cs-servers': ','.join( vmParameters.get( 'CSServers', [] ) ),
-                    'number-of-processors': vmParameters.get( 'NumberOfProcessors', 1 ),
-                    'whole-node': vmParameters.get( 'WholeNode', True ),
-                    'required-tag': vmParameters.get( 'RequiredTag', '' ),
-                    'release-version': bootstrapParameters['Version'],
-                    'release-project': bootstrapParameters['Project'],
-                    'setup': bootstrapParameters['Setup'] }
-
-  print "AT >>> bootstrapArgs", bootstrapArgs
+  parameters = dict(vmParameters)
+  parameters.update(bootstrapParameters)
+  bootstrapArgs = {'dirac-site': parameters.get('Site'),
+                   'submit-pool': parameters.get('SubmitPool', ''),
+                   'ce-name': parameters.get('CEName'),
+                   'image-name': parameters.get('Image'),
+                   'vm-uuid': parameters.get('VMUUID'),
+                   'vmtype': parameters.get('VMType'),
+                   'vo': parameters.get('VO', ''),
+                   'running-pod': parameters.get('RunningPod', parameters.get('VO', '')),
+                   'cvmfs-proxy': parameters.get('CVMFSProxy', 'DIRECT'),
+                   'cs-servers': ','.join(parameters.get('CSServers', [])),
+                   'number-of-processors': parameters.get('NumberOfProcessors', 1),
+                   'whole-node': parameters.get('WholeNode', True),
+                   'required-tag': parameters.get('RequiredTag', ''),
+                   'release-version': parameters.get('Version'),
+                   'release-project': parameters.get('Project'),
+                   'setup': parameters.get('Setup')}
 
   bootstrapString = ''
   for key, value in bootstrapArgs.items():
-    bootstrapString += " --%s=%s \\\n" % ( key, value )
+    bootstrapString += " --%s=%s \\\n" % (key, value)
   userDataDict['bootstrapArgs'] = bootstrapString
 
-  userDataDict['user_data_commands_base_url'] = bootstrapParameters.get( 'user_data_commands_base_url' )
+  userDataDict['user_data_commands_base_url'] = bootstrapParameters.get('user_data_commands_base_url')
   if not userDataDict['user_data_commands_base_url']:
-    return S_ERROR( 'user_data_commands_base_url is not defined' )
-  with open( bootstrapParameters['HostCert'] ) as cfile:
+    return S_ERROR('user_data_commands_base_url is not defined')
+  with open(bootstrapParameters['CloudPilotCert']) as cfile:
     userDataDict['user_data_file_hostkey'] = cfile.read().strip()
-  with open( bootstrapParameters['HostKey'] ) as kfile:
+  with open(bootstrapParameters['CloudPilotKey']) as kfile:
     userDataDict['user_data_file_hostcert'] = kfile.read().strip()
   sshKey = None
   userDataDict['add_root_ssh_key'] = ""
-  if 'SshKey' in bootstrapParameters:
-    with open(bootstrapParameters['SshKey'] ) as sfile:
+  if 'SshKey' in parameters:
+    with open(parameters['SshKey']) as sfile:
       sshKey = sfile.read().strip()
       userDataDict['add_root_ssh_key'] = """
-        # Allow root login
-        sed -i 's/PermitRootLogin no/PermitRootLogin yes/g' /etc/ssh/sshd_config
-        # Copy id_rsa.pub to authorized_keys
-        echo \" """ + sshKey + """\" > /root/.ssh/authorized_keys
-        service sshd restart"""
+# Allow root login
+sed -i 's/PermitRootLogin no/PermitRootLogin yes/g' /etc/ssh/sshd_config
+# Copy id_rsa.pub to authorized_keys
+echo \" """ + sshKey + """\" > /root/.ssh/authorized_keys
+service sshd restart
+"""
 
   # List of commands to be downloaded
-  bootstrapCommands = bootstrapParameters.get( 'user_data_commands' )
-  if isinstance( bootstrapCommands, basestring ):
-    bootstrapCommands = bootstrapCommands.split( ',' )
+  bootstrapCommands = bootstrapParameters.get('user_data_commands')
+  if isinstance(bootstrapCommands, basestring):
+    bootstrapCommands = bootstrapCommands.split(',')
   if not bootstrapCommands:
-    return S_ERROR( 'user_data_commands list is not defined' )
-  userDataDict['bootstrapCommands'] = ' '.join( bootstrapCommands )
+    return S_ERROR('user_data_commands list is not defined')
+  userDataDict['bootstrapCommands'] = ' '.join(bootstrapCommands)
 
   script = """
 cat <<X5_EOF >/root/hostkey.pem
@@ -146,6 +150,66 @@ users:
       - ssh-rsa %s
     """ % sshKey
 
-  return createMimeData( ( ( user_data, 'text/x-shellscript', 'dirac_boot.sh' ),
-                           ( cloud_config, 'text/cloud-config', 'cloud-config') ) )
+  # print "AT >>> user_data", user_data
+  # print "AT >>> cloud_config",  cloud_config
 
+  return createMimeData(((user_data, 'x-shellscript', 'dirac_boot.sh'),
+                         (cloud_config, 'cloud-config', 'cloud-config')))
+
+
+def createUserDataScript(parameters):
+
+  defaultUser = os.environ['USER']
+  sshUser = parameters.get('SshUser', defaultUser)
+  defaultKey = os.path.expandvars('$HOME/.ssh/id_rsa.pub')
+  sshKeyFile = parameters.get('SshKey', defaultKey)
+  with open(sshKeyFile) as skf:
+    sshKey = skf.read().strip()
+
+  script = """
+# Allow root login
+sed -i 's/PermitRootLogin no/PermitRootLogin yes/g' /etc/ssh/sshd_config
+sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config
+# Copy id_rsa.pub to authorized_keys
+echo \" """ + sshKey + """\" > /root/.ssh/authorized_keys
+service sshd restart
+"""
+
+  if "HEPIX" in parameters:
+    script = """
+cat <<EP_EOF >>/var/lib/hepix/context/epilog.sh
+#!/bin/sh
+%s
+EP_EOF
+chmod +x /var/lib/hepix/context/epilog.sh
+      """ % script
+
+  user_data = """#!/bin/bash
+mkdir -p /etc/joboutputs
+(
+%s
+) > /etc/joboutputs/user_data.log 2>&1 &
+exit 0
+    """ % script
+
+  cloud_config = """#cloud-config
+
+output: {all: '| tee -a /var/log/cloud-init-output.log'}
+
+cloud_final_modules:
+  - [scripts-user, always]
+    """
+
+  if sshKey:
+    cloud_config += """
+users:
+  - name: %s
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    lock_passwd: false
+    ssh-authorized-keys:
+      - %s
+    """ % (sshUser, sshKey)
+
+    mime = createMimeData(((user_data, 'x-shellscript', 'dirac_boot.sh'),
+                           (cloud_config, 'cloud-config', 'cloud-config')))
+    return mime

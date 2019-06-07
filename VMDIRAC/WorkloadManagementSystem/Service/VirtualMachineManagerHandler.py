@@ -27,7 +27,7 @@ from DIRAC.ConfigurationSystem.Client.Helpers.Operations import Operations
 from VMDIRAC.WorkloadManagementSystem.DB.VirtualMachineDB import VirtualMachineDB
 from VMDIRAC.Security import VmProperties
 from VMDIRAC.Resources.Cloud.Utilities import STATE_MAP
-from VMDIRAC.Resources.Cloud.ConfigHelper import getVMImageConfig, getImages
+from VMDIRAC.Resources.Cloud.ConfigHelper import getVMTypeConfig, getVMTypes
 from VMDIRAC.Resources.Cloud.EndpointFactory import EndpointFactory
 from VMDIRAC.WorkloadManagementSystem.Utilities.Utils import getProxyFileForCE
 
@@ -73,7 +73,7 @@ def haltStalledInstances():
 
 def getCEInstances(siteList=None, ceList=None, vo=None):
 
-  result = getImages(siteList=siteList, ceList=ceList, vo=vo)
+  result = getVMTypes(siteList=siteList, ceList=ceList, vo=vo)
   if not result['OK']:
     return S_ERROR('Failed to get images from the CS')
   imageDict = result['Value']
@@ -120,7 +120,7 @@ def checkStalledInstances():
 
 def stopInstance(site, endpoint, nodeID):
 
-  result = getVMImageConfig(site, endpoint)
+  result = getVMTypeConfig(site, endpoint)
   if not result['OK']:
     return result
   ceParams = result['Value']
@@ -141,7 +141,7 @@ def createEndpoint(uniqueID):
     return result
   site, endpoint = result['Value'].split('::')
 
-  result = getVMImageConfig(site, endpoint)
+  result = getVMTypeConfig(site, endpoint)
   if not result['OK']:
     return result
   ceParams = result['Value']

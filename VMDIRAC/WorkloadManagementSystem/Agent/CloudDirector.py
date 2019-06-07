@@ -14,7 +14,7 @@ from collections import defaultdict
 from DIRAC import S_OK, S_ERROR, gConfig
 from DIRAC.Core.Base.AgentModule import AgentModule
 from DIRAC.ConfigurationSystem.Client.Helpers import CSGlobals, Registry, Resources
-from DIRAC.WorkloadManagementSystem.Client.ServerUtils import jobDB
+from DIRAC.WorkloadManagementSystem.Client.WMSAdministratorClient import WMSAdministratorClient
 from DIRAC.Core.DISET.RPCClient import RPCClient
 from DIRAC.Core.Utilities.List import fromChar
 from DIRAC.WorkloadManagementSystem.Client.ServerUtils import pilotAgentsDB
@@ -59,6 +59,7 @@ class CloudDirector(AgentModule):
     self.cloudGroup = ''
     self.platforms = []
     self.sites = []
+    self.wmsClient = WMSAdministratorClient()
 
     self.proxy = None
 
@@ -351,7 +352,7 @@ class CloudDirector(AgentModule):
     self.log.info('Total %d jobs in %d task queues with %d VMs' % (totalWaitingJobs, len(tqIDList), totalVMs))
 
     # Check if the site is allowed in the mask
-    result = jobDB.getSiteMask()
+    result = self.wmsClient.getSiteMask()
     if not result['OK']:
       return S_ERROR('Can not get the site mask')
     siteMaskList = result['Value']

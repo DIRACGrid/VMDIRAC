@@ -37,8 +37,8 @@ def findGenericCloudCredentials(vo=False, group=False):
   return S_ERROR("Cloud credentials not found")
 
 
-def getVMTypes(siteList=None, ceList=None, imageList=None, vo=None):
-  """ Get CE/image options according to the specified selection
+def getVMTypes(siteList=None, ceList=None, vmTypeList=None, vo=None):
+  """ Get CE/vmType options according to the specified selection
   """
 
   result = gConfig.getSections('/Resources/Sites')
@@ -80,26 +80,26 @@ def getVMTypes(siteList=None, ceList=None, imageList=None, vo=None):
           result = gConfig.getSections('/Resources/Sites/%s/%s/Cloud/%s/Images' % (grid, site, ce))
           if not result['OK']:
             return result
-        images = result['Value']
-        for image in images:
-          if imageList is not None and image not in imageList:
+        vmTypes = result['Value']
+        for vmType in vmTypes:
+          if vmTypeList is not None and vmType not in vmTypeList:
             continue
           if vo:
-            voList = gConfig.getValue('/Resources/Sites/%s/%s/Cloud/%s/VMTypes/%s/VO' % (grid, site, ce, image), [])
+            voList = gConfig.getValue('/Resources/Sites/%s/%s/Cloud/%s/VMTypes/%s/VO' % (grid, site, ce, vmType), [])
             if not voList:
-              voList = gConfig.getValue('/Resources/Sites/%s/%s/Cloud/%s/Images/%s/VO' % (grid, site, ce, image), [])
+              voList = gConfig.getValue('/Resources/Sites/%s/%s/Cloud/%s/Images/%s/VO' % (grid, site, ce, vmType), [])
             if voList and vo not in voList:
               continue
           resultDict.setdefault(site, {})
           resultDict[site].setdefault(ce, ceOptionsDict)
           resultDict[site][ce].setdefault('VMTypes', {})
-          result = gConfig.getOptionsDict('/Resources/Sites/%s/%s/Cloud/%s/VMTypes/%s' % (grid, site, ce, image))
+          result = gConfig.getOptionsDict('/Resources/Sites/%s/%s/Cloud/%s/VMTypes/%s' % (grid, site, ce, vmType))
           if not result['OK']:
-            result = gConfig.getOptionsDict('/Resources/Sites/%s/%s/Cloud/%s/Images/%s' % (grid, site, ce, image))
+            result = gConfig.getOptionsDict('/Resources/Sites/%s/%s/Cloud/%s/Images/%s' % (grid, site, ce, vmType))
             if not result['OK']:
               continue
-          imageOptionsDict = result['Value']
-          resultDict[site][ce]['VMTypes'][image] = imageOptionsDict
+          vmTypeOptionsDict = result['Value']
+          resultDict[site][ce]['VMTypes'][vmType] = vmTypeOptionsDict
 
   return S_OK(resultDict)
 

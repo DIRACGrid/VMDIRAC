@@ -460,6 +460,8 @@ class CloudDirector(AgentModule):
 
       # Limit the number of VM instances to create to vmsToSubmit
       vmsToSubmit = min(self.maxVMsToSubmit, vmsToSubmit)
+      if vmsToSubmit == 0:
+        continue
 
       self.log.info('Going to submit %d VMs to %s queue' % (vmsToSubmit, vmType))
       result = ce.createInstances(vmsToSubmit)

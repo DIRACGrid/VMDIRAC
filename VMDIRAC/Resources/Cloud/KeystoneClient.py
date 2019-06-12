@@ -81,9 +81,6 @@ class KeystoneClient():
       result = self.__getToken2()
     else:
       result = self.__getToken3()
-    if not result['OK']:
-      return result
-
     return result
 
   def __getToken2(self):
@@ -123,7 +120,7 @@ class KeystoneClient():
 
     output = result.json()
 
-    if result.status_code == 401:
+    if result.status_code in [400, 401]:
       message = "None"
       if 'error' in output:
         message = output['error'].get('message')

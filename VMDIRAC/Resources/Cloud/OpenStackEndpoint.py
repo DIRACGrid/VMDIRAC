@@ -61,6 +61,7 @@ class OpenStackEndpoint(Endpoint):
     result = self.ks.getToken()
     if not result['OK']:
       return result
+    self.valid = True
     self.token = result['Value']
     self.computeURL = self.ks.computeURL
     self.imageURL = self.ks.imageURL
@@ -70,9 +71,15 @@ class OpenStackEndpoint(Endpoint):
     self.log.verbose("Service interfaces:\ncompute %s,\nimage %s,\nnetwork %s" %
                      (self.computeURL, self.imageURL, self.networkURL))
 
-    self.getFlavors()
-    self.getImages()
+    result = self.getFlavors()
+    if not result['OK']:
+      self.valid = False
+    result = self.getImages()
+    if not result['OK']:
+      self.valid = False
     self.getNetworks()
+    return result
+
 
   def getFlavors(self):
 
@@ -256,13 +263,15 @@ class OpenStackEndpoint(Endpoint):
     """
 
     if not self.initialized:
-      self.initialize()
+      result = self.initialize()
+      if not result['OK']:
+        return result
 
     try:
       response = requests.get("%s/servers" % self.computeURL,
                               headers={"X-Auth-Token": self.token})
     except Exception as e:
-      return S_ERROR('Cannot connect to ' + self.computeURL + ' (' + str(e) + ')')
+      return S_ERROR('Cannot connect to ' + str(self.computeURL) + ' (' + str(e) + ')')
 
     output = json.loads(response.text)
     idList = []
@@ -294,6 +303,9 @@ class OpenStackEndpoint(Endpoint):
       return result
 
     output = result['Value']
+
+    print "AT >>> getVMStatus", output
+
     status = output["server"]["status"]
 
     return S_OK(output["server"])
@@ -429,8 +441,11 @@ class OpenStackEndpoint(Endpoint):
       return S_ERROR("VM ID %s not found" % vmID)
 
     output = json.loads(response.text)
-    if response.status_code == 404:
-      return S_ERROR("Cannot get VM info: %s" % output['itemNotFound']['message'])
+    if response.status_code == 403:
+      if 'forbidden' in output:
+        return S_ERROR("Cannot get VM info: %s" % output['forbidden'].get('message'))
+      else:
+        return S_ERROR("Cannot get VM info: access forbidden")
 
     # Cache some info
     if response.status_code == 200:

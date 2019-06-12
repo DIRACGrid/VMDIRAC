@@ -205,8 +205,8 @@ class CloudDirector(AgentModule):
           ceWholeNode = ceDict.get('WholeNode', 'true')
           wholeNode = self.vmTypeDict[vmTypeName]['ParametersDict'].get('WholeNode', ceWholeNode)
           if wholeNode.lower() in ('yes', 'true'):
-            self.vmTypeDict[vmTypeName]['ParametersDict'].setdefault('Tags', [])
-            self.vmTypeDict[vmTypeName]['ParametersDict']['Tags'].append('WholeNode')
+            self.vmTypeDict[vmTypeName]['ParametersDict'].setdefault('Tag', [])
+            self.vmTypeDict[vmTypeName]['ParametersDict']['Tag'].append('WholeNode')
 
           platform = ''
           if "Platform" in self.vmTypeDict[vmTypeName]['ParametersDict']:
@@ -305,8 +305,8 @@ class CloudDirector(AgentModule):
     tqDict['Site'] = self.sites
     tags = []
     for vmType in vmTypeList:
-      if 'Tags' in self.vmTypeDict[vmType]['ParametersDict']:
-        tags += self.vmTypeDict[vmType]['ParametersDict']['Tags']
+      if 'Tag' in self.vmTypeDict[vmType]['ParametersDict']:
+        tags += self.vmTypeDict[vmType]['ParametersDict']['Tag']
     tqDict['Tag'] = list(set(tags))
     tqDict['SubmitPool'] = "wenmrPool"
 
@@ -367,7 +367,7 @@ class CloudDirector(AgentModule):
       vmTypeName = self.vmTypeDict[vmType]['VMType']
       siteName = self.vmTypeDict[vmType]['Site']
       platform = self.vmTypeDict[vmType]['Platform']
-      vmTypeTags = self.vmTypeDict[vmType]['ParametersDict'].get('Tags', [])
+      vmTypeTags = self.vmTypeDict[vmType]['ParametersDict'].get('Tag', [])
       siteMask = siteName in siteMaskList
       endpoint = "%s::%s" % (siteName, ceName)
       maxInstances = int(self.vmTypeDict[vmType]['MaxInstances'])
@@ -404,7 +404,7 @@ class CloudDirector(AgentModule):
         continue
       ceDict['Platform'] = result['Value']
 
-      ceDict['Tag'] = processorTags + vmTypeTags
+      ceDict['Tag'] = list(set(processorTags + vmTypeTags))
 
       # Get the number of eligible jobs for the target site/queue
 

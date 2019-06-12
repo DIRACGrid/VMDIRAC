@@ -122,6 +122,13 @@ class KeystoneClient():
       return S_ERROR('Exception getting keystone token: %s' % str(exc))
 
     output = result.json()
+
+    if result.status_code == 401:
+      message = "None"
+      if 'error' in output:
+        message = output['error'].get('message')
+      return S_ERROR('Authorization error: %s' % message)
+
     self.token = str(output['access']['token']['id'])
     expires = fromString(str(output['access']['token']['expires']).replace('T', ' ').replace('Z', ''))
     issued = fromString(str(output['access']['token']['issued_at']).replace('T', ' ').replace('Z', ''))

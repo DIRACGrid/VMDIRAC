@@ -101,13 +101,16 @@ class VirtualMachineMonitorAgent(AgentModule):
     self.am_setOption("PollingTime", 60)
 
     # Discover net address
+    self.ipAddress = None
     netData = Network.discoverInterfaces()
     for iface in sorted(netData):
       # Warning! On different clouds interface name may be different(eth, ens, ...)
-      if iface.find("eth") == 0:
+      if "eth" in iface or "ens" in iface:
         self.ipAddress = netData[iface]['ip']
         self.log.info("IP Address is %s" % self.ipAddress)
         break
+
+
 
     # getting the stop policy
     self.op = Operations.Operations()

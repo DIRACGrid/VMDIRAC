@@ -33,6 +33,7 @@ class KeystoneClient():
     self.computeURL = None
     self.imageURL = None
     self.networkURL = None
+    self.caPath = self.parameters.get('CAPath', True)
 
     self.valid = False
     result = self.initialize()
@@ -104,9 +105,6 @@ class KeystoneClient():
       if self.project:
         authDict['auth']['tenantName'] = self.project
 
-      caPath = self.parameters.get('CAPath')
-      if caPath:
-        authArgs['verify'] = caPath
       if self.parameters.get('Proxy'):
         authArgs['cert'] = self.parameters.get('Proxy')
 
@@ -114,6 +112,7 @@ class KeystoneClient():
       result = requests.post("%s/tokens" % self.url,
                              headers={"Content-Type": "application/json"},
                              json=authDict,
+                             verify=self.caPath,
                              **authArgs)
     except Exception as exc:
       return S_ERROR('Exception getting keystone token: %s' % str(exc))
@@ -163,17 +162,11 @@ class KeystoneClient():
                                         }
                            }
                   }
-      caPath = self.parameters.get('CAPath')
-      if caPath:
-        authArgs['verify'] = caPath
     elif self.parameters.get('Auth') == "voms":
       authDict = {"auth": {"identity": {"methods": ["mapped"],
                                         "mapped": {'voms': True,
                                                    'identity_provider': 'egi.eu',
                                                    "protocol": 'mapped'}}}}
-      caPath = self.parameters.get('CAPath')
-      if caPath:
-        authArgs['verify'] = caPath
       if self.parameters.get('Proxy'):
         authArgs['cert'] = self.parameters.get('Proxy')
     elif appcred_file:
@@ -209,6 +202,7 @@ class KeystoneClient():
                                       "Accept": "application/json",
                                       },
                              json=authDict,
+                             verify=self.caPath,
                              **authArgs)
 
     except Exception as exc:
@@ -263,8 +257,8 @@ class KeystoneClient():
     try:
       result = requests.get("%s/tenants" % self.url,
                             headers={"Content-Type": "application/json",
-                                     "X-Auth-Token": self.token}
-                            )
+                                     "X-Auth-Token": self.token},
+                            verify=self.caPath)
     except Exception as exc:
       return S_ERROR('Failed to get keystone token: %s' % str(exc))
 

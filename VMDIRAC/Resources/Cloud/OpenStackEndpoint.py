@@ -223,6 +223,7 @@ class OpenStackEndpoint(Endpoint):
       if not networkID:
         self.log.warn("Failed to get ID of the network interface")
 
+
     self.parameters['VMUUID'] = instanceID
     self.parameters['VMType'] = self.parameters.get('CEType', 'OpenStack')
 
@@ -241,6 +242,11 @@ class OpenStackEndpoint(Endpoint):
     # Some cloud sites do not expose network service interface, but some do
     if networkID:
       requestDict["server"]["networks"] = [{"uuid": networkID}]
+
+    # Allow the use of pre-uploaded SSH keys
+    osSSHKey = self.parameters.get('OSKeyName')
+    if osSSHKey:
+      requestDict["server"]["key_name"] = osSSHKey
 
     # print "AT >>> user data", userDataCrude
     # print "AT >>> requestDict", requestDict

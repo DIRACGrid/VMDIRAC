@@ -151,6 +151,7 @@ class KeystoneClient():
     domain = self.parameters.get('Domain', "Default")
     user = self.parameters.get('User')
     password = self.parameters.get('Password')
+    appcred_file = self.parameters.get('Appcred')
     authArgs = {}
     if user and password:
       authDict = {'auth': {"identity": {"methods": ["password"],
@@ -175,7 +176,24 @@ class KeystoneClient():
         authArgs['verify'] = caPath
       if self.parameters.get('Proxy'):
         authArgs['cert'] = self.parameters.get('Proxy')
-    if self.project:
+    elif appcred_file:
+      # The application credentials are stored in a file of the format:
+      # id secret
+      ac_fd = open(appcred_file, 'r')
+      auth_info = ac_fd.read()
+      auth_info = auth_info.strip()
+      ac_id, ac_secret = auth_info.split(" ", 1)
+      ac_fd.close()
+      authDict = {'auth': {"identity": {"methods": ["application_credential"],
+                                        "application_credential":
+                                          {"id": ac_id,
+                                           "secret": ac_secret,
+                                          }
+                                        }
+                           }
+                  }
+    # appcred includes the project scope binding in the credential itself
+    if self.project and not appcred_file:
       authDict['auth']['scope'] = {"project": {"domain": {"name": domain},
                                                "name": self.project
                                                }

@@ -280,7 +280,7 @@ class OpenStackEndpoint(Endpoint):
 
     try:
       response = requests.get("%s/servers" % self.computeURL,
-                              headers={"X-Auth-Token": self.token}
+                              headers={"X-Auth-Token": self.token},
                               verify=self.caPath)
     except Exception as e:
       return S_ERROR('Cannot connect to ' + str(self.computeURL) + ' (' + str(e) + ')')

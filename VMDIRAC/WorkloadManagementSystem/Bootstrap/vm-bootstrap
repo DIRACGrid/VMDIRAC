@@ -112,6 +112,9 @@ chmod ugo+rwxt /scratch
 mkdir -p /scratch/tmp
 chmod ugo+rwxt /scratch/tmp
 
+# DIRAC externals require boost-python
+yum -y install boost-python
+
 # Bootstrap CVMFS
 vm_cvmfs_bootstrap
 

@@ -51,6 +51,7 @@ class OpenStackEndpoint(Endpoint):
 
   def initialize(self):
 
+    self.caPath = self.parameters.get('CAPath', True)
     self.network = self.parameters.get("Network")
     self.project = self.parameters.get("Project")
     keyStoneURL = self.parameters.get("AuthURL")
@@ -89,7 +90,9 @@ class OpenStackEndpoint(Endpoint):
     url = "%s/flavors/detail" % self.computeURL
     self.log.verbose("Getting flavors details on %s" % url)
 
-    result = requests.get(url, headers={"X-Auth-Token": self.token})
+    result = requests.get(url,
+                          headers={"X-Auth-Token": self.token},
+                          verify=self.caPath)
 
     output = json.loads(result.text)
     for flavor in output['flavors']:
@@ -105,7 +108,8 @@ class OpenStackEndpoint(Endpoint):
       return S_ERROR('The endpoint object is not initialized')
 
     result = requests.get("%s/v2/images" % self.imageURL,
-                          headers={"X-Auth-Token": self.token})
+                          headers={"X-Auth-Token": self.token},
+                          verify=self.caPath)
 
     output = json.loads(result.text)
     for image in output['images']:
@@ -121,7 +125,8 @@ class OpenStackEndpoint(Endpoint):
     """
     try:
       result = requests.get("%s/v2.0/networks" % self.networkURL,
-                            headers={"X-Auth-Token": self.token})
+                            headers={"X-Auth-Token": self.token},
+                            verify=self.caPath)
       output = json.loads(result.text)
     except Exception as exc:
       return S_ERROR('Cannot get networks: %s' % str(exc))
@@ -219,6 +224,7 @@ class OpenStackEndpoint(Endpoint):
       if not networkID:
         self.log.warn("Failed to get ID of the network interface")
 
+
     self.parameters['VMUUID'] = instanceID
     self.parameters['VMType'] = self.parameters.get('CEType', 'OpenStack')
 
@@ -238,6 +244,11 @@ class OpenStackEndpoint(Endpoint):
     if networkID:
       requestDict["server"]["networks"] = [{"uuid": networkID}]
 
+    # Allow the use of pre-uploaded SSH keys
+    osSSHKey = self.parameters.get('OSKeyName')
+    if osSSHKey:
+      requestDict["server"]["key_name"] = osSSHKey
+
     # print "AT >>> user data", userDataCrude
     # print "AT >>> requestDict", requestDict
     # return S_ERROR()
@@ -245,7 +256,8 @@ class OpenStackEndpoint(Endpoint):
     try:
       result = requests.post("%s/servers" % self.computeURL,
                              json=requestDict,
-                             headers=headers)
+                             headers=headers,
+                             verify=self.caPath)
     except Exception as exc:
       return S_ERROR('Exception creating VM: %s' % str(exc))
 
@@ -269,7 +281,8 @@ class OpenStackEndpoint(Endpoint):
 
     try:
       response = requests.get("%s/servers" % self.computeURL,
-                              headers={"X-Auth-Token": self.token})
+                              headers={"X-Auth-Token": self.token},
+                              verify=self.caPath)
     except Exception as e:
       return S_ERROR('Cannot connect to ' + str(self.computeURL) + ' (' + str(e) + ')')
 
@@ -325,7 +338,8 @@ class OpenStackEndpoint(Endpoint):
 
     try:
       response = requests.delete("%s/servers/%s" % (self.computeURL, nodeID),
-                                 headers={"X-Auth-Token": self.token})
+                                 headers={"X-Auth-Token": self.token},
+                                 verify=self.caPath)
     except Exception as e:
       return S_ERROR('Cannot get node details for %s (' % nodeID + str(e) + ')')
 
@@ -350,7 +364,8 @@ class OpenStackEndpoint(Endpoint):
     # Get the port of my VM
     try:
       result = requests.get("%s/v2.0/ports" % self.networkURL,
-                            headers={"X-Auth-Token": self.token})
+                            headers={"X-Auth-Token": self.token},
+                            verify=self.caPath)
       output = json.loads(result.text)
       portID = None
       for port in output['ports']:
@@ -393,7 +408,8 @@ class OpenStackEndpoint(Endpoint):
     # Get an available floating IP
     try:
       result = requests.get("%s/v2.0/floatingips" % self.networkURL,
-                            headers={"X-Auth-Token": self.token})
+                            headers={"X-Auth-Token": self.token},
+                            verify=self.caPath)
       output = json.loads(result.text)
     except Exception as e:
       return S_ERROR('Cannot get floatingips')
@@ -413,7 +429,8 @@ class OpenStackEndpoint(Endpoint):
     try:
       result = requests.put("%s/v2.0/floatingips/%s" % (self.networkURL, fipID),
                             data=dataJson,
-                            headers={"X-Auth-Token": self.token})
+                            headers={"X-Auth-Token": self.token},
+                            verify=self.caPath)
     except Exception as e:
       return S_ERROR('Cannot assign floating IP')
 
@@ -433,7 +450,8 @@ class OpenStackEndpoint(Endpoint):
 
     try:
       response = requests.get("%s/servers/%s" % (self.computeURL, vmID),
-                              headers={"X-Auth-Token": self.token})
+                              headers={"X-Auth-Token": self.token},
+                              verify=self.caPath)
     except Exception as e:
       return S_ERROR('Cannot get node details for %s (' % vmID + str(e) + ')')
 
@@ -497,7 +515,8 @@ class OpenStackEndpoint(Endpoint):
       # Get an available floating IP
       try:
         result = requests.get("%s/v2.0/floatingips" % self.networkURL,
-                              headers={"X-Auth-Token": self.token})
+                              headers={"X-Auth-Token": self.token},
+                              verify=self.caPath)
         output = json.loads(result.text)
       except Exception as e:
         return S_ERROR('Cannot get floatingips')
@@ -517,7 +536,8 @@ class OpenStackEndpoint(Endpoint):
     try:
       result = requests.put("%s/v2.0/floatingips/%s" % (self.networkURL, fipID),
                             data=dataJson,
-                            headers={"X-Auth-Token": self.token})
+                            headers={"X-Auth-Token": self.token},
+                            verify=self.caPath)
     except Exception as exc:
       return S_ERROR('Cannot disassociate floating IP: %s' % str(exc))
 

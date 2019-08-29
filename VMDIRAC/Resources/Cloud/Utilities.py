@@ -51,6 +51,7 @@ def createPilotDataScript(vmParameters, bootstrapParameters):
                    'whole-node': parameters.get('WholeNode', True),
                    'required-tag': parameters.get('RequiredTag', ''),
                    'release-version': parameters.get('Version'),
+                   'lcgbundle-version': parameters.get('LCGBundleVersion', ''),
                    'release-project': parameters.get('Project'),
                    'setup': parameters.get('Setup')}
 

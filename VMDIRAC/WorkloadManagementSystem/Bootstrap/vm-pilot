@@ -101,7 +101,7 @@ if [ $REQUIRED_TAG ]; then
 fi
 
 LCG_VER_ARG=''
-if [ "x${LCG_VER}" -ne "x" ]; then
+if [ "x${LCG_VER}" != "x" ]; then
   LCG_VER_ARG="-g ${LCG_VER}"
 fi
 

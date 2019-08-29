@@ -38,6 +38,9 @@ case $i in
     --release-version=*)
     VERSION="${i#*=}"
     ;;
+    --lcgbundle-version=*)
+    LCG_VER="${i#*=}"
+    ;;
     --release-project=*)
     PROJECT="${i#*=}"
     ;;
@@ -97,6 +100,11 @@ if [ $REQUIRED_TAG ]; then
   REQUIRED_TAG_ARGS="-o /AgentJobRequirements/RequiredTag=$REQUIRED_TAG"
 fi
 
+LCG_VER_ARG=''
+if [ "x${LCG_VER}" -ne "x" ]; then
+  LCG_VER_ARG="-g ${LCG_VER}"
+fi
+
 # Run the Pilot 2.0 script
 python dirac-pilot.py \
  --debug \
@@ -104,6 +112,7 @@ python dirac-pilot.py \
  -r $VERSION \
  -l $PROJECT \
  -e VMDIRAC \
+ ${LCG_VER_ARG} \
  --MaxCycles 10 \
  --configurationServer $CS_SERVERS \
  --Name "$CE_NAME" \

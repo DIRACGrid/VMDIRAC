@@ -48,6 +48,10 @@ vm_mount_scratch_disk() {
     # Xen virtual disk device
     mkfs -q -t ext4 /dev/xvdb
     mount /dev/xvdb /scratch
+  elif [ -b /dev/sda1 ] ; then
+    # No ephemeral disk, only a root partition without virtio dirver
+    # Nothing else to do, /scratch will just live in root dir
+    echo "No extra disk to mount, making /scratch right in the root partition"
   else
     date --utc +'%Y-%m-%d %H:%M:%S %Z vm-bootstrap Missing vda/vdb/hdb/sdb/xvdb block device for /scratch'
     echo "500 Missing vdb/hdb/sdb block device for /scratch" > /etc/joboutputs/shutdown_message
@@ -56,10 +60,11 @@ vm_mount_scratch_disk() {
   fi
 
   # We rely on the hypervisor's disk I/O scheduling
-  echo 'none' > /sys/block/vda/queue/scheduler
-  if [ -b /dev/vdb ] ; then
-    echo 'none' > /sys/block/vdb/queue/scheduler
-  fi
+  for DSK in vda vdb; do
+    if [ -b /dev/${DSK} ] ; then
+      echo 'none' > /sys/block/${DSK}/queue/scheduler
+    fi
+  done
 }
 
 vm_disable_mail() {
@@ -121,8 +126,9 @@ vm_cvmfs_bootstrap() {
       chcon -Rv --type=cvmfs_cache_t /scratch/cvmfs-cache
     fi
     cvmfs_config setup
-    cvmfs_config chksetup
-    cvmfs_config probe
+    # These steps are slow and unnecessary
+    #cvmfs_config chksetup
+    #cvmfs_config probe
     export CVMFS=1
   else
     echo CVMFS is not available on this VM

@@ -33,6 +33,7 @@ class KeystoneClient():
     self.computeURL = None
     self.imageURL = None
     self.networkURL = None
+    self.caPath = self.parameters.get('CAPath', True)
 
     self.valid = False
     result = self.initialize()
@@ -104,9 +105,6 @@ class KeystoneClient():
       if self.project:
         authDict['auth']['tenantName'] = self.project
 
-      caPath = self.parameters.get('CAPath')
-      if caPath:
-        authArgs['verify'] = caPath
       if self.parameters.get('Proxy'):
         authArgs['cert'] = self.parameters.get('Proxy')
 
@@ -114,6 +112,7 @@ class KeystoneClient():
       result = requests.post("%s/tokens" % self.url,
                              headers={"Content-Type": "application/json"},
                              json=authDict,
+                             verify=self.caPath,
                              **authArgs)
     except Exception as exc:
       return S_ERROR('Exception getting keystone token: %s' % str(exc))
@@ -151,6 +150,8 @@ class KeystoneClient():
     domain = self.parameters.get('Domain', "Default")
     user = self.parameters.get('User')
     password = self.parameters.get('Password')
+    appcred_file = self.parameters.get('Appcred')
+    authDict = {}
     authArgs = {}
     if user and password:
       authDict = {'auth': {"identity": {"methods": ["password"],
@@ -162,20 +163,26 @@ class KeystoneClient():
                                         }
                            }
                   }
-      caPath = self.parameters.get('CAPath')
-      if caPath:
-        authArgs['verify'] = caPath
     elif self.parameters.get('Auth') == "voms":
       authDict = {"auth": {"identity": {"methods": ["mapped"],
                                         "mapped": {'voms': True,
                                                    'identity_provider': 'egi.eu',
                                                    "protocol": 'mapped'}}}}
-      caPath = self.parameters.get('CAPath')
-      if caPath:
-        authArgs['verify'] = caPath
       if self.parameters.get('Proxy'):
         authArgs['cert'] = self.parameters.get('Proxy')
-    if self.project:
+    elif appcred_file:
+      # The application credentials are stored in a file of the format:
+      # id secret
+      ac_fd = open(appcred_file, 'r')
+      auth_info = ac_fd.read()
+      auth_info = auth_info.strip()
+      ac_id, ac_secret = auth_info.split(" ", 1)
+      ac_fd.close()
+      authDict = {'auth': {"identity": {"methods": ["application_credential"],
+                                        "application_credential": {"id": ac_id,
+                                                                   "secret": ac_secret}}}}
+    # appcred includes the project scope binding in the credential itself
+    if self.project and not appcred_file:
       authDict['auth']['scope'] = {"project": {"domain": {"name": domain},
                                                "name": self.project
                                                }
@@ -191,6 +198,7 @@ class KeystoneClient():
                                       "Accept": "application/json",
                                       },
                              json=authDict,
+                             verify=self.caPath,
                              **authArgs)
 
     except Exception as exc:
@@ -245,8 +253,8 @@ class KeystoneClient():
     try:
       result = requests.get("%s/tenants" % self.url,
                             headers={"Content-Type": "application/json",
-                                     "X-Auth-Token": self.token}
-                            )
+                                     "X-Auth-Token": self.token},
+                            verify=self.caPath)
     except Exception as exc:
       return S_ERROR('Failed to get keystone token: %s' % str(exc))
 

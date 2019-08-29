@@ -229,8 +229,11 @@ class CloudDirector(AgentModule):
           ceVMTypeDict['CSServers'] = gConfig.getValue("/DIRAC/Configuration/Servers", [])
           ceVMTypeDict.update(self.vmTypeDict[vmTypeName]['ParametersDict'])
 
-          ceVMTypeDict['CAPath'] = gConfig.getValue('/DIRAC/Security/CAPath',
-                                                    "/opt/dirac/etc/grid-security/certificates/cas.pem")
+          # Allow a resource-specifc CAPath to be set (as some clouds have their own CAs)
+          # Otherwise fall back to the system-wide default(s)
+          if 'CAPath' not in ceVMTypeDict:
+            ceVMTypeDict['CAPath'] = gConfig.getValue('/DIRAC/Security/CAPath',
+                                                      "/opt/dirac/etc/grid-security/certificates/cas.pem")
 
           # Generate the CE object for the vmType or pick the already existing one
           # if the vmType definition did not change

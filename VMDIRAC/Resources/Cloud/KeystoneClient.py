@@ -151,6 +151,7 @@ class KeystoneClient():
     user = self.parameters.get('User')
     password = self.parameters.get('Password')
     appcred_file = self.parameters.get('Appcred')
+    authDict = {}
     authArgs = {}
     if user and password:
       authDict = {'auth': {"identity": {"methods": ["password"],

@@ -90,8 +90,9 @@ class OpenStackEndpoint(Endpoint):
     url = "%s/flavors/detail" % self.computeURL
     self.log.verbose("Getting flavors details on %s" % url)
 
-    result = requests.get(url, headers={"X-Auth-Token": self.token},
-                               verify=self.caPath)
+    result = requests.get(url,
+                          headers={"X-Auth-Token": self.token},
+                          verify=self.caPath)
 
     output = json.loads(result.text)
     for flavor in output['flavors']:

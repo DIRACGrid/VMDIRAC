@@ -179,13 +179,8 @@ class KeystoneClient():
       ac_id, ac_secret = auth_info.split(" ", 1)
       ac_fd.close()
       authDict = {'auth': {"identity": {"methods": ["application_credential"],
-                                        "application_credential":
-                                          {"id": ac_id,
-                                           "secret": ac_secret,
-                                          }
-                                        }
-                           }
-                  }
+                                        "application_credential": {"id": ac_id,
+                                                                   "secret": ac_secret}}}}
     # appcred includes the project scope binding in the credential itself
     if self.project and not appcred_file:
       authDict['auth']['scope'] = {"project": {"domain": {"name": domain},

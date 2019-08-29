@@ -214,6 +214,16 @@ class VirtualMachineCLI(CLI):
     else:
       print result['Value']
 
+  def do_token(self, args):
+    """ Display the current Keystone token if any
+    """
+
+    ce = self.__getCE()
+    if getattr(ce, 'token'):
+      print ce.token
+    else:
+      print "No token available"
+
   def do_create(self, args):
     """ Create VM
     """

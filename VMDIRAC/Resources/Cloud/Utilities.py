@@ -217,6 +217,8 @@ users:
 
 
 def createCloudInitScript(vmParameters, bootstrapParameters):
+  """ Create a user data script for cloud-init based images.
+  """
   parameters = dict(vmParameters)
   parameters.update(bootstrapParameters)
   bootstrapArgs = {'dirac-site': parameters.get('Site'),
@@ -239,7 +241,8 @@ def createCloudInitScript(vmParameters, bootstrapParameters):
                    'bootstrap-ver': parameters.get('BootstrapVer', 'v6r21p4'),
                    'user-root': parameters.get('UserRoot', '/cvmfs/cernvm-prod.cern.ch/cvm4'),
                    'timezone': parameters.get('Timezone', 'UTC')}
-  template_path = os.path.join(os.path.dirname(__file__), "cloudinit.template")
+  default_template = os.path.join(os.path.dirname(__file__), 'cloudinit.template')
+  template_path = parameters.get('CITemplate', default_template)
   # Cert/Key need extra indents to keep yaml formatting happy
   with open(bootstrapParameters['CloudPilotCert']) as cfile:
     raw_str = cfile.read().strip()

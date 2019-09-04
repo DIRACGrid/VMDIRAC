@@ -11,8 +11,7 @@ import os
 
 from DIRAC import S_ERROR, S_OK
 from VMDIRAC.Resources.Cloud.Utilities import createUserDataScript, \
-                                              createPilotDataScript, \
-                                              createCloudInitScript
+    createPilotDataScript, createCloudInitScript
 
 __RCSID__ = '$Id$'
 

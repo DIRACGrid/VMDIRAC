@@ -10,7 +10,8 @@
 import os
 
 from DIRAC import S_ERROR, S_OK
-from VMDIRAC.Resources.Cloud.Utilities import createUserDataScript, createPilotDataScript
+from VMDIRAC.Resources.Cloud.Utilities import createUserDataScript, \
+    createPilotDataScript, createCloudInitScript
 
 __RCSID__ = '$Id$'
 
@@ -60,3 +61,5 @@ class Endpoint(object):
       return createPilotDataScript(self.parameters, self.bootstrapParameters)
     elif bootType.lower() == 'user':
       return createUserDataScript(self.parameters)
+    elif bootType.lower() == 'cloudinit':
+      return createCloudInitScript(self.parameters, self.bootstrapParameters)

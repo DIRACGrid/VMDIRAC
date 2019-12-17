@@ -161,6 +161,8 @@ packages:
  - singularity
 
 runcmd:
+ # Allow nested singularity
+ - [ sysctl, user.max_user_namespaces=150000 ]
  # Enable CVMFS
  - [ mkdir, -p, /mnt/cvmfs ]
  - [ cvmfs_config, setup ]

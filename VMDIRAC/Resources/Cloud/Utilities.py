@@ -162,7 +162,7 @@ users:
 
 def createUserDataScript(parameters):
 
-  defaultUser = os.environ['USER']
+  defaultUser = os.environ.get('USER', parameters.get('User', 'root'))
   sshUser = parameters.get('SshUser', defaultUser)
   defaultKey = os.path.expandvars('$HOME/.ssh/id_rsa.pub')
   sshKeyFile = parameters.get('SshKey', defaultKey)

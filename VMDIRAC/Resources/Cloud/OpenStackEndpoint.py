@@ -146,7 +146,7 @@ class OpenStackEndpoint(Endpoint):
         self.log.debug('Created VM instance %s/%s' % (nodeID, instanceID))
         nodeDict = {}
         nodeDict['InstanceID'] = instanceID
-        nodeDict['NumberOfCPUs'] = self.parameters["NumberOfProcessors"]
+        nodeDict['NumberOfProcessors'] = self.parameters["NumberOfProcessors"]
         outputDict[nodeID] = nodeDict
       else:
         break

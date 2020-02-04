@@ -233,7 +233,7 @@ class OcciEndpoint(Endpoint):
         nodeDict = {}
         nodeDict['PublicIP'] = publicIP
         nodeDict['InstanceID'] = instanceID
-        nodeDict['NumberOfCPUs'] = 2
+        nodeDict['NumberOfProcessors'] = self.parameters.get('NumberOfProcessors', 2)
         #nodeDict['RAM'] = self.flavor.ram
         #nodeDict['DiskSize'] = self.flavor.disk
         #nodeDict['Price'] = self.flavor.price

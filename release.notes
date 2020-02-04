@@ -1,3 +1,21 @@
+[v2r4p3]
+
+*Resources
+FIX: Openstack - NumberOfProcessors is taken from the flavor definition
+FIX: cloudinit template defines VMDIRAC_VERSION and JOB_ID environment
+
+[v2r4p2]
+
+NEW: cloudinit bootstrapping method
+
+[v2r4]
+
+NEW: OpenNebulaEndpoint implementation
+
+[v2r3]
+
+NEW: OpenstackEndpoint implementation
+
 [v2r2]
 
 FIX: CloudEndpoint - fix connection details

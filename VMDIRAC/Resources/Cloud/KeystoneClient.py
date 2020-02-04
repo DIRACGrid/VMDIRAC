@@ -181,6 +181,9 @@ class KeystoneClient():
       authDict = {'auth': {"identity": {"methods": ["application_credential"],
                                         "application_credential": {"id": ac_id,
                                                                    "secret": ac_secret}}}}
+    else:
+      return S_ERROR("No valid credentials provided")
+
     # appcred includes the project scope binding in the credential itself
     if self.project and not appcred_file:
       authDict['auth']['scope'] = {"project": {"domain": {"name": domain},

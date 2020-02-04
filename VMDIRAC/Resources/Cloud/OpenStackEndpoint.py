@@ -146,7 +146,7 @@ class OpenStackEndpoint(Endpoint):
         self.log.debug('Created VM instance %s/%s' % (nodeID, instanceID))
         nodeDict = {}
         nodeDict['InstanceID'] = instanceID
-        nodeDict['NumberOfCPUs'] = 2
+        nodeDict['NumberOfCPUs'] = self.parameters["NumberOfProcessors"]
         outputDict[nodeID] = nodeDict
       else:
         break
@@ -206,7 +206,10 @@ class OpenStackEndpoint(Endpoint):
       flavorID = self.flavors.get(flavor)["FlavorID"]
       if not flavorID:
         return S_ERROR('Can not get ID for the flavor: %s' % flavor)
+      numberOfProcessors = self.flavors.get(flavor)["NumberOfProcessors"]
     self.parameters['FlavorID'] = flavorID
+    if "NumberOfProcessors" not in self.parameters:
+      self.parameters["NumberOfProcessors"] = numberOfProcessors
 
     networkID = self.parameters.get('NetworkID')
     if not networkID:
@@ -316,11 +319,6 @@ class OpenStackEndpoint(Endpoint):
       return result
 
     output = result['Value']
-
-    print "AT >>> getVMStatus", output
-
-    status = output["server"]["status"]
-
     return S_OK(output["server"])
 
   def stopVM(self, nodeID):

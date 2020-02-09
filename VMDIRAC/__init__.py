@@ -2,13 +2,13 @@
 from pkgutil import extend_path
 __path__ = extend_path(__path__, __name__)
 
-__RCSID__ = "$Id:$"
+__RCSID__ = "$Id$"
 
 # Define Version
 
 majorVersion = 2
-minorVersion = 1
-patchLevel = 0
+minorVersion = 4
+patchLevel = 3
 preVersion = 0
 
 version = "v%sr%s" % (majorVersion, minorVersion)

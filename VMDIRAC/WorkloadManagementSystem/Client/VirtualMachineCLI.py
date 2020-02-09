@@ -92,6 +92,10 @@ class VirtualMachineCLI(CLI):
     extraParams = {}
     if self.project:
       extraParams['Project'] = self.project
+    if self.user:
+      extraParams['User'] = self.user
+    if self.password:
+      extraParams['Password'] = self.password
 
     if extraParams:
       ce.setParameters(extraParams)
@@ -162,16 +166,20 @@ class VirtualMachineCLI(CLI):
       for ce in siteDict[site]:
         vmStart = True
         for vmType in siteDict[site][ce]['VMTypes']:
+          flavor = siteDict[site][ce]['VMTypes'][vmType].get('FlavorName', 'Unknown')
+          image = siteDict[site][ce]['VMTypes'][vmType].get('Image',
+                                                            siteDict[site][ce]['VMTypes'][vmType].get('ImageID',
+                                                                                                      'Unknown'))
           if ceStart and vmStart:
-            records.append([site, ce, vmType])
+            records.append([site, ce, vmType, flavor, image])
           elif ceStart:
-            records.append(['', '', vmType])
+            records.append(['', '', vmType, flavor, image])
           else:
-            records.append(['', ce, vmType])
+            records.append(['', ce, vmType, flavor, image])
           vmStart = False
         ceStart = False
 
-    fields = ['Site', 'Endpoint', 'VM Type']
+    fields = ['Site', 'Endpoint', 'VM Type', "Flavor", "Image"]
     printTable(fields, records)
 
   def do_status(self, args):
@@ -225,7 +233,10 @@ class VirtualMachineCLI(CLI):
       print "No token available"
 
   def do_create(self, args):
-    """ Create VM
+    """ Create VM at the connected site
+
+        usage:
+          create <VMType> [ExtraParam1=Value1 [ExtraParam2=Value2]]
     """
 
     argss = args.split()

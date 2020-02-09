@@ -180,10 +180,10 @@ class EC2Endpoint(Endpoint):
 #    nodeDict['PublicIP'] = publicIP
     nodeDict['InstanceID'] = instanceID
     if instanceType in self.__instanceTypeInfo:
-      nodeDict['NumberOfCPUs'] = self.__instanceTypeInfo[instanceType]['vCPU']
+      nodeDict['NumberOfProcessors'] = self.__instanceTypeInfo[instanceType]['vCPU']
       nodeDict['RAM'] = self.__instanceTypeInfo[instanceType]['Memory']
     else:
-      nodeDict['NumberOfCPUs'] = 1
+      nodeDict['NumberOfProcessors'] = 1
 
     return S_OK((ec2Id, nodeDict))
 

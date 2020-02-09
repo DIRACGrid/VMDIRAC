@@ -4,6 +4,7 @@ import os
 from DIRAC import S_OK, S_ERROR
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from VMDIRAC import version
 
 STATE_MAP = {0: 'RUNNING',
              1: 'REBOOTING',
@@ -53,7 +54,8 @@ def createPilotDataScript(vmParameters, bootstrapParameters):
                    'release-version': parameters.get('Version'),
                    'lcgbundle-version': parameters.get('LCGBundleVersion', ''),
                    'release-project': parameters.get('Project'),
-                   'setup': parameters.get('Setup')}
+                   'setup': parameters.get('Setup'),
+                   'VMDIRACVersion': version}
 
   bootstrapString = ''
   for key, value in bootstrapArgs.items():
@@ -160,7 +162,7 @@ users:
 
 def createUserDataScript(parameters):
 
-  defaultUser = os.environ['USER']
+  defaultUser = os.environ.get('USER', parameters.get('User', 'root'))
   sshUser = parameters.get('SshUser', defaultUser)
   defaultKey = os.path.expandvars('$HOME/.ssh/id_rsa.pub')
   sshKeyFile = parameters.get('SshKey', defaultKey)
@@ -240,7 +242,8 @@ def createCloudInitScript(vmParameters, bootstrapParameters):
                    'setup': parameters.get('Setup'),
                    'bootstrap-ver': parameters.get('BootstrapVer', 'v6r21p4'),
                    'user-root': parameters.get('UserRoot', '/cvmfs/cernvm-prod.cern.ch/cvm4'),
-                   'timezone': parameters.get('Timezone', 'UTC')}
+                   'timezone': parameters.get('Timezone', 'UTC'),
+                   'VMDIRACVersion': version}
   default_template = os.path.join(os.path.dirname(__file__), 'cloudinit.template')
   template_path = parameters.get('CITemplate', default_template)
   # Cert/Key need extra indents to keep yaml formatting happy

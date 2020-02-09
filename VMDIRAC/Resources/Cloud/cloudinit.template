@@ -77,6 +77,8 @@ write_files:
    content: |
      #!/bin/bash
      exec >/mnt/dirac/pilot_start.log 2>&1
+     export VMDIRAC_VERSION="%(VMDIRACVersion)s"
+     export JOB_ID="%(vm-uuid)s:00"
      cd /mnt/dirac
      cp /cvmfs/dirac.egi.eu/dirac/%(bootstrap-ver)s/dirac-install dirac-install.py
      for SRC in dirac-pilot.py pilotCommands.py pilotTools.py; do

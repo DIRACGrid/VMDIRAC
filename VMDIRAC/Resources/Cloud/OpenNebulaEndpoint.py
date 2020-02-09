@@ -101,8 +101,7 @@ class OpenNebulaEndpoint(Endpoint):
         nodeDict = {}
         nodeDict['PublicIP'] = publicIP
         nodeDict['InstanceID'] = instanceID
-        # TODO: Check why CloudDirector expects this. Otherwise throws error but jobs are still done.
-        nodeDict['NumberOfCPUs'] = 2
+        nodeDict['NumberOfProcessors'] = self.parameters.get("NumberOfProcessors", 1)
         outputDict[nodeID] = nodeDict
       else:
         message = result['Message']

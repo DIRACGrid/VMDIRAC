@@ -207,12 +207,12 @@ class RocciEndpoint(Endpoint):
     if result['OK']:
       nodeInfo = json.loads(result['Value'])
       try:
-        nodeDict['NumberOfCPUs'] = nodeInfo[0]['attributes']['occi']['compute']['cores']
+        nodeDict['NumberOfProcessors'] = nodeInfo[0]['attributes']['occi']['compute']['cores']
         nodeDict['RAM'] = nodeInfo[0]['attributes']['occi']['compute']['memory']
       except Exception as e:
-        nodeDict['NumberOfCPUs'] = 1
+        nodeDict['NumberOfProcessors'] = 1
     else:
-      nodeDict['NumberOfCPUs'] = 1
+      nodeDict['NumberOfProcessors'] = 1
 
     return S_OK((occiId, nodeDict))
 

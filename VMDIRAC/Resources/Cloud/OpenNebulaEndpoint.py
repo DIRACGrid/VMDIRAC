@@ -101,7 +101,7 @@ class OpenNebulaEndpoint(Endpoint):
         nodeDict = {}
         nodeDict['PublicIP'] = publicIP
         nodeDict['InstanceID'] = instanceID
-        nodeDict['NumberOfProcessors'] = self.parameters.get("NumberOfProcessors", 2)
+        nodeDict['NumberOfProcessors'] = self.parameters.get("NumberOfProcessors", 1)
         outputDict[nodeID] = nodeDict
       else:
         message = result['Message']

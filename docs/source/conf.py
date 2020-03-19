@@ -263,7 +263,7 @@ epub_exclude_files = ['search.html']
 
 # -- Extension configuration -------------------------------------------------
 
-autodoc_mock_imports = DIRAC_DOC_MOCK_LIST + ['libcloud', 'boto3']
+autodoc_mock_imports = DIRAC_DOC_MOCK_LIST + []
 #autodoc_member_order = 'groupwise'
 autodoc_member_order = 'bysource'
 
@@ -273,6 +273,6 @@ modindex_common_prefix = ['VMDIRAC.']
 # -- Options for intersphinx extension ---------------------------------------
 
 # Example configuration for intersphinx: refer to the Python standard library.
-intersphinx_mapping = {'DIRAC': ('https://dirac.readthedocs.io/en/rel-v6r21', None),
+intersphinx_mapping = {'DIRAC': ('https://dirac.readthedocs.io/en/rel-v6r22', None),
                        'python': ('https://docs.python.org/2.7', None),
                        }

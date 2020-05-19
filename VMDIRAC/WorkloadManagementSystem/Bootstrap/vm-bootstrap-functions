@@ -52,6 +52,10 @@ vm_mount_scratch_disk() {
     # No ephemeral disk, only a root partition without virtio dirver
     # Nothing else to do, /scratch will just live in root dir
     echo "No extra disk to mount, making /scratch right in the root partition"
+  elif [ -b /dev/sda ] ; then
+    # OpenNebula - format and mount second disk on a VM
+    mkfs -q -t ext4 -F /dev/sda
+    mount /dev/sda /scratch
   else
     date --utc +'%Y-%m-%d %H:%M:%S %Z vm-bootstrap Missing vda/vdb/hdb/sdb/xvdb block device for /scratch'
     echo "500 Missing vdb/hdb/sdb block device for /scratch" > /etc/joboutputs/shutdown_message

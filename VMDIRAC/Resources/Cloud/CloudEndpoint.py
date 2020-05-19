@@ -184,7 +184,7 @@ class CloudEndpoint(Endpoint):
         nodeDict = {}
         nodeDict['PublicIP'] = publicIP
         nodeDict['InstanceID'] = instanceID
-        nodeDict['NumberOfCPUs'] = self.flavor.vcpus
+        nodeDict['NumberOfProcessors'] = self.flavor.vcpus
         nodeDict['RAM'] = self.flavor.ram
         nodeDict['DiskSize'] = self.flavor.disk
         nodeDict['Price'] = self.flavor.price

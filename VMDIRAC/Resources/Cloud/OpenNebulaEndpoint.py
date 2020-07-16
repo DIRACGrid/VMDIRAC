@@ -177,7 +177,7 @@ USERDATA_ENCODING = "base64"
     if ok:
       return S_OK((payload, None))
 
-    return S_ERROR('one.template.instantiate failed with code: {} message: {} ', error, payload)
+    return S_ERROR('one.template.instantiate failed with code: %s message: %s ' % (error, payload))
 
   def getVMIDs(self):
     """ Get all the VM IDs on the endpoint
@@ -248,7 +248,7 @@ USERDATA_ENCODING = "base64"
     if ok:
       return S_OK(payload)
 
-    return S_ERROR('one.vm.action failed with code: {} message: {} ', error, payload)
+    return S_ERROR('one.vm.action failed with code: %s message: %s ' % (error, payload))
 
   def assignFloatingIP(self, nodeID):
     """

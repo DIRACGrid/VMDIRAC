@@ -177,7 +177,7 @@ USERDATA_ENCODING = "base64"
     if ok:
       return S_OK((payload, None))
 
-    return S_ERROR('one.template.instantiate failed with code: {} message: {} ', error, payload)
+    return S_ERROR('one.template.instantiate failed with code: ' + str(error) + '; message: ' + str(payload))
 
   def getVMIDs(self):
     """ Get all the VM IDs on the endpoint

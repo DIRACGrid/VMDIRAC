@@ -80,10 +80,21 @@ write_files:
      export VMDIRAC_VERSION="%(VMDIRACVersion)s"
      export JOB_ID="%(vm-uuid)s:00"
      cd /mnt/dirac
-     cp /cvmfs/dirac.egi.eu/dirac/%(bootstrap-ver)s/dirac-install dirac-install.py
-     for SRC in dirac-pilot.py pilotCommands.py pilotTools.py; do
-       cp /cvmfs/dirac.egi.eu/dirac/%(bootstrap-ver)s/DIRAC/WorkloadManagementSystem/PilotAgent/${SRC} ${SRC}
-     done
+     if [ -f /cvmfs/dirac.egi.eu/pilot/pilot.tar ]; then
+       tar xf /cvmfs/dirac.egi.eu/pilot/pilot.tar
+     else
+       curl -o dirac-install.py https://raw.githubusercontent.com/DIRACGrid/DIRAC/integration/Core/scripts/dirac-install.py
+       chmod +x dirac-install.py 
+       for SRC in dirac-pilot.py pilotCommands.py pilotTools.py PilotLogger.py PilotLoggerTools.py MessageSender.py; do
+         curl -o ${SRC} https://raw.githubusercontent.com/DIRACGrid/Pilot/master/Pilot/${SRC}
+       done
+     fi
+     if [ -d /cvmfs/grid.cern.ch/etc/grid-security/certificates ]; then
+       curl -o pilot.json --capath /cvmfs/grid.cern.ch/etc/grid-security/certificates \
+               https://%(pilot-server)s/pilot/pilot.json
+     else
+       curl -o pilot.json -k https://%(pilot-server)s/pilot/pilot.json
+     fi
      python dirac-pilot.py \
             --setup %(setup)s \
             -r %(release-version)s \
@@ -97,8 +108,8 @@ write_files:
             -o /LocalSite/LocalCE=Singularity \
             -o /Resources/Computing/CEDefaults/VirtualOrganization=%(vo)s \
             -o /Resources/Computing/CEDefaults/WholeNode=%(whole-node)s \
-            -o /Resources/Computing/CEDefaults/ContainerRoot=%(user-root)s \
-            -o /Resources/Computing/CEDefaults/ContainerExtraOpts="-g %(lcgbundle-version)s"
+            -o /Resources/Computing/CEDefaults/ContainerExtraOpts="%(extraopts)s" \
+            -o /Resources/Computing/CEDefaults/ContainerRoot=%(user-root)s
  - path: /root/run_monitor.sh
    permissions: '0755'
    content: |
@@ -106,7 +117,13 @@ write_files:
      exec >/mnt/monitor/monitor_start.log 2>&1
      mkdir -p /mnt/monitor
      cd /mnt/monitor
-     cp /cvmfs/dirac.egi.eu/dirac/%(bootstrap-ver)s/dirac-install dirac-install.py
+     if [ -f /cvmfs/dirac.egi.eu/pilot/pilot.tar ]; then
+       tar xf /cvmfs/dirac.egi.eu/pilot/pilot.tar dirac-install.py
+     else
+       curl -o dirac-install.py https://raw.githubusercontent.com/DIRACGrid/DIRAC/integration/Core/scripts/dirac-install.py
+       chmod +x dirac-install.py
+     fi
+
      python dirac-install.py -t server -r %(release-version)s -e VMDIRAC
      mkdir -p etc/grid-security
      cp /root/hostkey.pem etc/grid-security/hostkey.pem

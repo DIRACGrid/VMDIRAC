@@ -47,10 +47,15 @@ class OpenStackEndpoint(Endpoint):
     self.projectID = None
     self.vmInfo = {}
     self.initialized = False
-    # self.initialize()
+
+    result = self.initialize()
+    if result['OK']:
+      self.log.debug('OpenStackEndpoint created and validated')
+    else:
+      self.log.error(result['Message'])
+
 
   def initialize(self):
-
     self.caPath = self.parameters.get('CAPath', True)
     self.network = self.parameters.get("Network")
     self.project = self.parameters.get("Project")

@@ -159,6 +159,7 @@ def getPilotBootstrapParameters(vo='', runningPod=''):
   opParameters['SubmitPool'] = op.getValue('Cloud/SubmitPool')
   opParameters['CloudPilotCert'] = op.getValue('Cloud/CloudPilotCert')
   opParameters['CloudPilotKey'] = op.getValue('Cloud/CloudPilotKey')
+  opParameters['pilotFileServer'] = op.getValue('Pilot/pilotFileServer')
   result = op.getOptionsDict('Cloud/%s' % runningPod)
   if result['OK']:
     opParameters.update(result['Value'])

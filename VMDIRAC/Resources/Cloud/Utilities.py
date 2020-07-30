@@ -223,6 +223,10 @@ def createCloudInitScript(vmParameters, bootstrapParameters):
   """
   parameters = dict(vmParameters)
   parameters.update(bootstrapParameters)
+  extraOpts = ''
+  lcgVer = parameters.get('LCGBundleVersion', None)
+  if lcgVer:
+    extraOpts = '-g %s' % lcgVer
   bootstrapArgs = {'dirac-site': parameters.get('Site'),
                    'submit-pool': parameters.get('SubmitPool', ''),
                    'ce-name': parameters.get('CEName'),
@@ -237,13 +241,12 @@ def createCloudInitScript(vmParameters, bootstrapParameters):
                    'whole-node': parameters.get('WholeNode', True),
                    'required-tag': parameters.get('RequiredTag', ''),
                    'release-version': parameters.get('Version'),
-                   'lcgbundle-version': parameters.get('LCGBundleVersion', ''),
+                   'extraopts': extraOpts,
                    'release-project': parameters.get('Project'),
                    'setup': parameters.get('Setup'),
-                   'bootstrap-ver': parameters.get('BootstrapVer', 'v6r21p4'),
                    'user-root': parameters.get('UserRoot', '/cvmfs/cernvm-prod.cern.ch/cvm4'),
                    'timezone': parameters.get('Timezone', 'UTC'),
-                   'VMDIRACVersion': version}
+                   'pilot-server': parameters.get('pilotFileServer', 'localhost')}
   default_template = os.path.join(os.path.dirname(__file__), 'cloudinit.template')
   template_path = parameters.get('CITemplate', default_template)
   # Cert/Key need extra indents to keep yaml formatting happy

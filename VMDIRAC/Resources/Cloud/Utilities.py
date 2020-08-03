@@ -246,6 +246,7 @@ def createCloudInitScript(vmParameters, bootstrapParameters):
                    'setup': parameters.get('Setup'),
                    'user-root': parameters.get('UserRoot', '/cvmfs/cernvm-prod.cern.ch/cvm4'),
                    'timezone': parameters.get('Timezone', 'UTC'),
+                   'VMDIRACVersion': version,
                    'pilot-server': parameters.get('pilotFileServer', 'localhost')}
   default_template = os.path.join(os.path.dirname(__file__), 'cloudinit.template')
   template_path = parameters.get('CITemplate', default_template)

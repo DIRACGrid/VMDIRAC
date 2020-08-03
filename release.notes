@@ -1,3 +1,7 @@
+[v2r4p7]
+
+FIX: (#131) added VMDIRACVersion back which was accidentally deleted in a merge incident
+
 [v2r4p3]
 
 *Resources

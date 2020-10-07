@@ -114,8 +114,8 @@ write_files:
    permissions: '0755'
    content: |
      #!/bin/bash
-     exec >/mnt/monitor/monitor_start.log 2>&1
      mkdir -p /mnt/monitor
+     exec >/mnt/monitor/monitor_start.log 2>&1
      cd /mnt/monitor
      if [ -f /cvmfs/dirac.egi.eu/pilot/pilot.tar ]; then
        tar xf /cvmfs/dirac.egi.eu/pilot/pilot.tar dirac-install.py
@@ -192,7 +192,7 @@ runcmd:
  - [ passwd, -l, dirac ]
  - [ mkdir, -p, /mnt/dirac/etc/grid-security ]
  - [ cp, /root/hostkey.pem, /mnt/dirac/etc/grid-security/hostkey.pem ]
- - [ chmod, 0600, /mnt/dirac/etc/grid-security/hostkey.pem ]
+ - [ chmod, 600, /mnt/dirac/etc/grid-security/hostkey.pem ]
  - [ ln, -s, /mnt/dirac/etc/grid-security/hostkey.pem, /mnt/dirac/etc/grid-security/hostcert.pem ]
  - [ chown, -R, "dirac:dirac", /mnt/dirac/etc ]
  - [ ln, -s, /cvmfs/grid.cern.ch/etc/grid-security/certificates, /mnt/dirac/etc/grid-security/certificates ]

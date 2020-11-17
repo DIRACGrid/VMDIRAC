@@ -1,0 +1,26 @@
+name: vmdirac-development
+
+channels:
+  - conda-forge
+
+dependencies:
+  # runtime
+  - python =2.7
+  - pip
+  - certifi
+  # testing and development
+  - autopep8
+  - caniusepython3
+  - coverage
+  - hypothesis
+  - ipython
+  - mock
+  - parameterized
+  - pylint >=1.6.5
+  - pytest >=3.6
+  - pytest-cov >=2.2.0
+  - pytest-mock
+  # code
+  - boto3
+  - apache-libcloud
+

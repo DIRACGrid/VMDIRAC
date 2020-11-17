@@ -1,6 +1,10 @@
 """ Utilities for VMDIRAC.WorkloadManagementSystem
 """
 
+from __future__ import print_function
+from __future__ import division
+from __future__ import absolute_import
+
 # DIRAC
 from DIRAC import S_ERROR
 from DIRAC.ConfigurationSystem.Client.Helpers import Registry

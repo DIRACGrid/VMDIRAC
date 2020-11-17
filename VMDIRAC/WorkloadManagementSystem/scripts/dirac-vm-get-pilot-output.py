@@ -3,6 +3,10 @@
   Get pilot output from a VM
 """
 
+from __future__ import print_function
+from __future__ import division
+from __future__ import absolute_import
+
 __RCSID__ = "$Id$"
 
 from DIRAC.Core.Base import Script
@@ -19,10 +23,9 @@ Script.parseCommandLine(ignoreErrors=True)
 args = Script.getPositionalArgs()
 
 from VMDIRAC.WorkloadManagementSystem.Client.VMClient import VMClient
-from DIRAC.Core.Security.ProxyInfo import getVOfromProxyGroup
 
 if len(args) != 1:
-  print Script.showHelp()
+  print(Script.showHelp())
   DIRACExit(-1)
 
 pilotRef = args[0]
@@ -33,6 +36,6 @@ if not result['OK']:
   gLogger.error(result['Message'])
   DIRACExit(-1)
 
-print result
+print(result)
 
 DIRACExit(0)

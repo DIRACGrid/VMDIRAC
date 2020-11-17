@@ -1,5 +1,4 @@
 ########################################################################
-# $HeadURL$
 # File :   VirtualMachineDB.py
 # Author : Ricardo Graciani
 # occi and multi endpoint author : Victor Mendez
@@ -34,12 +33,16 @@
 
 """
 
+from __future__ import print_function
+from __future__ import division
+from __future__ import absolute_import
+
 import types
 
 # DIRAC
 from DIRAC import gConfig, S_ERROR, S_OK
 from DIRAC.Core.Base.DB import DB
-from DIRAC.Core.Utilities import DEncode, Time
+from DIRAC.Core.Utilities import Time
 
 __RCSID__ = "$Id$"
 

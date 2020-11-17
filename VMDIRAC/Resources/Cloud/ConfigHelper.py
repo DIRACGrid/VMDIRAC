@@ -4,6 +4,10 @@
 #
 ####################################################################
 
+from __future__ import print_function
+from __future__ import division
+from __future__ import absolute_import
+
 from DIRAC import S_OK, S_ERROR, gLogger, gConfig
 from DIRAC.ConfigurationSystem.Client.Helpers import Registry, Operations
 from DIRAC.FrameworkSystem.Client.ProxyManagerClient import gProxyManager

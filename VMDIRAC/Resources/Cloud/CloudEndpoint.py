@@ -1,5 +1,4 @@
 ###########################################################
-# $HeadURL$
 # File: CloudEndpoint.py
 # Original author: Victor Mendez
 # Modified: A.T.
@@ -9,6 +8,10 @@
    CloudEndpoint is a base class for the clients used to connect to different
    cloud providers
 """
+
+from __future__ import print_function
+from __future__ import division
+from __future__ import absolute_import
 
 __RCSID__ = '$Id$'
 

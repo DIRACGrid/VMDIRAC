@@ -1,6 +1,6 @@
-# $HeadURL$
 __RCSID__ = "$Id$"
 
+# FIXME: this, can't work.
 import GSI
 
 requiredGSIVersion = "0.3.9"

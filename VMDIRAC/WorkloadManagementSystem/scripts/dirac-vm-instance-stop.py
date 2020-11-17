@@ -3,6 +3,10 @@
   Get VM instances available in the configured cloud sites
 """
 
+from __future__ import print_function
+from __future__ import division
+from __future__ import absolute_import
+
 __RCSID__ = "$Id$"
 
 from DIRAC.Core.Base import Script
@@ -22,7 +26,7 @@ from VMDIRAC.WorkloadManagementSystem.Client.VMClient import VMClient
 from DIRAC.Core.Security.ProxyInfo import getVOfromProxyGroup
 
 if len(args) != 3:
-  print Script.showHelp()
+  print(Script.showHelp())
   DIRACExit(-1)
 
 site, ce, node = args

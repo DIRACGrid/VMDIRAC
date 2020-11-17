@@ -5,8 +5,7 @@ on: [push, pull_request]
 jobs:
   check:
     runs-on: ubuntu-latest
-    if: github.event_name != 'push' || github.repository == 'DIRACGrid/VMDIRAC'
-    timeout-minutes: 30
+    if: github.event_name != 'push' || github.repository == 'DIRACGrid/DIRAC'
 
     strategy:
       fail-fast: False

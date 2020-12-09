@@ -10,7 +10,7 @@ import getpass
 
 from DIRAC.Core.Base.CLI import CLI
 from DIRAC.Core.Security.Locations import getProxyLocation
-from DIRAC.Core.Utilities.Prettyprint import printTable
+from DIRAC.Core.Utilities.PrettyPrint import printTable
 
 from VMDIRAC.Resources.Cloud.EndpointFactory import EndpointFactory
 from VMDIRAC.Resources.Cloud.ConfigHelper import getPilotBootstrapParameters, \

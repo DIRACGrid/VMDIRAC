@@ -23,4 +23,9 @@ dependencies:
   # code
   - boto3
   - apache-libcloud
+  - pip:
+    - diraccfg
+    # Tornado is required to import DIRAC integration at the moment
+    - git+https://github.com/DIRACGrid/tornado.git@iostreamConfigurable
+    - git+https://github.com/DIRACGrid/tornado_m2crypto
 

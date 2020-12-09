@@ -893,7 +893,7 @@ class VirtualMachineDB(DB):
 
       dbData = []
       for vmID in vmData:
-        prevValues = False
+        prevValues = []
         for rDate in rDates:
           if rDate not in vmData[vmID]:
             if prevValues:

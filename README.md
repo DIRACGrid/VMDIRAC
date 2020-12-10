@@ -1,15 +1,7 @@
-.. -*- mode: rst -*-
+VMDIRAC
+=======
+The cloud extension for the [DIRAC interware](https://github.com/DIRACGrid/DIRAC).
 
-.. image:: https://travis-ci.org/DIRACGrid/VMDIRAC.svg?branch=master
-   :target: https://travis-ci.org/DIRACGrid/VMDIRAC
-   :alt: Build Status
+VMDIRAC is an extension to include cloud sites within the DIRAC framework. When there are queued jobs matching the cloud resource definition, VMDIRAC will start VMs to run those jobs. A variety of different cloud platforms and configurations are supported, full documentation is available [here](https://vmdirac.readthedocs.io).
 
-Integration branch:
-
-.. image:: https://travis-ci.org/DIRACGrid/VMDIRAC.svg?branch=integration
-  :target: https://travis-ci.org/DIRACGrid/VMDIRAC
-  :alt: Build Status
-
-
-
-VMDIRAC cloud extension for the DIRAC
+![Basic tests](https://github.com/DIRACGrid/VMDIRAC/workflows/Basic%20tests/badge.svg)

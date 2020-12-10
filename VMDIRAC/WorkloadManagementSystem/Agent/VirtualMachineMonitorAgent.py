@@ -159,7 +159,8 @@ class VirtualMachineMonitorAgent(AgentModule):
     if not os.path.isdir(self.vmJobWrappersLocation):
       return 0
     self.log.info("VM job wrappers path: %s" % self.vmJobWrappersLocation)
-    jdlList = glob.glob(os.path.join(self.vmJobWrappersLocation, "*", "*.jdl"))
+    jdlList = glob.glob(os.path.join(self.vmJobWrappersLocation, "*.jdl"))
+    jdlList += glob.glob(os.path.join(self.vmJobWrappersLocation, "*", "*.jdl"))
     return len(jdlList)
 
   def execute(self):

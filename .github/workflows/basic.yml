@@ -39,13 +39,15 @@ jobs:
           VMDIRACTag=$(echo "${REFERENCE_BRANCH}" | echo $(sed "s/rel-//g"))
           echo "VMDIRACTag = ${VMDIRACTag}"
           # Now find the DIRAC release (tag) to checkout
+          # Only update $rel if we find an exact match
           allreleases=$(diraccfg as-json releases.cfg | jq '.Releases' | diraccfg sort-versions --allow-pre-releases 2>/dev/null)
           for x in ${allreleases}; do
-            rel=$(echo ${x} | sed "s/\"//g" | sed "s/\[//g" | sed "s/\]//g" | sed "s/,//g")
-            echo "Looking for rel = ${rel}"
-            modules=$(diraccfg as-json releases.cfg | jq ".Releases".\"${rel}\" | jq .Modules)
+            checkrel=$(echo ${x} | sed "s/\"//g" | sed "s/\[//g" | sed "s/\]//g" | sed "s/,//g")
+            echo "Looking for rel = ${checkrel}"
+            modules=$(diraccfg as-json releases.cfg | jq ".Releases".\"${checkrel}\" | jq .Modules)
             echo "With modules = ${modules}"
             if [[ "${modules}" == *"VMDIRAC:${VMDIRACTag}"* ]]; then
+              rel=$checkrel
               break
             fi
           done

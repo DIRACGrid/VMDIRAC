@@ -2,9 +2,12 @@
 # File :   EndpointFactory.py
 # Author : Andrei Tsaregorodtsev
 ########################################################################
-
 """  The Cloud Endpoint Factory has one method that instantiates a given Cloud Endpoint
 """
+from __future__ import print_function
+from __future__ import division
+from __future__ import absolute_import
+
 from DIRAC import S_OK, S_ERROR, gLogger
 from DIRAC.Core.Utilities import ObjectLoader
 from VMDIRAC.Resources.Cloud.ConfigHelper import getVMTypeConfig
@@ -55,5 +58,3 @@ class EndpointFactory(object):
       return S_ERROR(msg)
 
     return S_OK(endpoint)
-
-#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#

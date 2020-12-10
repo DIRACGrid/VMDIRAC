@@ -1,5 +1,4 @@
 ########################################################################
-# $HeadURL$
 # File :   VirtualMachineDB.py
 # Author : Ricardo Graciani
 # occi and multi endpoint author : Victor Mendez
@@ -34,12 +33,16 @@
 
 """
 
+from __future__ import print_function
+from __future__ import division
+from __future__ import absolute_import
+
 import types
 
 # DIRAC
 from DIRAC import gConfig, S_ERROR, S_OK
 from DIRAC.Core.Base.DB import DB
-from DIRAC.Core.Utilities import DEncode, Time
+from DIRAC.Core.Utilities import Time
 
 __RCSID__ = "$Id$"
 
@@ -134,8 +137,6 @@ class VirtualMachineDB(DB):
   def __init__(self, maxQueueSize=10):
 
     DB.__init__(self, 'VirtualMachineDB', 'WorkloadManagement/VirtualMachineDB')
-    if not self._MySQL__initialized:
-      raise Exception('Can not connect to VirtualMachineDB, exiting...')
 
     result = self.__initializeDB()
     if not result['OK']:
@@ -892,7 +893,7 @@ class VirtualMachineDB(DB):
 
       dbData = []
       for vmID in vmData:
-        prevValues = False
+        prevValues = []
         for rDate in rDates:
           if rDate not in vmData[vmID]:
             if prevValues:

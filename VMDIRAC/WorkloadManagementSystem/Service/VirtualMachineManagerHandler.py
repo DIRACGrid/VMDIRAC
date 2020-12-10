@@ -13,12 +13,16 @@
 
 """
 
+from __future__ import print_function
+from __future__ import division
+from __future__ import absolute_import
+
 from types import NoneType
 import os
 import commands
 
 # DIRAC
-from DIRAC import gConfig, gLogger, S_ERROR, S_OK
+from DIRAC import gLogger, S_ERROR, S_OK
 from DIRAC.Core.DISET.RequestHandler import RequestHandler
 from DIRAC.Core.Utilities.ThreadScheduler import gThreadScheduler
 from DIRAC.ConfigurationSystem.Client.Helpers.Operations import Operations
@@ -567,6 +571,3 @@ class VirtualMachineManagerHandler(RequestHandler):
     self.__logResult('getRunningInstancesByImageHistory', res)
 
     return res
-
-#...............................................................................
-# EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF

@@ -1,12 +1,14 @@
 ###########################################################
-# $HeadURL$
 # File: OcciEndpoint.py
 # Author: A.T.
 ###########################################################
-
 """
    OcciEndpoint is Endpoint base class implementation for the Occi cloud service.
 """
+
+from __future__ import print_function
+from __future__ import division
+from __future__ import absolute_import
 
 __RCSID__ = '$Id$'
 

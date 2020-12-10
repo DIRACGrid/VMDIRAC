@@ -1,9 +1,12 @@
-#!/usr/bin/python
+#!/usr/bin/env python
+
+from __future__ import print_function
+from __future__ import division
+from __future__ import absolute_import
 
 import sys
 import commands
 import os
-
 
 def getMountedPartitions():
 
@@ -96,10 +99,10 @@ def getScratchDevice():
 if __name__ == "__main__":
   partition = sys.argv[1]
   size = getPartitionSize(partition)
-  print size
+  print(size)
   partList = getMountedPartitions()
-  print partList
+  print(partList)
   devList = getBlockDevices()
-  print devList
+  print(devList)
   rootPart = getRootPartition()
-  print rootPart
+  print(rootPart)

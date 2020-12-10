@@ -1,15 +1,14 @@
+from __future__ import print_function
+from __future__ import division
+from __future__ import absolute_import
 
-from WebAppDIRAC.Lib.WebHandler import WebHandler, WErr, WOK, asyncGen
-from DIRAC.Core.Utilities import Time, List, DictCache
-from DIRAC.Core.DISET.RPCClient import RPCClient
-from DIRAC import gConfig, S_OK, S_ERROR, gLogger
 
-import tempfile
-import json
-import types
-import datetime
 import json
 import ast
+
+from DIRAC.Core.Utilities import Time
+from DIRAC.Core.DISET.RPCClient import RPCClient
+from WebAppDIRAC.Lib.WebHandler import WebHandler, asyncGen
 
 
 class VMDiracHandler(WebHandler):
@@ -58,14 +57,12 @@ class VMDiracHandler(WebHandler):
 
     rpcClient = RPCClient("WorkloadManagement/VirtualMachineManager")
     result = rpcClient.getInstancesContent(condDict, sort, start, limit)
-    print result
     if not result['OK']:
       callback = {"success": "false", "error": result["Message"]}
       self.write(callback)
       return
     svcData = result['Value']
     data = {'numRecords': svcData['TotalRecords'], 'instances': []}
-    dnMap = {}
     for record in svcData['Records']:
       rD = {}
       for iP in range(len(svcData['ParameterNames'])):

@@ -6,7 +6,11 @@
   Provide uniform interface to backend for local and remote clients (ie Director Agents)
 """
 
-__RCSID__ = "$Id"
+from __future__ import print_function
+from __future__ import division
+from __future__ import absolute_import
+
+__RCSID__ = "$Id$"
 
 from DIRAC.WorkloadManagementSystem.Client.ServerUtils import getDBOrClient
 

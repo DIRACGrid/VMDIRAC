@@ -1,0 +1,71 @@
+name: Basic tests
+
+on: [push, pull_request]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: False
+      matrix:
+        command:
+          - pytest --no-cov
+          - tests/runPylint.sh
+          # - tests/py3Check.sh
+          - CHECK=pylintPY3K tests/runPylint.sh
+          - |
+            if [[ "${REFERENCE_BRANCH}" != "" ]]; then
+                git remote add upstream https://github.com/DIRACGrid/VMDIRAC.git
+                git fetch --no-tags upstream "${REFERENCE_BRANCH}"
+                git branch -vv
+                git diff -U0 "upstream/${REFERENCE_BRANCH}" ':(exclude)tests/formatting/pep8_bad.py' | pycodestyle --diff
+            fi
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Prepare environment
+      run: |
+        conda env create --name dirac-testing environment.yml
+    - name: Get DIRAC
+      run: |
+        source "${CONDA}/bin/activate"
+        conda activate dirac-testing
+        # get the DIRAC releases.cfg to know what to test against
+        curl -O https://raw.githubusercontent.com/DIRACGrid/DIRAC/integration/releases.cfg
+        # get the base VMDIRAC tag (e.g. for rel-v2r0 branch it will be v2r0)
+        rel="integration"
+        if [[ "${REFERENCE_BRANCH}" != "" ]]; then
+          VMDIRACTag=$(echo "${REFERENCE_BRANCH}" | echo $(sed "s/rel-//g"))
+          echo "VMDIRACTag = ${VMDIRACTag}"
+          # Now find the DIRAC release (tag) to checkout
+          allreleases=$(diraccfg as-json releases.cfg | jq '.Releases' | diraccfg sort-versions --allow-pre-releases 2>/dev/null)
+          for x in ${allreleases}; do
+            rel=$(echo ${x} | sed "s/\"//g" | sed "s/\[//g" | sed "s/\]//g" | sed "s/,//g")
+            echo "Looking for rel = ${rel}"
+            modules=$(diraccfg as-json releases.cfg | jq ".Releases".\"${rel}\" | jq .Modules)
+            echo "With modules = ${modules}"
+            if [[ "${modules}" == *"VMDIRAC:${VMDIRACTag}"* ]]; then
+              break
+            fi
+          done
+        fi
+        # Get DIRAC code outside of our source tree (so we don't test DIRAC core as well!)
+        echo "Testing against DIRAC branch: ${rel}"
+        mkdir ../ext
+        git clone https://github.com/DIRACGrid/DIRAC.git --depth 1 --single-branch -b "${rel}" ../ext/DIRAC
+      env:
+        REFERENCE_BRANCH: ${{ github['base_ref'] || github['head_ref'] }}
+    - name: Run tests
+      run: |
+        source "${CONDA}/bin/activate"
+        conda activate dirac-testing
+        set -euxo pipefail
+        # DIRAC is converting to src/DIRAC layout, so we need to have a hack to adjust for that too for now...
+        echo "${PWD}" > "${CONDA}/envs/dirac-testing/lib/python2.7/site-packages/conda.pth"
+        echo "${PWD}/../ext" >> "${CONDA}/envs/dirac-testing/lib/python2.7/site-packages/conda.pth"
+        echo "${PWD}/../ext/DIRAC/src" >> "${CONDA}/envs/dirac-testing/lib/python2.7/site-packages/conda.pth"
+        python -c "import DIRAC"
+        ${{ matrix.command }}
+      env:
+        REFERENCE_BRANCH: ${{ github['base_ref'] || github['head_ref'] }}

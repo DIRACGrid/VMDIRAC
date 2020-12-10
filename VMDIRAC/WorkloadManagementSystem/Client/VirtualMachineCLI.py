@@ -1,12 +1,16 @@
 #!/usr/bin/env python
 """ Virtual Machine Command Line Interface. """
 
+from __future__ import print_function
+from __future__ import division
+from __future__ import absolute_import
+
 import pprint
 import getpass
 
 from DIRAC.Core.Base.CLI import CLI
 from DIRAC.Core.Security.Locations import getProxyLocation
-from DIRAC.Core.Utilities.PrettyPrint import int_with_commas, printTable
+from DIRAC.Core.Utilities.PrettyPrint import printTable
 
 from VMDIRAC.Resources.Cloud.EndpointFactory import EndpointFactory
 from VMDIRAC.Resources.Cloud.ConfigHelper import getPilotBootstrapParameters, \
@@ -51,7 +55,7 @@ class VirtualMachineCLI(CLI):
 
     result = getVMTypeConfig(self.site, self.endpoint)
     if not result['OK']:
-      print "ERROR: can not get the cloud endpoint configuration \n%s" % result['Message']
+      print("ERROR: can not get the cloud endpoint configuration \n%s" % result['Message'])
       return
     ceDict = result['Value']
     if not self.project:
@@ -65,17 +69,17 @@ class VirtualMachineCLI(CLI):
       self.proxyLocation = None
       proxy = getProxyLocation()
       if not proxy:
-        print "ERROR: Requested endpoint requires proxy but it is not found"
+        print("ERROR: Requested endpoint requires proxy but it is not found")
         return
       self.proxyLocation = proxy
     else:
       # We need user/login to proceed
       if not ceDict.get('User') or not ceDict.get('Password'):
-        print "Endpoint requires user/password"
+        print("Endpoint requires user/password")
         self.user = raw_input(["Login:"])
         self.password = getpass.getpass("Password:")
 
-    print "Connection: site=%s, endpoint=%s, project=%s" % (self.site, self.endpoint, self.project)
+    print("Connection: site=%s, endpoint=%s, project=%s" % (self.site, self.endpoint, self.project))
     self.prompt = '%s/%s/%s> ' % (self.site, self.endpoint, self.project)
 
   def __getCE(self):
@@ -84,7 +88,7 @@ class VirtualMachineCLI(CLI):
 
     result = EndpointFactory().getCE(self.site, self.endpoint, self.vmType)
     if not result['OK']:
-      print result['Message']
+      print(result['Message'])
       return
     ce = result['Value']
 
@@ -115,16 +119,16 @@ class VirtualMachineCLI(CLI):
     """
 
     if not self.__checkConnection():
-      print "No connection defined"
+      print("No connection defined")
       return
 
     ce = self.__getCE()
 
     result = ce.getVMIDs()
     if not result['OK']:
-      print "ERROR: %s" % result['Message']
+      print("ERROR: %s" % result['Message'])
     else:
-      print '\n'.join(result['Value'])
+      print('\n'.join(result['Value']))
 
   def do_info(self, args):
     """ Get VM status
@@ -132,7 +136,7 @@ class VirtualMachineCLI(CLI):
 
     argss = args.split()
     if (len(argss) == 0):
-      print self.do_status.__doc__
+      print(self.do_status.__doc__)
       return
 
     longOutput = False
@@ -147,7 +151,7 @@ class VirtualMachineCLI(CLI):
     result = ce.getVMInfo(vmID)
 
     if not result['OK']:
-      print "ERROR: %s" % result['Message']
+      print("ERROR: %s" % result['Message'])
     else:
       pprint.pprint(result['Value'])
 
@@ -157,7 +161,7 @@ class VirtualMachineCLI(CLI):
 
     result = getVMTypes()
 
-    print result
+    print(result)
 
     siteDict = result['Value']
     records = []
@@ -188,7 +192,7 @@ class VirtualMachineCLI(CLI):
 
     argss = args.split()
     if (len(argss) == 0):
-      print self.do_status.__doc__
+      print(self.do_status.__doc__)
       return
     vmID = argss[0]
     del argss[0]
@@ -200,17 +204,16 @@ class VirtualMachineCLI(CLI):
     result = ce.getVMStatus(vmID)
 
     if not result['OK']:
-      print "ERROR: %s" % result['Message']
+      print("ERROR: %s" % result['Message'])
     else:
-      print result['Value']['status']
+      print(result['Value']['status'])
 
   def do_ip(self, args):
     """ Assign IP
     """
 
     argss = args.split()
-    if (len(argss) == 0):
-      print self.do_assign - ip.__doc__
+    if len(argss) == 0:
       return
     vmID = argss[0]
 
@@ -218,9 +221,9 @@ class VirtualMachineCLI(CLI):
     result = ce.assignFloatingIP(vmID)
 
     if not result['OK']:
-      print "ERROR: %s" % result['Message']
+      print("ERROR: %s" % result['Message'])
     else:
-      print result['Value']
+      print(result['Value'])
 
   def do_token(self, args):
     """ Display the current Keystone token if any
@@ -228,9 +231,9 @@ class VirtualMachineCLI(CLI):
 
     ce = self.__getCE()
     if getattr(ce, 'token'):
-      print ce.token
+      print(ce.token)
     else:
-      print "No token available"
+      print("No token available")
 
   def do_create(self, args):
     """ Create VM at the connected site
@@ -241,7 +244,7 @@ class VirtualMachineCLI(CLI):
 
     argss = args.split()
     if (len(argss) == 0):
-      print self.do_create.__doc__
+      print(self.do_create.__doc__)
       return
     self.vmType = argss.pop(0)
     extraParameters = {}
@@ -260,9 +263,9 @@ class VirtualMachineCLI(CLI):
     result = ce.createInstance(diracVMID)
 
     if not result['OK']:
-      print "ERROR: %s" % result['Message']
+      print("ERROR: %s" % result['Message'])
     else:
-      print result['Value']
+      print(result['Value'])
 
   def do_stop(self, args):
     """ Stop VM
@@ -270,7 +273,7 @@ class VirtualMachineCLI(CLI):
 
     argss = args.split()
     if (len(argss) == 0):
-      print self.do_stop.__doc__
+      print(self.do_stop.__doc__)
       return
     vmID = argss[0]
 
@@ -278,6 +281,6 @@ class VirtualMachineCLI(CLI):
     result = ce.stopVM(vmID)
 
     if not result['OK']:
-      print "ERROR: %s" % result['Message']
+      print("ERROR: %s" % result['Message'])
     else:
-      print "VM stopped"
+      print("VM stopped")

@@ -4,7 +4,7 @@
 
 # Python code to execute, usually for sys.path manipulation such as
 # pygtk.require().
-init-hook='import sys; sys.path.append("$WORKSPACE/DIRAC/WorkloadManagementSystem/PilotAgent")'
+# init-hook='import sys; sys.path.append("$WORKSPACE/DIRAC/WorkloadManagementSystem/PilotAgent")'
 
 # Add <file or directory> to the black list. It should be a base name, not a
 # path. You may set this option multiple times.
@@ -145,7 +145,7 @@ ignored-classes=SQLObject
 generated-members=REQUEST,acl_users,aq_parent
 
 # List of ignored modules
-ignored-modules = MySQLdb,numpy
+ignored-modules = MySQLdb,numpy,six.moves.urllib,WebAppDIRAC,diracdoctools
 
 [VARIABLES]
 

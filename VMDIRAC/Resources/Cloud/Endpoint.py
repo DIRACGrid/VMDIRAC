@@ -1,11 +1,11 @@
-###########################################################
-# $HeadURL$
-###########################################################
-
 """
    CloudEndpoint is a base class for the clients used to connect to different
    cloud providers
 """
+
+from __future__ import print_function
+from __future__ import division
+from __future__ import absolute_import
 
 import os
 

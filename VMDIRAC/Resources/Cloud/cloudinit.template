@@ -141,23 +141,7 @@ write_files:
                      -o /Cloud/%(running-pod)s/JobWrappersLocation=/mnt/dirac \
                      --UseServerCertificate
      mkdir -p runit/VirtualMachineMonitorAgent/log
-     cat > runit/VirtualMachineMonitorAgent/run <<"EOF"
-     #!/bin/bash
-     source /mnt/monitor/bashrc
-     exec python /mnt/monitor/DIRAC/Core/scripts/dirac-agent.py WorkloadManagement/VirtualMachineMonitorAgent </dev/null 2>&1
-     EOF
-     chmod +x runit/VirtualMachineMonitorAgent/run
-     cat > runit/VirtualMachineMonitorAgent/log/run <<"EOF"
-     #!/bin/bash
-     source /mnt/monitor/bashrc
-     exec svlogd .
-     EOF
-     chmod +x runit/VirtualMachineMonitorAgent/log/run
-     cat > runit/VirtualMachineMonitorAgent/log/config <<"EOF"
-     s10000000
-     n20
-     EOF
-     runsv /mnt/monitor/runit/VirtualMachineMonitorAgent
+     exec python /mnt/monitor/DIRAC/Core/scripts/dirac-agent.py WorkloadManagement/VirtualMachineMonitorAgent >runit/VirtualMachineMonitorAgent/log/current 2>&1 
 
 yum_repos:
   cernvm:

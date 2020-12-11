@@ -10,11 +10,42 @@ Installing VMDIRAC
 .. contents:: Table of contents
    :depth: 4
 
+------------
+Introduction
+------------
+
+VMDIRAC consists of a few parts:
+
+VirtualMachineDB (Database) - This is the database that stores the details of each VM
+managed by VMDIRAC. There should be one instance of this on your system.
+
+CloudDirector (Agent) - This is analogous to the core DIRAC SiteDirector. It inspects
+the TaskQueues, works out if there are any compatible jobs waiting (without
+existing VMs) for cloud resources and starts VM instances as needed. The VM
+details are stored in the database for future reference. You need at least one
+CloudDirector, for multi community/VO services, it's advisable to have one
+CloudDirector per community.
+
+VirtualMachineManager (Service) - This service provides the virtual machine
+life-cycle management interface; the CLI tools contact this service to
+list/kill running VMs. It also has an inbuilt thread that will inspect existing
+VMs, tidying up any that are stopped or haven't reported back for a long time.
+
+VirtualMachineMonitor (Agent) - This agent monitors the health of the current
+VM it is running on an reports it back to the VirtualMachineManager. It should
+not be installed on the central DIRAC instance, but started in the cloud VM
+instances themselves. This lets the VirtualMachineManager know that the
+instance is still alive and also handles stopping the instance after any
+tasks/jobs have finished.
+
+VMDIRAC WebApp Extention - This WebApp plugin adds an extra VirtualMachines tab
+to the usual DIRAC webinterface for summarising the contents of the database.
+
 ---------------
 Install VMDIRAC
 ---------------
 
-On the server running the WMS:
+On a DIRAC server (generally collocated with the other WorkdloadManagement system components):
 
 * Install VMDIRAC extension as any other DIRAC extension using -e option *e.g.*:
 

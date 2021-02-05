@@ -96,7 +96,25 @@ On a DIRAC server (generally collocated with the other WorkdloadManagement syste
   * Agent: WorkloadManagement_CloudDirector
 
 -------------
-Configuration
+Setup for using cloudinit and Pilot3
+-------------
+
+^^^^^^^^^^^^
+Using OpenStack with an application credential
+^^^^^^^^^^^^
+* The user must have access to the OpenStack cloud and be allowed to start up instances.
+* Login to the cloud webinterface with your account.
+* Go to the identity -> Application credentials panel
+* Create a new credential with any name, no expire and no roles selected
+* Copy the ID and secret strings somewhere safe for a moment
+*   Put the ID and string into a new file on the DIRAC server running the
+    CloudDirectors in the following format (one line, separated by a space): 
+    <ID> <Secret>
+* Make sure the file is owned by the user running dirac and has 0600 permissions.
+* Add the location of this file to the Resource Settings.
+
+-------------
+Configuration - other examples
 -------------
 
 * In the CS Resources section, configure the cloud endpoint as in this example

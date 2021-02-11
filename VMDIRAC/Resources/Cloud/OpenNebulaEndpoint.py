@@ -10,9 +10,13 @@ __RCSID__ = "$Id"
 
 import os
 import base64
-import xmlrpclib
 import ssl
 from requests.auth import HTTPBasicAuth
+try:
+  from xmlrpc.client import ServerProxy
+except ImportError:
+  # python2 compat
+  from xmlrpclib import ServerProxy
 
 # DIRAC
 from DIRAC import gLogger, S_OK, S_ERROR
@@ -85,7 +89,7 @@ class OpenNebulaEndpoint(Endpoint):
     ssl_ctx.check_hostname = False
     ssl_ctx.verify_mode = ssl.CERT_NONE
 
-    self.rpcproxy = xmlrpclib.ServerProxy(self.serviceUrl, context=ssl_ctx)
+    self.rpcproxy = ServerProxy(self.serviceUrl, context=ssl_ctx)
 
     return S_OK()
 

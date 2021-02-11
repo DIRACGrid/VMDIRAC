@@ -5,6 +5,11 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import absolute_import
 
+# Define input on python2 in a forwards compatible way
+if hasattr(__builtins__, 'raw_input'):
+  # pylint: disable=E0602,W0622
+  input = raw_input
+
 import pprint
 import getpass
 
@@ -76,7 +81,7 @@ class VirtualMachineCLI(CLI):
       # We need user/login to proceed
       if not ceDict.get('User') or not ceDict.get('Password'):
         print("Endpoint requires user/password")
-        self.user = raw_input(["Login:"])
+        self.user = input(["Login:"])
         self.password = getpass.getpass("Password:")
 
     print("Connection: site=%s, endpoint=%s, project=%s" % (self.site, self.endpoint, self.project))
@@ -135,7 +140,7 @@ class VirtualMachineCLI(CLI):
     """
 
     argss = args.split()
-    if (len(argss) == 0):
+    if not argss:
       print(self.do_status.__doc__)
       return
 
@@ -191,7 +196,7 @@ class VirtualMachineCLI(CLI):
     """
 
     argss = args.split()
-    if (len(argss) == 0):
+    if not argss:
       print(self.do_status.__doc__)
       return
     vmID = argss[0]
@@ -213,7 +218,7 @@ class VirtualMachineCLI(CLI):
     """
 
     argss = args.split()
-    if len(argss) == 0:
+    if not argss:
       return
     vmID = argss[0]
 
@@ -243,7 +248,7 @@ class VirtualMachineCLI(CLI):
     """
 
     argss = args.split()
-    if (len(argss) == 0):
+    if not argss:
       print(self.do_create.__doc__)
       return
     self.vmType = argss.pop(0)
@@ -272,7 +277,7 @@ class VirtualMachineCLI(CLI):
     """
 
     argss = args.split()
-    if (len(argss) == 0):
+    if not argss:
       print(self.do_stop.__doc__)
       return
     vmID = argss[0]

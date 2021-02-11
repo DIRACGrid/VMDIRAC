@@ -30,7 +30,7 @@ class OpenStackEndpoint(Endpoint):
   """ OpenStack implementation of the Cloud Endpoint interface
   """
 
-  def __init__(self, parameters={}, bootstrapParameters={}):
+  def __init__(self, parameters=None, bootstrapParameters=None):
     """
     """
     super(OpenStackEndpoint, self).__init__(parameters=parameters,
@@ -145,7 +145,7 @@ class OpenStackEndpoint(Endpoint):
 
   def createInstances(self, vmsToSubmit):
     outputDict = {}
-    for nvm in xrange(vmsToSubmit):
+    for nvm in range(vmsToSubmit):
       instanceID = makeGuid()[:8]
       result = self.createInstance(instanceID)
       if result['OK']:

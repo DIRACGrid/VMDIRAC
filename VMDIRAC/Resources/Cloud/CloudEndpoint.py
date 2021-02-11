@@ -36,7 +36,7 @@ class CloudEndpoint(Endpoint):
   """ CloudEndpoint base class
   """
 
-  def __init__(self, parameters={}):
+  def __init__(self, parameters=None):
     """
     """
     super(CloudEndpoint, self).__init__(parameters=parameters)
@@ -147,7 +147,7 @@ class CloudEndpoint(Endpoint):
 
     return S_OK(flavor)
 
-  def __getSecurityGroups(self, securityGroupNames=[]):
+  def __getSecurityGroups(self, securityGroupNames=None):
     """
     Given the securityGroupName, returns the current security group object from the server.
 
@@ -177,7 +177,7 @@ class CloudEndpoint(Endpoint):
   def createInstances(self, vmsToSubmit):
     outputDict = {}
 
-    for nvm in xrange(vmsToSubmit):
+    for nvm in range(vmsToSubmit):
       instanceID = makeGuid()[:8]
       createPublicIP = 'ipPool' in self.parameters
       result = self.createInstance(instanceID, createPublicIP)
@@ -404,14 +404,17 @@ class CloudEndpoint(Endpoint):
 
     return S_OK(stateMapDict[state])
 
-  def getVMNetwork(self, networkNames=[]):
+  def getVMNetwork(self, networkNames=None):
     """ Get a network object corresponding to the networkName
 
     :param str networkName: network name
     :return: S_OK|S_ERROR network object in case of S_OK
     """
+    if not networkNames:
+      nameList = []
+    else:
+      nameList = list(networkNames)
     resultList = []
-    nameList = list(networkNames)
     if not nameList:
       nameList = self.parameters.get('networks')
       if not nameList:

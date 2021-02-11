@@ -13,17 +13,22 @@
   Life cycle of VMs Instances in DB
   - New:       Inserted by Director before launching a new instance, to check if image is valid
   - Submitted: Inserted by Director (adding UniqueID) when launches a new instance
-  - Wait_ssh_context:     Declared by Director for submitted instance wich need later contextualization using ssh (VirtualMachineContextualization will check)
+  - Wait_ssh_context: Declared by Director for submitted instance wich need later contextualization using ssh
+                        (VirtualMachineContextualization will check)
   - Contextualizing:     on the waith_ssh_context path is the next status before Running
-  - Running:   Declared by VMMonitoring Server when an Instance reports back correctly (add LastUpdate, publicIP and privateIP)
-  - Stopping:  Declared by VMManager Server when an Instance has been deleted outside of the VM (f.e "Delete" button on Browse Instances)
+  - Running:   Declared by VMMonitoring Server when an Instance reports back correctly
+                 (add LastUpdate, publicIP and privateIP)
+  - Stopping:  Declared by VMManager Server when an Instance has been deleted outside of the VM
+                 (f.e "Delete" button on Browse Instances)
   - Halted:    Declared by VMMonitoring Server when an Instance reports halting
   - Stalled:   Declared by VMManager Server when detects Instance no more running
-  - Error:     Declared by VMMonitoring Server when an Instance reports back wrong requirements or reports as running when Halted
+  - Error:     Declared by VMMonitoring Server when an Instance reports back wrong requirements
+                 or reports as running when Halted
 
   New Instances can be launched by Director if VMImage is not in Error Status.
 
-  Instance UniqueID: for KVM it could be the MAC, for Amazon the returned InstanceID(i-5dec3236), for Occi returned the VMID
+  Instance UniqueID: for KVM it could be the MAC, for Amazon the returned InstanceID(i-5dec3236),
+                       for Occi returned the VMID
 
   Life cycle of VMs RunningPods in DB
   - New:       Inserted by VM Scheduler (RunningPod - Status = New ) if not existing when launching a new instance
@@ -37,7 +42,7 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import absolute_import
 
-import types
+import six
 
 # DIRAC
 from DIRAC import gConfig, S_ERROR, S_OK
@@ -59,21 +64,17 @@ class VirtualMachineDB(DB):
   stallingInterval = 60 * 40
 
   # When attempting a transition it will be checked if the current state is allowed
-  allowedTransitions = {'Image': {
-      'Validated': ['New', 'Validated'],
-  },
-      'Instance': {
-      'Submitted': ['New'],
-      'Running': ['Submitted', 'Running', 'Stalled', 'New'],
-      'Stopping': ['Running', 'Stalled'],
-      'Halted': ['New', 'Running', 'Stopping', 'Stalled', 'Halted'],
-      'Stalled': ['New', 'Submitted', 'Running'],
-  },
-      'RunningPod': {
-      'Active': ['New', 'Active', 'Unactive'],
-      'Unactive': ['New', 'Active', 'Unactive'],
-  }
-  }
+  allowedTransitions = {'Image': {'Validated': ['New', 'Validated'], },
+                        'Instance': {'Submitted': ['New'],
+                                     'Running': ['Submitted', 'Running', 'Stalled', 'New'],
+                                     'Stopping': ['Running', 'Stalled'],
+                                     'Halted': ['New', 'Running', 'Stopping', 'Stalled', 'Halted'],
+                                     'Stalled': ['New', 'Submitted', 'Running'],
+                                     },
+                        'RunningPod': {'Active': ['New', 'Active', 'Unactive'],
+                                       'Unactive': ['New', 'Active', 'Unactive'],
+                                       }
+                        }
 
   tablesDesc = {}
 
@@ -737,7 +738,7 @@ class VirtualMachineDB(DB):
       else:
         continue
       value = selDict[field]
-      if type(value) in (types.StringType, types.UnicodeType):
+      if isinstance(value, six.string_types):
         value = [str(value)]
       sqlCond.append(" OR ".join(["%s=%s" % (sqlField, self._escapeString(str(value))['Value'])
                                   for value in selDict[field]]))
@@ -795,7 +796,9 @@ class VirtualMachineDB(DB):
       return retVal
     return S_OK({'ParameterNames': fields, 'Records': retVal['Value']})
 
-  def getInstanceCounters(self, groupField="Status", selDict={}):
+  def getInstanceCounters(self, groupField="Status", selDict=None):
+    if not selDict:
+      selDict = {}
     validFields = VirtualMachineDB.tablesDesc['vm_Instances']['Fields']
     if groupField not in validFields:
       return S_ERROR("%s is not a valid field" % groupField)
@@ -804,7 +807,7 @@ class VirtualMachineDB(DB):
       if field not in validFields:
         return S_ERROR("%s is not a valid field" % field)
       value = selDict[field]
-      if type(value) not in (types.DictType, types.TupleType):
+      if not isinstance(value, (dict, tuple)):
         value = (value, )
       value = [self._escapeString(str(v))['Value'] for v in value]
       sqlCond.append("`%s` in (%s)" % (field, ", ".join(value)))
@@ -819,7 +822,9 @@ class VirtualMachineDB(DB):
       return result
     return S_OK(dict(result['Value']))
 
-  def getHistoryValues(self, averageBucket, selDict={}, fields2Get=False, timespan=0):
+  def getHistoryValues(self, averageBucket, selDict=None, fields2Get=False, timespan=0):
+    if not selDict:
+      selDict = {}
     try:
       timespan = max(0, int(timespan))
     except ValueError:
@@ -857,7 +862,7 @@ class VirtualMachineDB(DB):
       if field not in allValidFields:
         return S_ERROR("%s is not a valid field" % field)
       value = selDict[field]
-      if type(value) not in (types.ListType, types.TupleType):
+      if not isinstance(value, (list, tuple)):
         value = (value, )
       value = [self._escapeString(str(v))['Value'] for v in value]
       sqlCond.append("`%s` in (%s)" % (field, ", ".join(value)))
@@ -1278,16 +1283,6 @@ class VirtualMachineDB(DB):
       return S_ERROR('Unknown %s = %s' % ('UniqueID', uniqueID))
     return S_OK(result['Value'][0][0])
 
-    instanceID = self.getFields(tableName, [idName], {'UniqueID': uniqueID})
-    if not instanceID['OK']:
-      return instanceID
-    instanceID = instanceID['Value']
-
-    if not instanceID:
-      return S_ERROR('Unknown %s = %s' % ('UniqueID', uniqueID))
-
-    return S_OK(instanceID[0][0])
-
   def __getImageID(self, imageName):
     """
     For a given imageName return corresponding ID
@@ -1367,7 +1362,8 @@ class VirtualMachineDB(DB):
 
   def __setLastLoadJobsAndUptime(self, instanceID, load, jobs, uptime):
     if not uptime:
-      sqlQuery = "SELECT MAX( UNIX_TIMESTAMP( `Update` ) ) - MIN( UNIX_TIMESTAMP( `Update` ) ) FROM `vm_History` WHERE InstanceID = %d GROUP BY InstanceID" % instanceID
+      sqlQuery = "SELECT MAX( UNIX_TIMESTAMP( `Update` ) ) - MIN( UNIX_TIMESTAMP( `Update` ) )" \
+                 " FROM `vm_History` WHERE InstanceID = %d GROUP BY InstanceID" % instanceID
       result = self._query(sqlQuery)
       if result['OK'] and len(result['Value']) > 0:
         uptime = int(result['Value'][0][0])
@@ -1395,7 +1391,7 @@ class VirtualMachineDB(DB):
     values = ret['Value'][0]
     fields = fields.keys()
 
-    for i in xrange(len(fields)):
+    for i in range(len(fields)):
       data[fields[i]] = values[i]
 
     return S_OK(data)

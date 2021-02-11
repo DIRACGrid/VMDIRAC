@@ -17,9 +17,9 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import absolute_import
 
-from types import NoneType
 import os
-import commands
+from subprocess import Popen, PIPE
+import six
 
 # DIRAC
 from DIRAC import gLogger, S_ERROR, S_OK
@@ -98,7 +98,7 @@ def getCEInstances(siteList=None, ceList=None, vo=None):
       if not node.name.startswith('DIRAC'):
         continue
       ip = (node.public_ips[0] if node.public_ips else 'None')
-      nodeState = node.state.upper() if not isinstance(node.state, (int, long)) else STATE_MAP[node.state]
+      nodeState = node.state.upper() if not isinstance(node.state, six.integer_types) else STATE_MAP[node.state]
       nodeDict[node.id] = {"Site": site,
                            "CEName": ceName,
                            "NodeName": node.name,
@@ -156,7 +156,8 @@ def createEndpoint(uniqueID):
 
 def haltInstances(vmList):
   """
-   Common haltInstances for Running(from class VirtualMachineManagerHandler) and Stalled(from checkStalledInstances periodic task) to Halt
+   Common haltInstances for Running(from class VirtualMachineManagerHandler) and
+   Stalled(from checkStalledInstances periodic task) to Halt
   """
 
   failed = {}
@@ -222,13 +223,13 @@ def getPilotOutput(pilotRef):
   privateKeyFile = op.getValue('/Cloud/PrivateKey', '')
   diracUser = op.getValue('/Cloud/VMUser', '')
 
-  cmd = 'ssh -i %s %s@%s "cat /etc/joboutputs/vm-pilot.%s.log"' % (privateKeyFile,
-                                                                   diracUser,
-                                                                   publicIP,
-                                                                   nPilot)
-  status, output = commands.getstatusoutput(cmd)
-  if status:
-    return S_ERROR('Failed to get pilot output: %s' % output)
+  ssh_str = '%s@%s' % (diracUser, publicIP)
+  cmd = ['ssh', '-i', privateKeyFile, ssh_str,
+         "cat /etc/joboutputs/vm-pilot.%s.log" % nPilot]
+  inst = Popen(cmd, stdout=PIPE, stderr=PIPE, stdin=PIPE)
+  output, stderr = inst.communicate()
+  if inst.returncode:
+    return S_ERROR('Failed to get pilot output: %s' % stderr)
   else:
     return S_OK(output)
 
@@ -248,7 +249,7 @@ class VirtualMachineManagerHandler(RequestHandler):
     if not result['OK']:
       gLogger.error('%s: %s' % (methodName, result['Message']))
 
-  types_getCEInstances = [(list, NoneType), (list, NoneType), basestring]
+  types_getCEInstances = [(list, type(None)), (list, type(None)), six.string_types]
 
   def export_getCEInstances(self, siteList, ceList, vo):
 
@@ -256,19 +257,19 @@ class VirtualMachineManagerHandler(RequestHandler):
       siteList = None
     return getCEInstances(siteList=siteList, ceList=ceList, vo=vo)
 
-  types_stopInstance = [basestring, basestring, basestring]
+  types_stopInstance = [six.string_types, six.string_types, six.string_types]
 
   def export_stopInstance(self, site, endpoint, nodeID):
 
     return stopInstance(site, endpoint, nodeID)
 
-  types_getPilotOutput = [basestring]
+  types_getPilotOutput = [six.string_types]
 
   def export_getPilotOutput(self, pilotReference):
 
     return getPilotOutput(pilotReference)
 
-  types_checkVmWebOperation = [basestring]
+  types_checkVmWebOperation = [six.string_types]
 
   def export_checkVmWebOperation(self, operation):
     """
@@ -278,7 +279,7 @@ class VirtualMachineManagerHandler(RequestHandler):
       return S_OK('Auth')
     return S_OK('Unauth')
 
-  types_insertInstance = [basestring, basestring, basestring, basestring, basestring]
+  types_insertInstance = [six.string_types, six.string_types, six.string_types, six.string_types, six.string_types]
 
   def export_insertInstance(self, uniqueID, imageName, instanceName, endpoint, runningPodName):
     """
@@ -290,7 +291,7 @@ class VirtualMachineManagerHandler(RequestHandler):
 
     return res
 
-  types_getUniqueID = [basestring]
+  types_getUniqueID = [six.string_types]
 
   def export_getUniqueID(self, instanceID):
     """
@@ -301,7 +302,7 @@ class VirtualMachineManagerHandler(RequestHandler):
 
     return res
 
-  types_getUniqueIDByName = [basestring]
+  types_getUniqueIDByName = [six.string_types]
 
   def export_getUniqueIDByName(self, instanceName):
     """
@@ -312,7 +313,7 @@ class VirtualMachineManagerHandler(RequestHandler):
 
     return result
 
-  types_setInstanceUniqueID = [long, basestring]
+  types_setInstanceUniqueID = [six.integer_types, six.string_types]
 
   def export_setInstanceUniqueID(self, instanceID, uniqueID):
     """
@@ -324,7 +325,7 @@ class VirtualMachineManagerHandler(RequestHandler):
 
     return res
 
-  types_declareInstanceSubmitted = [basestring]
+  types_declareInstanceSubmitted = [six.string_types]
 
   def export_declareInstanceSubmitted(self, uniqueID):
     """
@@ -335,7 +336,7 @@ class VirtualMachineManagerHandler(RequestHandler):
 
     return res
 
-  types_declareInstanceRunning = [basestring, basestring]
+  types_declareInstanceRunning = [six.string_types, six.string_types]
 
   def export_declareInstanceRunning(self, uniqueID, privateIP):
     """
@@ -356,8 +357,8 @@ class VirtualMachineManagerHandler(RequestHandler):
 
     return res
 
-  types_instanceIDHeartBeat = [basestring, float, (int, long),
-                               (int, long), (int, long)]
+  types_instanceIDHeartBeat = [six.string_types, float, six.integer_types,
+                               six.integer_types, six.integer_types]
 
   def export_instanceIDHeartBeat(self, uniqueID, load, jobs,
                                  transferredFiles, transferredBytes, uptime=0):
@@ -425,7 +426,7 @@ class VirtualMachineManagerHandler(RequestHandler):
 
     return result
 
-  types_declareInstanceHalting = [basestring, float]
+  types_declareInstanceHalting = [six.string_types, float]
 
   def export_declareInstanceHalting(self, uniqueID, load):
     """
@@ -461,7 +462,7 @@ class VirtualMachineManagerHandler(RequestHandler):
 
     return haltInstances(haltingList)
 
-  types_getInstancesByStatus = [basestring]
+  types_getInstancesByStatus = [six.string_types]
 
   def export_getInstancesByStatus(self, status):
     """
@@ -472,7 +473,7 @@ class VirtualMachineManagerHandler(RequestHandler):
     self.__logResult('getInstancesByStatus', res)
     return res
 
-  types_getAllInfoForUniqueID = [basestring]
+  types_getAllInfoForUniqueID = [six.string_types]
 
   def export_getAllInfoForUniqueID(self, uniqueID):
     """
@@ -484,7 +485,7 @@ class VirtualMachineManagerHandler(RequestHandler):
     return res
 
   types_getInstancesContent = [dict, (list, tuple),
-                               (int, long), (int, long)]
+                               six.integer_types, six.integer_types]
 
   def export_getInstancesContent(self, selDict, sortDict, start, limit):
     """
@@ -495,7 +496,7 @@ class VirtualMachineManagerHandler(RequestHandler):
 
     return res
 
-  types_getHistoryForInstanceID = [(int, long)]
+  types_getHistoryForInstanceID = [six.integer_types]
 
   def export_getHistoryForInstanceID(self, instanceId):
     """
@@ -506,7 +507,7 @@ class VirtualMachineManagerHandler(RequestHandler):
 
     return res
 
-  types_getInstanceCounters = [basestring, dict]
+  types_getInstanceCounters = [six.string_types, dict]
 
   def export_getInstanceCounters(self, groupField, selDict):
     """
@@ -519,10 +520,12 @@ class VirtualMachineManagerHandler(RequestHandler):
 
   types_getHistoryValues = [int, dict]
 
-  def export_getHistoryValues(self, averageBucket, selDict, fields2Get=[], timespan=0):
+  def export_getHistoryValues(self, averageBucket, selDict, fields2Get=None, timespan=0):
     """
     Retrieve the contents of the DB
     """
+    if not fields2Get:
+      fields2Get = []
     res = gVirtualMachineDB.getHistoryValues(averageBucket, selDict, fields2Get, timespan)
     self.__logResult('getHistoryValues', res)
 

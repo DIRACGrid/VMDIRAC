@@ -31,7 +31,7 @@ class OcciEndpoint(Endpoint):
   """ OCCI implementation of the Cloud Endpoint interface
   """
 
-  def __init__(self, parameters={}):
+  def __init__(self, parameters=None):
     """
     """
     super(OcciEndpoint, self).__init__(parameters=parameters)
@@ -156,15 +156,15 @@ class OcciEndpoint(Endpoint):
         className = None
         title = None
         location = None
-        for property in values:
-          if "scheme=" in property:
-            scheme = property.strip().replace('scheme=', '').replace('"', '')
-          if "class=" in property:
-            className = property.strip().replace('class=', '').replace('"', '')
-          if "title=" in property:
-            title = property.strip().replace('title=', '').replace('"', '')
-          if "location=" in property:
-            tmp = property.strip()
+        for prop in values:
+          if "scheme=" in prop:
+            scheme = prop.strip().replace('scheme=', '').replace('"', '')
+          if "class=" in prop:
+            className = prop.strip().replace('class=', '').replace('"', '')
+          if "title=" in prop:
+            title = prop.strip().replace('title=', '').replace('"', '')
+          if "location=" in prop:
+            tmp = prop.strip()
             tmp = tmp.replace("https://", "").replace("http://", "").replace('"', '')
             tmp = tmp[tmp.find("/"):]
             location = tmp
@@ -225,7 +225,7 @@ class OcciEndpoint(Endpoint):
   def createInstances(self, vmsToSubmit):
     outputDict = {}
     message = ''
-    for nvm in xrange(vmsToSubmit):
+    for nvm in range(vmsToSubmit):
       instanceID = makeGuid()[:8]
       createPublicIP = 'ipPool' in self.parameters
       result = self.createInstance(instanceID, createPublicIP)
@@ -369,7 +369,7 @@ class OcciEndpoint(Endpoint):
         status = item.split("=")[1].replace('"', '')
     return S_OK(status)
 
-  def getVMNetworks(self, networkNames=[]):
+  def getVMNetworks(self):
     """ Get a network object corresponding to the networkName
 
     :param str networkName: network name

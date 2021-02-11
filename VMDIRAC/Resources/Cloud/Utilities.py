@@ -4,6 +4,7 @@ from __future__ import absolute_import
 
 import sys
 import os
+import six
 
 from DIRAC import S_OK, S_ERROR
 from email.mime.text import MIMEText
@@ -88,7 +89,7 @@ service sshd restart
 
   # List of commands to be downloaded
   bootstrapCommands = bootstrapParameters.get('user_data_commands')
-  if isinstance(bootstrapCommands, basestring):
+  if isinstance(bootstrapCommands, six.string_types):
     bootstrapCommands = bootstrapCommands.split(',')
   if not bootstrapCommands:
     return S_ERROR('user_data_commands list is not defined')

@@ -34,10 +34,12 @@ class EndpointFactory(object):
     return result
 
   #############################################################################
-  def getCEObject(self, parameters={}):
+  def getCEObject(self, parameters=None):
     """This method returns the CloudEndpoint instance corresponding to the supplied
        CEUniqueID.  If no corresponding CE is available, this is indicated.
     """
+    if not parameters:
+      parameters = {}
     ceType = parameters.get('CEType', 'Cloud')
     self.log.verbose('Creating Endpoint of %s type' % ceType)
     subClassName = "%sEndpoint" % (ceType)

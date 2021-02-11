@@ -10,9 +10,13 @@ __RCSID__ = "$Id"
 
 import os
 import base64
-import xmlrpclib
 import ssl
 from requests.auth import HTTPBasicAuth
+try:
+  from xmlrpc.client import ServerProxy
+except ImportError:
+  # python2 compat
+  from xmlrpclib import ServerProxy
 
 # DIRAC
 from DIRAC import gLogger, S_OK, S_ERROR
@@ -26,7 +30,7 @@ class OpenNebulaEndpoint(Endpoint):
   """ OpenNebula implementation of the Cloud Endpoint interface
   """
 
-  def __init__(self, parameters={}):
+  def __init__(self, parameters=None):
     """
     """
     super(OpenNebulaEndpoint, self).__init__(
@@ -85,7 +89,7 @@ class OpenNebulaEndpoint(Endpoint):
     ssl_ctx.check_hostname = False
     ssl_ctx.verify_mode = ssl.CERT_NONE
 
-    self.rpcproxy = xmlrpclib.ServerProxy(self.serviceUrl, context=ssl_ctx)
+    self.rpcproxy = ServerProxy(self.serviceUrl, context=ssl_ctx)
 
     return S_OK()
 
@@ -93,7 +97,7 @@ class OpenNebulaEndpoint(Endpoint):
     outputDict = {}
     message = ''
     self.log.debug("vmsToSubmit " + str(vmsToSubmit))
-    for nvm in xrange(vmsToSubmit):
+    for nvm in range(vmsToSubmit):
       instanceID = makeGuid()[:8]
       createPublicIP = 'ipPool' in self.parameters
 
@@ -207,7 +211,7 @@ USERDATA_ENCODING = "base64"
     """
     return S_ERROR('getVMStatus is not implemented')
 
-  def getVMNetworks(self, networkNames=[]):
+  def getVMNetworks(self):
     """ Get a network object corresponding to the networkName
 
     :param str networkName: network name

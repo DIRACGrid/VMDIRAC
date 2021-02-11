@@ -20,7 +20,7 @@ __RCSID__ = '$Id$'
 
 class EC2Endpoint(Endpoint):
 
-  def __init__(self, parameters={}):
+  def __init__(self, parameters=None):
     """
     """
     Endpoint.__init__(self, parameters=parameters)
@@ -90,7 +90,7 @@ class EC2Endpoint(Endpoint):
   def createInstances(self, vmsToSubmit):
     outputDict = {}
 
-    for nvm in xrange(vmsToSubmit):
+    for nvm in range(vmsToSubmit):
       instanceID = makeGuid()[:8]
       result = self.createInstance(instanceID)
       if result['OK']:

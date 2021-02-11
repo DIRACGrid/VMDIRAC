@@ -313,7 +313,7 @@ class VirtualMachineManagerHandler(RequestHandler):
 
     return result
 
-  types_setInstanceUniqueID = [int, six.string_types]
+  types_setInstanceUniqueID = [six.integer_types, six.string_types]
 
   def export_setInstanceUniqueID(self, instanceID, uniqueID):
     """
@@ -357,7 +357,8 @@ class VirtualMachineManagerHandler(RequestHandler):
 
     return res
 
-  types_instanceIDHeartBeat = [six.string_types, float, int, int, int]
+  types_instanceIDHeartBeat = [six.string_types, float, six.integer_types,
+                               six.integer_types, six.integer_types]
 
   def export_instanceIDHeartBeat(self, uniqueID, load, jobs,
                                  transferredFiles, transferredBytes, uptime=0):
@@ -484,7 +485,7 @@ class VirtualMachineManagerHandler(RequestHandler):
     return res
 
   types_getInstancesContent = [dict, (list, tuple),
-                               int, int]
+                               six.integer_types, six.integer_types]
 
   def export_getInstancesContent(self, selDict, sortDict, start, limit):
     """
@@ -495,7 +496,7 @@ class VirtualMachineManagerHandler(RequestHandler):
 
     return res
 
-  types_getHistoryForInstanceID = [int]
+  types_getHistoryForInstanceID = [six.integer_types]
 
   def export_getHistoryForInstanceID(self, instanceId):
     """

@@ -8,6 +8,7 @@ import sys
 import os
 from subprocess import Popen, PIPE
 
+
 def getstatusoutput(cmd):
   try:
     inst = Popen(cmd, stdout=PIPE, stderr=PIPE)

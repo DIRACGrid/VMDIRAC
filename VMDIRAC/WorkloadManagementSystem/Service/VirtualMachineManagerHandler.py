@@ -18,8 +18,8 @@ from __future__ import division
 from __future__ import absolute_import
 
 import os
+from subprocess import Popen, PIPE
 import six
-import commands
 
 # DIRAC
 from DIRAC import gLogger, S_ERROR, S_OK
@@ -223,13 +223,13 @@ def getPilotOutput(pilotRef):
   privateKeyFile = op.getValue('/Cloud/PrivateKey', '')
   diracUser = op.getValue('/Cloud/VMUser', '')
 
-  cmd = 'ssh -i %s %s@%s "cat /etc/joboutputs/vm-pilot.%s.log"' % (privateKeyFile,
-                                                                   diracUser,
-                                                                   publicIP,
-                                                                   nPilot)
-  status, output = commands.getstatusoutput(cmd)
-  if status:
-    return S_ERROR('Failed to get pilot output: %s' % output)
+  ssh_str = '%s@%s' % (diracUser, publicIP)
+  cmd = ['ssh', '-i', privateKeyFile, ssh_str,
+         "cat /etc/joboutputs/vm-pilot.%s.log" % nPilot]
+  inst = Popen(cmd, stdout=PIPE, stderr=PIPE, stdin=PIPE)
+  output, stderr = inst.communicate()
+  if inst.returncode:
+    return S_ERROR('Failed to get pilot output: %s' % stderr)
   else:
     return S_OK(output)
 

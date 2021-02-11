@@ -5,12 +5,22 @@ from __future__ import division
 from __future__ import absolute_import
 
 import sys
-import commands
 import os
+from subprocess import Popen, PIPE
+
+def getstatusoutput(cmd):
+  try:
+    inst = Popen(cmd, stdout=PIPE, stderr=PIPE)
+    output, _ = inst.communicate()
+    status = inst.returncode
+    return status, output
+  except EnvironmentError:
+    # Missing executable
+    return -1, ""
 
 def getMountedPartitions():
 
-  status, output = commands.getstatusoutput('disk -h')
+  status, output = getstatusoutput(['disk', '-h'])
 
   partitionList = []
   for line in output.split('\n'):
@@ -40,7 +50,7 @@ def getPartitionSize(partition):
   """ Return the partition size in GiB
   """
 
-  status, output = commands.getstatusoutput('fdisk -l %s' % partition)
+  status, output = getstatusoutput(['fdisk', '-l', partition])
   if status != 0:
     return -1
 

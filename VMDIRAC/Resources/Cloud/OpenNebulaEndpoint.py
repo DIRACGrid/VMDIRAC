@@ -26,7 +26,7 @@ class OpenNebulaEndpoint(Endpoint):
   """ OpenNebula implementation of the Cloud Endpoint interface
   """
 
-  def __init__(self, parameters={}):
+  def __init__(self, parameters=None):
     """
     """
     super(OpenNebulaEndpoint, self).__init__(
@@ -93,7 +93,7 @@ class OpenNebulaEndpoint(Endpoint):
     outputDict = {}
     message = ''
     self.log.debug("vmsToSubmit " + str(vmsToSubmit))
-    for nvm in xrange(vmsToSubmit):
+    for nvm in range(vmsToSubmit):
       instanceID = makeGuid()[:8]
       createPublicIP = 'ipPool' in self.parameters
 
@@ -207,7 +207,7 @@ USERDATA_ENCODING = "base64"
     """
     return S_ERROR('getVMStatus is not implemented')
 
-  def getVMNetworks(self, networkNames=[]):
+  def getVMNetworks(self):
     """ Get a network object corresponding to the networkName
 
     :param str networkName: network name

@@ -5,6 +5,7 @@ from __future__ import absolute_import
 
 import json
 import ast
+import six
 
 from DIRAC.Core.Utilities import Time
 from DIRAC.Core.DISET.RPCClient import RPCClient
@@ -42,7 +43,7 @@ class VMDiracHandler(WebHandler):
         dec = json.loads(self.request.arguments['cond'][0])
         for k in dec:
           v = dec[k]
-          if isinstance(v, basestring):
+          if isinstance(v, six.string_types):
             v = [str(v)]
           else:
             v = [str(f) for f in v]

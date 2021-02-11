@@ -20,11 +20,15 @@ class Endpoint(object):
   """ Endpoint base class
   """
 
-  def __init__(self, parameters={}, bootstrapParameters={}):
+  def __init__(self, parameters=None, bootstrapParameters=None):
     """
     """
     # logger
+    if not parameters:
+      parameters = {}
     self.parameters = parameters
+    if not bootstrapParameters:
+      bootstrapParameters = {}
     self.bootstrapParameters = bootstrapParameters
     self.valid = False
     self.proxy = None

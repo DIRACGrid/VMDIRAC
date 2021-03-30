@@ -22,6 +22,7 @@ from DIRAC.WorkloadManagementSystem.Client.WMSAdministratorClient import WMSAdmi
 from DIRAC.Core.DISET.RPCClient import RPCClient
 from DIRAC.Core.Utilities.List import fromChar
 from DIRAC.WorkloadManagementSystem.Client.ServerUtils import pilotAgentsDB
+from DIRAC.ResourceStatusSystem.Client.SiteStatus import SiteStatus
 
 # VMDIRAC
 from VMDIRAC.Resources.Cloud.EndpointFactory import EndpointFactory
@@ -63,7 +64,7 @@ class CloudDirector(AgentModule):
     self.cloudGroup = ''
     self.platforms = []
     self.sites = []
-    self.wmsClient = WMSAdministratorClient()
+    self.siteClient = None
 
     self.proxy = None
 
@@ -74,6 +75,7 @@ class CloudDirector(AgentModule):
   def initialize(self):
     """ Standard constructor
     """
+    self.siteClient = SiteStatus()
     return S_OK()
 
   def beginExecution(self):
@@ -359,11 +361,11 @@ class CloudDirector(AgentModule):
     self.log.info('Total %d jobs in %d task queues with %d VMs' % (totalWaitingJobs, len(tqIDList), totalVMs))
 
     # Check if the site is allowed in the mask
-    result = self.wmsClient.getSiteMask()
+    result = self.siteClient.getUsableSites()
     if not result['OK']:
       return S_ERROR('Can not get the site mask')
-    siteMaskList = result['Value']
-
+    siteMaskList = result.get('Value', [])
+    
     vmTypeList = self.vmTypeDict.keys()
     random.shuffle(vmTypeList)
     totalSubmittedPilots = 0

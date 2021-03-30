@@ -365,7 +365,7 @@ class CloudDirector(AgentModule):
     if not result['OK']:
       return S_ERROR('Can not get the site mask')
     siteMaskList = result.get('Value', [])
-    
+
     vmTypeList = self.vmTypeDict.keys()
     random.shuffle(vmTypeList)
     totalSubmittedPilots = 0

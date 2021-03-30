@@ -18,7 +18,7 @@ from collections import defaultdict
 from DIRAC import S_OK, S_ERROR, gConfig
 from DIRAC.Core.Base.AgentModule import AgentModule
 from DIRAC.ConfigurationSystem.Client.Helpers import CSGlobals, Registry, Resources
-from DIRAC.WorkloadManagementSystem.Client.WMSAdministratorClient import WMSAdministratorClient
+from DIRAC.WorkloadManagementSystem.Client.MatcherClient import MatcherClient
 from DIRAC.Core.DISET.RPCClient import RPCClient
 from DIRAC.Core.Utilities.List import fromChar
 from DIRAC.WorkloadManagementSystem.Client.ServerUtils import pilotAgentsDB
@@ -322,8 +322,8 @@ class CloudDirector(AgentModule):
     self.log.verbose('Checking overall TQ availability with requirements')
     self.log.verbose(tqDict)
 
-    rpcMatcher = RPCClient("WorkloadManagement/Matcher")
-    result = rpcMatcher.getMatchingTaskQueues(tqDict)
+    matcherClient = MatcherClient()
+    result = matcherClient.getMatchingTaskQueues(tqDict)
     if not result['OK']:
       return result
     if not result['Value']:
@@ -417,7 +417,7 @@ class CloudDirector(AgentModule):
 
       # Get the number of eligible jobs for the target site/queue
 
-      result = rpcMatcher.getMatchingTaskQueues(ceDict)
+      result = matcherClient.getMatchingTaskQueues(ceDict)
       if not result['OK']:
         self.log.error('Could not retrieve TaskQueues from TaskQueueDB', result['Message'])
         return result

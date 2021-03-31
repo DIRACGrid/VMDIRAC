@@ -1,3 +1,13 @@
+[v2r4p10]
+
+CHANGE: (#144) Replaced obsolete call to WMSAdministratorClient with SiteStatus
+
+[v2r4p9]
+
+FIX: (#142) More python3 compatibility tweaks (and other tidying up)
+NEW: (#141) Documented creation of app credential
+NEW: (#140) Add longer intro to docs
+
 [v2r4p8]
 
 FIX: (#132) Fixup a couple of typos in cloudinit template

@@ -113,6 +113,74 @@ Using OpenStack with an application credential
 * Make sure the file is owned by the user running dirac and has 0600 permissions.
 * Add the location of this file to the Resource Settings.
 
+^^^^^^^^^^^^
+OpenStack Resource Configuration
+^^^^^^^^^^^^
+On the OpenStack Resource you will need the following:
+
+* user account
+* user's ssh key uploaded to the OpenStack server: Associated with the instance for debugging. 
+  This key is user specific, not project specific. 
+* flavour (ID or name)
+* image (ID or name)
+* network (ID or name)
+
+  ::
+ 
+     CLOUD.ExampleName.uk
+      {
+	     Name = [ExampleName]
+	     # must be unique, use e.g. hostname of the OpenStack webinterface
+        CE = [hostname.example.ac.uk]
+        Cloud
+        {
+          [hostname.example.ac.uk]
+          {
+            # assuming your cloud is using a standard CA
+            CAPath = /etc/pki/tls/cert.pem
+            # list your favourite VOs here 
+            VO = gridpp
+            VO += lz
+            NetworkID = [network uuid]
+            Network = [name_of_network]
+            CEType = OpenStack
+            MaxInstances = [maximum number of instances]
+            AuthURL = [https://keystone.example.ac.uk:5000/v3]
+            Appcred = [path to appcred file created earlier]
+            # this might be optional
+            CVMFSProxy = http://[your cvmfs proxy cache]:3128
+            Images
+            {
+              [image name, e.g. CentOS-7-x86_64-GenericCloud-1905]
+              {
+                ImageID = [image uuid]
+                FlavorName = [flavour name]
+                # this is currently a dummy value
+                Platform = [DIRACPlatForm]
+              }
+            }
+            OSKeyName = [ssh key name of the OpenStack user]
+            Tenant = [Openstack Project Name]
+          }
+        }
+
+        CEs
+        {
+          [hostname.example.ac.uk]
+          {
+            CEType = Cloud
+            Architecture = x86_64
+            Queues
+            {
+              [image name]
+              {
+                maxCPUTime = 24000000
+              }
+            }
+          }
+        }
+      }
+
 -------------
 Configuration - other examples
 -------------

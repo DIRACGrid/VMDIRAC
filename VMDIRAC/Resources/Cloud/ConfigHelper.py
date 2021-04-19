@@ -8,6 +8,8 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import absolute_import
 
+import six
+
 from DIRAC import S_OK, S_ERROR, gLogger, gConfig
 from DIRAC.ConfigurationSystem.Client.Helpers import Registry, Operations
 from DIRAC.FrameworkSystem.Client.ProxyManagerClient import gProxyManager
@@ -167,4 +169,16 @@ def getPilotBootstrapParameters(vo='', runningPod=''):
   result = op.getOptionsDict('Cloud/%s' % runningPod)
   if result['OK']:
     opParameters.update(result['Value'])
+
+  # Get standard pilot version now
+  if 'Version' in opParameters:
+    gLogger.warn("Cloud bootstrap version now uses standard Pilot/Version setting. "
+                 "Please remove all obsolete (Cloud/Version) setting(s).")
+  pilotVersions = op.getValue('Pilot/Version')
+  if isinstance(pilotVersions, six.string_types):
+    pilotVersions = [pilotVersions]
+  if not pilotVersions:
+    S_ERROR("Failed to get pilot version.")
+  opParameters['Version'] = pilotVersions[0].strip()
+
   return S_OK(opParameters)

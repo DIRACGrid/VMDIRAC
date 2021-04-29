@@ -124,7 +124,7 @@ write_files:
        chmod +x dirac-install.py
      fi
 
-     python dirac-install.py -t server -r %(release-version)s -e VMDIRAC
+     python dirac-install.py -r %(release-version)s -e VMDIRAC
      mkdir -p etc/grid-security
      cp /root/hostkey.pem etc/grid-security/hostkey.pem
      chmod 600 etc/grid-security/hostkey.pem

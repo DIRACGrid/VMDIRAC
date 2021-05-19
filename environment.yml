@@ -20,6 +20,7 @@ dependencies:
   - pytest >=3.6
   - pytest-cov >=2.2.0
   - pytest-mock
+  - importlib_resources
   # code
   - boto3
   - apache-libcloud
